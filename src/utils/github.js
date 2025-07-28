@@ -49,8 +49,17 @@ class GitHubClient {
                 return { exists: false, sha: null, content: null };
             }
             
+            if (response.status === 403) {
+                const errorData = await response.json().catch(() => ({}));
+                if (errorData.message && errorData.message.includes('rate limit')) {
+                    throw new Error('GitHub API rate limit exceeded. Please try again later.');
+                }
+                throw new Error('GitHub API access forbidden. Check your token permissions.');
+            }
+            
             if (!response.ok) {
-                throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`GitHub API error: ${response.status} ${response.statusText}${errorData.message ? ` - ${errorData.message}` : ''}`);
             }
             
             const data = await response.json();
@@ -64,6 +73,9 @@ class GitHubClient {
                 lastModified: data.commit?.committer?.date || new Date().toISOString()
             };
         } catch (error) {
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('Network error: Unable to connect to GitHub. Check your internet connection.');
+            }
             throw new Error(`Failed to fetch file info: ${error.message}`);
         }
     }
@@ -179,5 +191,10 @@ class GitHubClient {
 }
 
 // Create global instance
-window.githubClient = new GitHubClient();
-console.log('GitHub client initialized:', window.githubClient.isAuthenticated() ? 'authenticated' : 'not authenticated');
+try {
+    window.githubClient = new GitHubClient();
+    console.log('GitHub client initialized:', window.githubClient.isAuthenticated() ? 'authenticated' : 'not authenticated');
+} catch (error) {
+    console.error('Failed to initialize GitHub client:', error);
+    window.githubClient = null;
+}

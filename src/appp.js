@@ -240,9 +240,15 @@ async function parseMarkdownContent(content) {
             const columns = line.split('|').map(col => col.trim()).slice(1, -1); // Remove first and last empty elements
             console.log('Columns found:', columns);
             
-            // Skip completely empty rows
-            if (columns.every(col => col === '')) {
+            // Skip completely empty rows or rows with only empty/whitespace columns
+            if (columns.every(col => col === '' || col === ' ')) {
                 console.log('Skipping empty row');
+                continue;
+            }
+            
+            // Skip rows that look like template rows (all spaces or dashes)
+            if (columns.every(col => /^[\s-]*$/.test(col))) {
+                console.log('Skipping template/placeholder row');
                 continue;
             }
             
@@ -270,7 +276,10 @@ async function parseMarkdownContent(content) {
                 continue;
             }
             
-            if (ticker && ticker !== 'Ticker' && ticker !== 'Stock Symbol' && date && date !== 'Date' && date !== 'Date Added') {
+            // Additional validation: make sure ticker and date have actual content
+            if (ticker && ticker !== 'Ticker' && ticker !== 'Stock Symbol' && 
+                date && date !== 'Date' && date !== 'Date Added' &&
+                ticker.trim() !== '' && date.trim() !== '') {
                 console.log('Adding stock:', ticker, date);
                 portfolioData.push({
                     ticker: ticker,
@@ -282,7 +291,7 @@ async function parseMarkdownContent(content) {
                     starred: false // Will be set based on local data if exists
                 });
             } else {
-                console.log('Skipping row - invalid ticker or date:', ticker, date);
+                console.log('Skipping row - invalid or empty ticker/date:', ticker, date);
             }
         }
         
@@ -706,8 +715,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initialize GitHub integration
-    initializeGitHubIntegration();
+    // Initialize GitHub integration with a small delay to ensure DOM is ready
+    setTimeout(() => {
+        initializeGitHubIntegration();
+    }, 100);
 
     // Initial render of portfolio
     updatePortfolioTable();
@@ -751,16 +762,28 @@ function updateGitHubUI() {
 }
 
 function initializeGitHubIntegration() {
+    // Ensure GitHub client exists before proceeding
+    if (!window.githubClient) {
+        console.error('GitHub client not initialized');
+        showStatus('GitHub integration failed to load', 'error');
+        return;
+    }
+    
+    console.log('Initializing GitHub integration...');
+    
     // Update UI based on current auth status
     updateGitHubUI();
     
     // If already authenticated, automatically load portfolio from GitHub
     if (window.githubClient && window.githubClient.isAuthenticated()) {
+        console.log('User already authenticated, auto-loading portfolio...');
         showStatus('Auto-loading portfolio from GitHub...', 'info');
         loadPortfolioFromGitHub().catch(error => {
             console.error('Auto-load error:', error);
             showStatus('Auto-load failed, continuing with local data', 'info');
         });
+    } else {
+        console.log('User not authenticated, showing login form');
     }
     
     // GitHub authentication form
@@ -792,6 +815,15 @@ function initializeGitHubIntegration() {
                 
                 // Clear the token field for security
                 document.getElementById('github-token').value = '';
+                
+                // Automatically load portfolio after successful connection
+                showStatus('Loading portfolio from GitHub...', 'info');
+                try {
+                    await loadPortfolioFromGitHub();
+                } catch (loadError) {
+                    console.error('Auto-load after auth error:', loadError);
+                    showStatus('Connected to GitHub, but portfolio load failed. You can try saving to create the file.', 'info');
+                }
                 
             } catch (error) {
                 console.error('GitHub auth error:', error);
