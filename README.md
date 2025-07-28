@@ -31,3 +31,7 @@ The Stock Tracker is a simple web application that allows users to track their s
    ```
    npm install
    ```
+3. run it
+   ```
+   npm run
+   ```

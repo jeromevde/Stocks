@@ -12,64 +12,10 @@ async function fetchTickerSuggestions(query) {
     }
 }
 
-// DOM Elements
-const stockInput = document.getElementById('stock-input');
-const stockForm = document.getElementById('stock-form');
-const portfolioTableBody = document.getElementById('portfolio-tbody');
-const filterInput = document.getElementById('filter-input');
-
-
+// Global variables
 let portfolio = [];
 let sortByCumulativeReturn = false;
 let labelFilterSet = new Set();
-
-// Ticker autocomplete
-stockInput.addEventListener('input', async (e) => {
-    const val = e.target.value;
-    if (val.length < 1) return;
-    const suggestions = await fetchTickerSuggestions(val);
-    const datalist = document.getElementById('ticker-list');
-    datalist.innerHTML = '';
-    suggestions.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.symbol;
-        opt.label = s.name;
-        datalist.appendChild(opt);
-    });
-});
-
-// Add stock
-stockForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const ticker = stockInput.value.trim().toUpperCase();
-    // Only ticker is entered, set default values for others
-    if (!ticker) {
-        alert('Ticker is required.');
-        return;
-    }
-    // Validate ticker exists on Yahoo
-    const suggestions = await fetchTickerSuggestions(ticker);
-    if (!suggestions.some(s => s.symbol.toUpperCase() === ticker)) {
-        alert('Ticker not found on Yahoo Finance.');
-        return;
-    }
-    // Set default start date to today, label and notes empty
-    const date = new Date().toISOString().slice(0,10);
-    const label = '';
-    const notes = '';
-    const startPrice = await fetchHistoricalPrice(ticker, date);
-    const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
-    if (startPrice == null || nowPrice == null) {
-        alert('Could not fetch price data.');
-        return;
-    }
-    const cumulativeReturn = ((nowPrice - startPrice) / startPrice * 100).toFixed(2);
-    const stock = {ticker, date, label, notes, nowPrice: Number(nowPrice).toFixed(2), cumulativeReturn, star: false};
-    portfolio.push(stock);
-    updatePortfolioTable();
-    await savePortfolioToMarkdown();
-    stockForm.reset();
-});
 
 // Fetch historical price from Yahoo
 async function fetchHistoricalPrice(ticker, date) {
@@ -98,9 +44,27 @@ async function fetchHistoricalPrice(ticker, date) {
     }
 }
 
+// Save portfolio to markdown and upload to GitHub
+async function savePortfolioToMarkdown() {
+    let md = '# Portfolio\n\n';
+    md += '| Ticker | Date | Labels | Notes | Current Price | Return (%) |\n';
+    md += '|--------|------|--------|-------|---------------|------------|\n';
+    portfolio.forEach(s => {
+        md += `| ${s.ticker} | ${s.date} | ${s.labels.join(', ')} | ${s.notes} | $${s.nowPrice} | ${s.cumulativeReturn} |\n`;
+    });
+    // Use github.js to upload
+    if (window.uploadToGitHub) {
+        window.uploadToGitHub('portfolio.md', md);
+    }
+}
+
 // Render portfolio
 function updatePortfolioTable() {
+    const portfolioTableBody = document.getElementById('portfolio-tbody');
+    if (!portfolioTableBody) return;
+
     portfolioTableBody.innerHTML = '';
+    
     // Sort: starred first, then by cumulative return if requested
     let sorted = [...portfolio];
     sorted.sort((a, b) => {
@@ -113,25 +77,29 @@ function updatePortfolioTable() {
         }
         return 0;
     });
+    
     // Filter by label if any selected
     let filtered = sorted;
     if (labelFilterSet.size > 0) {
-        filtered = sorted.filter(stock => labelFilterSet.has(stock.label));
+        filtered = sorted.filter(stock => stock.labels.some(label => labelFilterSet.has(label)));
     }
-    filtered.forEach((stock, idx) => {
+    
+    filtered.forEach(stock => {
         const tr = document.createElement('tr');
         const notesShort = stock.notes && stock.notes.length > 20 ? stock.notes.slice(0, 20) + '…' : stock.notes;
+        const stockIdx = portfolio.indexOf(stock);
+        
         tr.innerHTML = `
-            <td style="text-align:center;"><button class="star-btn" data-idx="${portfolio.indexOf(stock)}">${stock.star ? '★' : '☆'}</button></td>
+            <td style="text-align:center;"><button class="star-btn" data-idx="${stockIdx}">${stock.star ? '★' : '☆'}</button></td>
             <td style="text-align:center;">${stock.ticker}</td>
-            <td style="text-align:center;"><input type="date" value="${stock.date}" data-idx="${portfolio.indexOf(stock)}" class="edit-date" style="width:130px;"></td>
+            <td style="text-align:center;"><input type="date" value="${stock.date}" data-idx="${stockIdx}" class="edit-date" style="width:130px;"></td>
             <td style="text-align:center;">
-                <span class="label-value">${stock.label}</span>
-                <input type="text" value="${stock.label}" data-idx="${portfolio.indexOf(stock)}" class="edit-label" style="width:100px; display:none;">
+                <span class="label-value">${stock.labels.join(', ')}</span>
+                <input type="text" value="${stock.labels.join(', ')}" data-idx="${stockIdx}" class="edit-label" style="width:100px; display:none;">
             </td>
             <td style="text-align:center;">
                 <span class="notes-popup" data-full="${encodeURIComponent(stock.notes)}">${notesShort}</span>
-                <input type="text" value="${stock.notes}" data-idx="${portfolio.indexOf(stock)}" class="edit-notes" style="display:none;width:120px;">
+                <input type="text" value="${stock.notes}" data-idx="${stockIdx}" class="edit-notes" style="display:none;width:120px;">
             </td>
             <td style="text-align:right;">${stock.nowPrice != null ? '$' + stock.nowPrice : ''}</td>
             <td class="cumulative-return" style="text-align:right;">${stock.cumulativeReturn}</td>
@@ -139,31 +107,37 @@ function updatePortfolioTable() {
         `;
         portfolioTableBody.appendChild(tr);
     });
-    // Star button
+    
+    // Add event listeners for star buttons
     document.querySelectorAll('.star-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            const idx = btn.getAttribute('data-idx');
+            const idx = parseInt(btn.getAttribute('data-idx'));
             portfolio[idx].star = !portfolio[idx].star;
             updatePortfolioTable();
             await savePortfolioToMarkdown();
         });
     });
-    // Add event listeners for editing
+    
+    // Add event listeners for editing date
     document.querySelectorAll('.edit-date').forEach(input => {
         input.addEventListener('change', async (e) => {
-            const idx = e.target.getAttribute('data-idx');
+            const idx = parseInt(e.target.getAttribute('data-idx'));
             const newDate = e.target.value;
             portfolio[idx].date = newDate;
+            
             // Re-fetch start price and cumulative return
             const ticker = portfolio[idx].ticker;
             const startPrice = await fetchHistoricalPrice(ticker, newDate);
             const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
             portfolio[idx].nowPrice = Number(nowPrice).toFixed(2);
-            portfolio[idx].cumulativeReturn = (startPrice && nowPrice) ? ((nowPrice - startPrice) / startPrice * 100).toFixed(2) : '';
+            portfolio[idx].cumulativeReturn = (startPrice && nowPrice) ? 
+                ((nowPrice - startPrice) / startPrice * 100).toFixed(2) : '';
+                
             updatePortfolioTable();
             await savePortfolioToMarkdown();
         });
     });
+    
     // Label click-to-edit
     document.querySelectorAll('.label-value').forEach(span => {
         span.addEventListener('click', (e) => {
@@ -173,13 +147,15 @@ function updatePortfolioTable() {
             input.focus();
         });
     });
+    
     document.querySelectorAll('.edit-label').forEach(input => {
         input.addEventListener('blur', async (e) => {
-            const idx = e.target.getAttribute('data-idx');
-            portfolio[idx].label = e.target.value;
+            const idx = parseInt(e.target.getAttribute('data-idx'));
+            portfolio[idx].labels = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
             updatePortfolioTable();
             await savePortfolioToMarkdown();
         });
+        
         input.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -187,6 +163,7 @@ function updatePortfolioTable() {
             }
         });
     });
+    
     // Notes popup and edit
     document.querySelectorAll('.notes-popup').forEach(span => {
         span.addEventListener('mouseenter', (e) => {
@@ -209,13 +186,15 @@ function updatePortfolioTable() {
             popup.style.whiteSpace = 'pre-wrap';
             span._popup = popup;
         });
+        
         span.addEventListener('mouseleave', (e) => {
             if (span._popup) {
                 document.body.removeChild(span._popup);
                 span._popup = null;
             }
         });
-        // Click to edit
+        
+        // Click to edit notes
         span.addEventListener('click', (e) => {
             span.style.display = 'none';
             const input = span.parentElement.querySelector('.edit-notes');
@@ -223,13 +202,15 @@ function updatePortfolioTable() {
             input.focus();
         });
     });
+    
     document.querySelectorAll('.edit-notes').forEach(input => {
         input.addEventListener('blur', async (e) => {
-            const idx = e.target.getAttribute('data-idx');
+            const idx = parseInt(e.target.getAttribute('data-idx'));
             portfolio[idx].notes = e.target.value;
             updatePortfolioTable();
             await savePortfolioToMarkdown();
         });
+        
         input.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -237,80 +218,8 @@ function updatePortfolioTable() {
             }
         });
     });
-    document.querySelectorAll('.yahoo-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const ticker = btn.getAttribute('data-ticker');
-            window.open(`https://finance.yahoo.com/quote/${ticker}`, '_blank');
-        });
-    });
-// Label filter dropdown logic
-document.addEventListener('DOMContentLoaded', () => {
-    const labelHeader = document.getElementById('label-header');
-    const dropdown = document.getElementById('label-filter-dropdown');
-    if (labelHeader && dropdown) {
-        labelHeader.addEventListener('click', (e) => {
-            // Get unique labels
-            const labels = Array.from(new Set(portfolio.map(s => s.label).filter(l => l)));
-            dropdown.innerHTML = '';
-            labels.forEach(label => {
-                const id = 'label-filter-' + label;
-                const div = document.createElement('div');
-                div.innerHTML = `<label><input type="checkbox" id="${id}" value="${label}" ${labelFilterSet.has(label) ? 'checked' : ''}> ${label}</label>`;
-                dropdown.appendChild(div);
-                div.querySelector('input').addEventListener('change', (ev) => {
-                    if (ev.target.checked) labelFilterSet.add(label);
-                    else labelFilterSet.delete(label);
-                    updatePortfolioTable();
-                });
-            });
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-            e.stopPropagation();
-        });
-        document.body.addEventListener('click', () => {
-            dropdown.style.display = 'none';
-        });
-        dropdown.addEventListener('click', (e) => e.stopPropagation());
-    }
-});
-    // Star button
-    document.querySelectorAll('.star-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const idx = btn.getAttribute('data-idx');
-            portfolio[idx].star = !portfolio[idx].star;
-            updatePortfolioTable();
-            await savePortfolioToMarkdown();
-        });
-    });
-    // Add event listeners for editing
-    document.querySelectorAll('.edit-date').forEach(input => {
-        input.addEventListener('change', async (e) => {
-            const idx = e.target.getAttribute('data-idx');
-            const newDate = e.target.value;
-            portfolio[idx].date = newDate;
-            // Re-fetch start price and cumulative return
-            const ticker = portfolio[idx].ticker;
-            const startPrice = await fetchHistoricalPrice(ticker, newDate);
-            const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
-            portfolio[idx].nowPrice = nowPrice;
-            portfolio[idx].cumulativeReturn = (startPrice && nowPrice) ? ((nowPrice - startPrice) / startPrice * 100).toFixed(2) : '';
-            updatePortfolioTable();
-            await savePortfolioToMarkdown();
-        });
-    });
-    document.querySelectorAll('.edit-label').forEach(input => {
-        input.addEventListener('input', async (e) => {
-            const idx = e.target.getAttribute('data-idx');
-            portfolio[idx].label = e.target.value;
-            await savePortfolioToMarkdown();
-        });
-    });
-    document.querySelectorAll('.edit-notes').forEach(input => {
-        input.addEventListener('input', async (e) => {
-            const idx = e.target.getAttribute('data-idx');
-            portfolio[idx].notes = e.target.value;
-            await savePortfolioToMarkdown();
-        });
-    });
+    
+    // Yahoo finance buttons
     document.querySelectorAll('.yahoo-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const ticker = btn.getAttribute('data-ticker');
@@ -318,8 +227,171 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 }
-// Add sort event listener after DOMContentLoaded
+
+// Initialize everything after DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
+    const stockInput = document.getElementById('stock-input');
+    const portfolioTableBody = document.getElementById('portfolio-tbody');
+    
+    if (!stockInput || !portfolioTableBody) {
+        console.error('Required DOM elements not found');
+        return;
+    }
+    
+    // Ticker autocomplete
+    stockInput.addEventListener('input', async (e) => {
+        const val = e.target.value;
+        if (val.length < 1) return;
+        const suggestions = await fetchTickerSuggestions(val);
+        const datalist = document.getElementById('ticker-list');
+        datalist.innerHTML = '';
+        suggestions.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.symbol;
+            opt.label = s.name;
+            datalist.appendChild(opt);
+        });
+    });
+    
+    // Add stock
+    stockInput.addEventListener('change', async (e) => {
+        const ticker = stockInput.value.trim().toUpperCase();
+        if (!ticker) {
+            return;
+        }
+        // Validate ticker exists on Yahoo before adding
+        const suggestions = await fetchTickerSuggestions(ticker);
+        if (!suggestions.some(s => s.symbol.toUpperCase() === ticker)) {
+            return; // Do nothing if not a valid ticker
+        }
+        
+        const date = new Date().toISOString().slice(0,10);
+        const startPrice = await fetchHistoricalPrice(ticker, date);
+        const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
+        if (startPrice == null || nowPrice == null) {
+            alert('Could not fetch price data for the selected date.');
+            return;
+        }
+        const cumulativeReturn = ((nowPrice - startPrice) / startPrice * 100).toFixed(2);
+        const stock = {
+            ticker, 
+            date, 
+            labels: [], 
+            notes: '',
+            nowPrice: Number(nowPrice).toFixed(2),
+            cumulativeReturn, 
+            star: false
+        };
+        portfolio.push(stock);
+        updatePortfolioTable();
+        await savePortfolioToMarkdown();
+        stockInput.value = ''; // Clear input after adding
+    });
+    
+    // Label filter dropdown logic
+    const labelHeader = document.getElementById('label-header');
+    const dropdown = document.getElementById('label-filter-dropdown');
+    
+    if (labelHeader && dropdown) {
+        labelHeader.addEventListener('click', (e) => {
+            // Get unique labels
+            const labels = Array.from(new Set(portfolio.flatMap(s => s.labels).filter(l => l)));
+            
+            dropdown.innerHTML = '';
+            
+            // Add "Select All" checkbox
+            const selectAllDiv = document.createElement('div');
+            selectAllDiv.style.marginBottom = '8px';
+            selectAllDiv.style.borderBottom = '1px solid #ccc';
+            selectAllDiv.style.paddingBottom = '5px';
+            
+            const selectAllId = 'label-filter-select-all';
+            const allChecked = labels.length > 0 && labels.every(label => labelFilterSet.has(label));
+            
+            selectAllDiv.innerHTML = `<label><input type="checkbox" id="${selectAllId}" ${allChecked ? 'checked' : ''}> <strong>Select All</strong></label>`;
+            dropdown.appendChild(selectAllDiv);
+            
+            // Add event listener for Select All
+            selectAllDiv.querySelector('input').addEventListener('change', (ev) => {
+                if (ev.target.checked) {
+                    // Add all labels to filter set
+                    labels.forEach(label => labelFilterSet.add(label));
+                    // Check all checkboxes
+                    dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.checked = true;
+                    });
+                } else {
+                    // Clear filter set
+                    labelFilterSet.clear();
+                    // Uncheck all checkboxes
+                    dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                }
+                updatePortfolioTable();
+            });
+            
+            // Add individual label checkboxes
+            labels.forEach(label => {
+                const id = 'label-filter-' + label.replace(/\s+/g, '-');
+                const div = document.createElement('div');
+                div.innerHTML = `<label><input type="checkbox" id="${id}" value="${label}" ${labelFilterSet.has(label) ? 'checked' : ''}> ${label}</label>`;
+                dropdown.appendChild(div);
+                
+                div.querySelector('input').addEventListener('change', (ev) => {
+                    if (ev.target.checked) {
+                        labelFilterSet.add(label);
+                    } else {
+                        labelFilterSet.delete(label);
+                    }
+                    
+                    // Update Select All checkbox state
+                    const allChecked = labels.length > 0 && labels.every(l => labelFilterSet.has(l));
+                    const selectAllCheckbox = document.getElementById(selectAllId);
+                    if (selectAllCheckbox) {
+                        selectAllCheckbox.checked = allChecked;
+                    }
+                    
+                    updatePortfolioTable();
+                });
+            });
+            
+            // Add Clear All button
+            if (labels.length > 0) {
+                const clearAllDiv = document.createElement('div');
+                clearAllDiv.style.marginTop = '8px';
+                clearAllDiv.style.borderTop = '1px solid #ccc';
+                clearAllDiv.style.paddingTop = '5px';
+                
+                const clearButton = document.createElement('button');
+                clearButton.innerText = 'Clear All';
+                clearButton.style.padding = '3px 8px';
+                clearButton.style.fontSize = '12px';
+                
+                clearButton.addEventListener('click', () => {
+                    labelFilterSet.clear();
+                    dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    updatePortfolioTable();
+                });
+                
+                clearAllDiv.appendChild(clearButton);
+                dropdown.appendChild(clearAllDiv);
+            }
+            
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            e.stopPropagation();
+        });
+        
+        document.body.addEventListener('click', () => {
+            dropdown.style.display = 'none';
+        });
+        
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
+    
+    // Add sort event listener
     const sortHeader = document.getElementById('sort-cumret');
     if (sortHeader) {
         sortHeader.addEventListener('click', () => {
@@ -327,26 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePortfolioTable();
         });
     }
-});
 
-// No longer needed: openYahooFinance (iframe embedding is blocked by Yahoo)
-
-// Filter
-filterInput.addEventListener('input', () => {
-    // Optionally implement filtering in the table if desired
+    // Initial render of portfolio
     updatePortfolioTable();
 });
-
-// Save portfolio to markdown and upload to GitHub
-async function savePortfolioToMarkdown() {
-    let md = '# Portfolio\n\n';
-    md += '| Ticker | Date | Label | Notes | Current Price | Return (%) |\n';
-    md += '|--------|------|-------|-------|---------------|------------|\n';
-    portfolio.forEach(s => {
-        md += `| ${s.ticker} | ${s.date} | ${s.label} | ${s.notes} | $${s.nowPrice} | ${s.cumulativeReturn} |\n`;
-    });
-    // Use github.js to upload
-    if (window.uploadToGitHub) {
-        window.uploadToGitHub('portfolio.md', md);
-    }
-}
