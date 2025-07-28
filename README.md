@@ -21,17 +21,6 @@ The Stock Tracker is a simple web application that allows users to track their s
 
 
 ## Installation
-1. Clone the repository:
-   ```
-   git clone <repository-url>
-   cd stock-tracker
-   ```
-
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. run it
-   ```
-   npm run
-   ```
+```
+npx live-server src --port=8080 
+```

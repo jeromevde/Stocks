@@ -101,15 +101,25 @@ function updatePortfolioTable() {
             </td>
             <td style="text-align:center;"><input type="date" value="${stock.date}" data-idx="${stockIdx}" class="edit-date" style="width:130px;"></td>
             <td style="text-align:center;">
-                <span class="label-value" data-idx="${stockIdx}" style="cursor:pointer; display:inline-block; min-width:80px; padding:4px; border:1px solid transparent;">${stock.labels.join(', ') || 'Click to add'}</span>
-                <input type="text" value="${stock.labels.join(', ')}" data-idx="${stockIdx}" class="edit-label" style="width:100px; display:none;">
+                <div class="labels-container" data-idx="${stockIdx}" style="cursor:pointer; min-width:80px; padding:4px; border:1px solid transparent;">
+                    ${stock.labels.map(label => `<span class="label-tag" style="display:inline-block; background:#e3f2fd; color:#1976d2; padding:2px 6px; margin:1px; border-radius:3px; font-size:11px;">${label}<span class="remove-label" data-label="${label}" style="margin-left:4px; cursor:pointer; font-weight:bold;">×</span></span>`).join('')}
+                    ${stock.labels.length === 0 ? '<span class="add-label-prompt" style="color:#888;">Click to add</span>' : ''}
+                    <span class="add-label-btn" style="display:inline-block; background:#f0f0f0; color:#666; padding:2px 6px; margin:1px; border-radius:3px; font-size:11px; cursor:pointer;">+</span>
+                </div>
+                <div class="label-popup" data-idx="${stockIdx}" style="display:none; position:absolute; background:white; border:1px solid #ccc; border-radius:4px; padding:8px; box-shadow:0 2px 8px rgba(0,0,0,0.15); z-index:1000;">
+                    <input type="text" class="label-input" placeholder="Add label" style="width:120px; padding:4px; margin-bottom:8px; border:1px solid #ccc; border-radius:3px;">
+                    <div>
+                        <button class="add-label-confirm" style="padding:4px 8px; margin-right:4px; background:#4caf50; color:white; border:none; border-radius:3px; cursor:pointer; font-size:11px;">Add</button>
+                        <button class="cancel-label" style="padding:4px 8px; background:#f44336; color:white; border:none; border-radius:3px; cursor:pointer; font-size:11px;">Cancel</button>
+                    </div>
+                </div>
             </td>
             <td style="text-align:center;">
                 <span class="notes-popup" data-full="${encodeURIComponent(stock.notes)}" data-idx="${stockIdx}" style="cursor:pointer; display:inline-block; min-width:80px; padding:4px; border:1px solid transparent;">${notesShort || 'Click to add'}</span>
                 <input type="text" value="${stock.notes}" data-idx="${stockIdx}" class="edit-notes" style="display:none;width:120px;">
             </td>
-            <td style="text-align:right;">${stock.nowPrice != null ? '$' + stock.nowPrice : ''}</td>
-            <td class="cumulative-return" style="text-align:right;">${stock.cumulativeReturn}</td>
+            <td style="text-align:right;">${stock.nowPrice != null ? (stock.loading ? '...' : '$' + stock.nowPrice) : ''}</td>
+            <td class="cumulative-return" style="text-align:right;">${stock.loading ? '...' : stock.cumulativeReturn}</td>
         `;
         
         // Star button event listener
@@ -138,34 +148,76 @@ function updatePortfolioTable() {
             await savePortfolioToMarkdown();
         });
         
-        // Label editing
-        const labelSpan = tr.querySelector('.label-value');
-        const labelInput = tr.querySelector('.edit-label');
+        // Label management
+        const labelsContainer = tr.querySelector('.labels-container');
+        const labelPopup = tr.querySelector('.label-popup');
+        const labelInput = tr.querySelector('.label-input');
+        const addLabelBtn = tr.querySelector('.add-label-btn');
+        const addLabelPrompt = tr.querySelector('.add-label-prompt');
+        const confirmBtn = tr.querySelector('.add-label-confirm');
+        const cancelBtn = tr.querySelector('.cancel-label');
         
-        labelSpan.addEventListener('click', () => {
-            labelSpan.style.display = 'none';
-            labelInput.style.display = 'inline-block';
+        // Show popup when clicking container or + button
+        const showLabelPopup = (e) => {
+            e.stopPropagation();
+            const rect = labelsContainer.getBoundingClientRect();
+            labelPopup.style.display = 'block';
+            labelPopup.style.position = 'absolute';
+            labelPopup.style.left = (rect.left + window.scrollX) + 'px';
+            labelPopup.style.top = (rect.bottom + window.scrollY + 2) + 'px';
             labelInput.focus();
-            labelInput.select();
+        };
+        
+        if (addLabelPrompt) addLabelPrompt.addEventListener('click', showLabelPopup);
+        addLabelBtn.addEventListener('click', showLabelPopup);
+        
+        // Hide popup when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!labelPopup.contains(e.target) && !labelsContainer.contains(e.target)) {
+                labelPopup.style.display = 'none';
+                labelInput.value = '';
+            }
         });
         
-        labelInput.addEventListener('blur', async () => {
-            portfolio[stockIdx].labels = labelInput.value.split(',').map(s => s.trim()).filter(Boolean);
-            labelSpan.style.display = 'inline-block';
-            labelInput.style.display = 'none';
-            updatePortfolioTable();
-            await savePortfolioToMarkdown();
-        });
+        // Add label
+        const addLabel = async () => {
+            const newLabel = labelInput.value.trim();
+            if (newLabel && !portfolio[stockIdx].labels.includes(newLabel)) {
+                portfolio[stockIdx].labels.push(newLabel);
+                updatePortfolioTable();
+                await savePortfolioToMarkdown();
+            }
+            labelPopup.style.display = 'none';
+            labelInput.value = '';
+        };
         
+        confirmBtn.addEventListener('click', addLabel);
         labelInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                labelInput.blur();
+                addLabel();
             }
             if (e.key === 'Escape') {
-                labelInput.value = stock.labels.join(', ');
-                labelInput.blur();
+                labelPopup.style.display = 'none';
+                labelInput.value = '';
             }
+        });
+        
+        // Cancel
+        cancelBtn.addEventListener('click', () => {
+            labelPopup.style.display = 'none';
+            labelInput.value = '';
+        });
+        
+        // Remove labels
+        tr.querySelectorAll('.remove-label').forEach(removeBtn => {
+            removeBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const labelToRemove = removeBtn.getAttribute('data-label');
+                portfolio[stockIdx].labels = portfolio[stockIdx].labels.filter(l => l !== labelToRemove);
+                updatePortfolioTable();
+                await savePortfolioToMarkdown();
+            });
         });
         
         // Notes editing with popup
@@ -240,35 +292,65 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ticker) {
             return;
         }
+        
+        // Clear input immediately for better UX
+        stockInput.value = '';
+        
         // Validate ticker exists on Yahoo before adding
         const suggestions = await fetchTickerSuggestions(ticker);
         const matchedStock = suggestions.find(s => s.symbol.toUpperCase() === ticker);
         if (!matchedStock) {
-            return; // Do nothing if not a valid ticker
+            alert('Stock ticker not found. Please try again.');
+            return;
         }
         
         const date = new Date().toISOString().slice(0,10);
-        const startPrice = await fetchHistoricalPrice(ticker, date);
-        const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
-        if (startPrice == null || nowPrice == null) {
-            alert('Could not fetch price data for the selected date.');
-            return;
-        }
-        const cumulativeReturn = ((nowPrice - startPrice) / startPrice * 100).toFixed(2);
+        
+        // Add stock immediately with loading state
         const stock = {
             ticker, 
             name: matchedStock.name || ticker,
             date, 
             labels: [], 
             notes: '',
-            nowPrice: Number(nowPrice).toFixed(2),
-            cumulativeReturn, 
-            star: false
+            nowPrice: '...',
+            cumulativeReturn: '...',
+            star: false,
+            loading: true
         };
         portfolio.push(stock);
         updatePortfolioTable();
-        await savePortfolioToMarkdown();
-        stockInput.value = ''; // Clear input after adding
+        
+        // Then fetch prices asynchronously
+        try {
+            const startPrice = await fetchHistoricalPrice(ticker, date);
+            const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
+            
+            // Find the stock again (in case portfolio changed)
+            const stockIndex = portfolio.findIndex(s => s.ticker === ticker && s.loading);
+            if (stockIndex !== -1) {
+                if (startPrice != null && nowPrice != null) {
+                    const cumulativeReturn = ((nowPrice - startPrice) / startPrice * 100).toFixed(2);
+                    portfolio[stockIndex].nowPrice = Number(nowPrice).toFixed(2);
+                    portfolio[stockIndex].cumulativeReturn = cumulativeReturn;
+                } else {
+                    portfolio[stockIndex].nowPrice = 'N/A';
+                    portfolio[stockIndex].cumulativeReturn = 'N/A';
+                }
+                portfolio[stockIndex].loading = false;
+                updatePortfolioTable();
+                await savePortfolioToMarkdown();
+            }
+        } catch (error) {
+            // Find the stock and mark as error
+            const stockIndex = portfolio.findIndex(s => s.ticker === ticker && s.loading);
+            if (stockIndex !== -1) {
+                portfolio[stockIndex].nowPrice = 'Error';
+                portfolio[stockIndex].cumulativeReturn = 'Error';
+                portfolio[stockIndex].loading = false;
+                updatePortfolioTable();
+            }
+        }
     });
     
     // Label filter dropdown logic
@@ -279,6 +361,11 @@ document.addEventListener('DOMContentLoaded', () => {
         labelHeader.addEventListener('click', (e) => {
             // Get unique labels
             const labels = Array.from(new Set(portfolio.flatMap(s => s.labels).filter(l => l)));
+            
+            // Position dropdown properly
+            const rect = labelHeader.getBoundingClientRect();
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.top = (rect.bottom + 5) + 'px';
             
             dropdown.innerHTML = '';
             
