@@ -9,11 +9,6 @@
 <body>
     <div class="container">
         <h1>Stock Tracker</h1>
-        <form id="stock-form">
-            <label for="stock-input">Ticker:</label>
-            <input id="stock-input" name="stock-input" list="ticker-list" placeholder="Search ticker (e.g. TSLA)" autocomplete="off" required>
-            <datalist id="ticker-list"></datalist>
-        </form>
         <h2>Portfolio</h2>
         <table id="portfolio-table">
             <thead>
@@ -32,6 +27,11 @@
             <tbody id="portfolio-tbody"></tbody>
         </table>
 
+        <form id="stock-form" style="margin-top: 20px; width: 100%;">
+            <label for="stock-input" style="display: block; margin-bottom: 8px; font-weight: bold;">Add Stock:</label>
+            <input id="stock-input" name="stock-input" list="ticker-list" placeholder="Search ticker (e.g. TSLA)" autocomplete="off" required style="width: 100%; padding: 12px; font-size: 16px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+            <datalist id="ticker-list"></datalist>
+        </form>
     </div>
     <script src="appp.js"></script>
 </body>
