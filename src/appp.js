@@ -93,7 +93,12 @@ function updatePortfolioTable() {
         
         tr.innerHTML = `
             <td style="text-align:center;"><button class="star-btn" data-idx="${stockIdx}">${stock.star ? '★' : '☆'}</button></td>
-            <td style="text-align:center;">${stock.ticker}</td>
+            <td style="text-align:center;">
+                <div class="ticker-cell" style="cursor:pointer;" data-ticker="${stock.ticker}">
+                    <div style="font-weight:bold; color:#0066cc;">${stock.ticker}</div>
+                    <div style="font-size:11px; color:#666; margin-top:2px;">${stock.name || ''}</div>
+                </div>
+            </td>
             <td style="text-align:center;"><input type="date" value="${stock.date}" data-idx="${stockIdx}" class="edit-date" style="width:130px;"></td>
             <td style="text-align:center;">
                 <span class="label-value" data-idx="${stockIdx}" style="cursor:pointer; display:inline-block; min-width:80px; padding:4px; border:1px solid transparent;">${stock.labels.join(', ') || 'Click to add'}</span>
@@ -105,7 +110,6 @@ function updatePortfolioTable() {
             </td>
             <td style="text-align:right;">${stock.nowPrice != null ? '$' + stock.nowPrice : ''}</td>
             <td class="cumulative-return" style="text-align:right;">${stock.cumulativeReturn}</td>
-            <td style="text-align:center;"><button class="yahoo-btn" data-ticker="${stock.ticker}">Yahoo</button></td>
         `;
         
         // Star button event listener
@@ -195,9 +199,9 @@ function updatePortfolioTable() {
             }
         });
         
-        // Yahoo button
-        const yahooBtn = tr.querySelector('.yahoo-btn');
-        yahooBtn.addEventListener('click', () => {
+        // Ticker click to open Yahoo Finance
+        const tickerCell = tr.querySelector('.ticker-cell');
+        tickerCell.addEventListener('click', () => {
             window.open(`https://finance.yahoo.com/quote/${stock.ticker}`, '_blank');
         });
         
@@ -238,7 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // Validate ticker exists on Yahoo before adding
         const suggestions = await fetchTickerSuggestions(ticker);
-        if (!suggestions.some(s => s.symbol.toUpperCase() === ticker)) {
+        const matchedStock = suggestions.find(s => s.symbol.toUpperCase() === ticker);
+        if (!matchedStock) {
             return; // Do nothing if not a valid ticker
         }
         
@@ -252,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cumulativeReturn = ((nowPrice - startPrice) / startPrice * 100).toFixed(2);
         const stock = {
             ticker, 
+            name: matchedStock.name || ticker,
             date, 
             labels: [], 
             notes: '',
