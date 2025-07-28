@@ -8,8 +8,44 @@
 </head>
 <body>
     <div class="container">
-        <h1>Stock Tracker</h1>
-        <h2>Portfolio</h2>
+        
+        <!-- GitHub Authentication Section -->
+        <div id="github-auth-section" class="auth-section">
+            <div id="github-login" style="display: none;">
+                <h3>GitHub Authentication</h3>
+                <p>To save your portfolio to GitHub, please authenticate:</p>
+                <form id="github-auth-form">
+                    <div class="form-group">
+                        <label for="github-token">GitHub Personal Access Token:</label>
+                        <input type="password" id="github-token" placeholder="ghp_..." required>
+                        <small>Need a token? <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank">Create one here</a> (requires 'repo' scope)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="repo-owner">Repository Owner:</label>
+                        <input type="text" id="repo-owner" value="jeromevde" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="repo-name">Repository Name:</label>
+                        <input type="text" id="repo-name" value="Stocks" required>
+                    </div>
+                    <button type="submit">Connect to GitHub</button>
+                </form>
+            </div>
+            
+            <div id="github-status" style="display: none;">
+                <div class="github-connected">
+                    <span id="github-info">✅ Connected to GitHub</span>
+                    <button id="github-logout" class="btn-secondary">Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Actions -->
+        <div id="portfolio-actions" class="actions-section">
+            <button id="save-portfolio" class="btn-primary" disabled>💾 Save to GitHub</button>
+            <span id="save-status" class="status-message"></span>
+        </div>
+
         <table id="portfolio-table">
             <thead>
                 <tr>
@@ -22,6 +58,7 @@
                     <th>Notes</th>
                     <th>Current Price</th>
                     <th id="sort-cumret" style="cursor:pointer;">Cumulative Return (%)</th>
+                    <th>Remove</th>
                 </tr>
             </thead>
             <tbody id="portfolio-tbody"></tbody>
@@ -33,6 +70,7 @@
             <datalist id="ticker-list"></datalist>
         </form>
     </div>
+    <script src="utils/github.js"></script>
     <script src="appp.js"></script>
 </body>
 </html>

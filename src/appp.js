@@ -16,16 +16,33 @@ async function fetchTickerSuggestions(query) {
 let portfolio = [];
 let sortByCumulativeReturn = false;
 let labelFilterSet = new Set();
+let tableUpdateTimeout = null;
+
+// Debounced table update to prevent excessive re-renders
+function debouncedUpdateTable() {
+    if (tableUpdateTimeout) {
+        clearTimeout(tableUpdateTimeout);
+    }
+    tableUpdateTimeout = setTimeout(() => {
+        updatePortfolioTable();
+    }, 100);
+}
 
 // Fetch historical price from Yahoo
 async function fetchHistoricalPrice(ticker, date) {
-    const start = Math.floor(new Date(date).getTime() / 1000);
-    const end = start + 86400; // 1 day
+    const targetDate = new Date(date);
+    const start = Math.floor(targetDate.getTime() / 1000);
+    
+    // Add extra days to handle weekends and holidays - look back up to 7 days
+    const endDate = new Date(targetDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days later
+    const end = Math.floor(endDate.getTime() / 1000);
+    
     const CORS_PROXY = 'https://corsproxy.io/?';
     const url = CORS_PROXY + `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=1d`;
     try {
         const res = await fetch(url);
         const data = await res.json();
+        
         // Defensive checks for missing data
         if (
             !data.chart ||
@@ -33,12 +50,57 @@ async function fetchHistoricalPrice(ticker, date) {
             !data.chart.result[0] ||
             !data.chart.result[0].indicators ||
             !data.chart.result[0].indicators.quote[0] ||
-            !data.chart.result[0].indicators.quote[0].close ||
-            data.chart.result[0].indicators.quote[0].close[0] == null
+            !data.chart.result[0].indicators.quote[0].close
         ) {
             return null;
         }
-        return data.chart.result[0].indicators.quote[0].close[0];
+        
+        const prices = data.chart.result[0].indicators.quote[0].close;
+        const timestamps = data.chart.result[0].timestamp;
+        
+        if (!prices || !timestamps || prices.length === 0) {
+            return null;
+        }
+        
+        // Find the first valid price on or after the target date
+        for (let i = 0; i < timestamps.length; i++) {
+            const priceDate = new Date(timestamps[i] * 1000);
+            if (priceDate >= targetDate && prices[i] != null) {
+                return prices[i];
+            }
+        }
+        
+        // If no price found on or after target date, use the last available price
+        for (let i = prices.length - 1; i >= 0; i--) {
+            if (prices[i] != null) {
+                return prices[i];
+            }
+        }
+        
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Fetch current price from Yahoo Finance
+async function fetchCurrentPrice(ticker) {
+    const CORS_PROXY = 'https://corsproxy.io/?';
+    const url = CORS_PROXY + `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1d&interval=1m`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        // Get the most recent price
+        if (
+            data.chart &&
+            data.chart.result &&
+            data.chart.result[0] &&
+            data.chart.result[0].meta &&
+            data.chart.result[0].meta.regularMarketPrice
+        ) {
+            return data.chart.result[0].meta.regularMarketPrice;
+        }
+        return null;
     } catch (e) {
         return null;
     }
@@ -46,16 +108,232 @@ async function fetchHistoricalPrice(ticker, date) {
 
 // Save portfolio to markdown and upload to GitHub
 async function savePortfolioToMarkdown() {
-    let md = '# Portfolio\n\n';
-    md += '| Ticker | Date | Labels | Notes | Current Price | Return (%) |\n';
-    md += '|--------|------|--------|-------|---------------|------------|\n';
-    portfolio.forEach(s => {
-        md += `| ${s.ticker} | ${s.date} | ${s.labels.join(', ')} | ${s.notes} | $${s.nowPrice} | ${s.cumulativeReturn} |\n`;
-    });
-    // Use github.js to upload
-    if (window.uploadToGitHub) {
-        window.uploadToGitHub('portfolio.md', md);
+    if (!window.githubClient || !window.githubClient.isAuthenticated()) {
+        showStatus('Please authenticate with GitHub first', 'error');
+        return;
     }
+
+    try {
+        showStatus('Saving to GitHub...', 'info');
+        
+        // Generate markdown content
+        let md = '# Portfolio\n\n';
+        md += `Last updated: ${new Date().toISOString()}\n\n`;
+        md += '| Ticker | Date | Labels | Notes |\n';
+        md += '|--------|------|--------|---------|\n';
+        
+        portfolio.forEach(s => {
+            const labels = s.labels.join(', ');
+            const notes = s.notes.replace(/\|/g, '\\|'); // Escape pipes in notes
+            md += `| ${s.ticker} | ${s.date} | ${labels} | ${notes} |\n`;
+        });
+        
+        md += `\n---\n*Generated by Stock Tracker - ${portfolio.length} stocks tracked*\n`;
+        
+        // Save to GitHub
+        const result = await window.githubClient.saveFile(md, `Update portfolio - ${portfolio.length} stocks`);
+        showStatus(result.message, 'success');
+        
+    } catch (error) {
+        console.error('Save error:', error);
+        showStatus(`Save failed: ${error.message}`, 'error');
+    }
+}
+
+// Load portfolio from GitHub
+async function loadPortfolioFromGitHub() {
+    if (!window.githubClient || !window.githubClient.isAuthenticated()) {
+        showStatus('Please authenticate with GitHub first', 'error');
+        return;
+    }
+
+    try {
+        showStatus('Loading from GitHub...', 'info');
+        
+        // Break up the work - first get the file
+        const result = await window.githubClient.loadFile();
+        
+        if (!result.exists) {
+            showStatus('No portfolio file found on GitHub', 'info');
+            return;
+        }
+        
+        // Allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        showStatus('Parsing portfolio data...', 'info');
+        
+        // Parse the markdown content in chunks
+        const portfolioData = await parseMarkdownContent(result.content);
+        
+        // Allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        // Merge with existing portfolio (keep starred status from local data)
+        const existingStarred = new Map(portfolio.map(s => [s.ticker, s.starred]));
+        portfolio = portfolioData.map(stock => ({
+            ...stock,
+            starred: existingStarred.get(stock.ticker) || false
+        }));
+        
+        // Refresh the table immediately with the loaded data
+        updatePortfolioTable();
+        
+        showStatus(`Portfolio loaded: ${portfolio.length} stocks. Updating prices...`, 'info');
+        
+        // Allow UI to update before starting price updates
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Fetch fresh data for all stocks asynchronously to avoid blocking
+        updateAllStockDataAsync(portfolio);
+        
+    } catch (error) {
+        console.error('Load error:', error);
+        showStatus(`Load failed: ${error.message}`, 'error');
+    }
+}
+
+// Separate function to parse markdown content
+async function parseMarkdownContent(content) {
+    console.log('Parsing markdown content:', content.substring(0, 200) + '...');
+    
+    const lines = content.split('\n');
+    const portfolioData = [];
+    let inTable = false;
+    let tableFormat = 'new'; // 'new' or 'old'
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Allow UI to breathe every 50 lines
+        if (i % 50 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        
+        // Detect table header - support multiple formats
+        if (line.startsWith('|') && (line.includes('Ticker') || line.includes('Stock Symbol'))) {
+            console.log('Found table header at line', i, ':', line);
+            inTable = true;
+            
+            // Determine table format
+            if (line.includes('Stock Symbol')) {
+                tableFormat = 'old'; // Legacy 5-column format
+                console.log('Using old table format');
+            } else if (line.includes('Current Price') || line.includes('Return')) {
+                tableFormat = 'six-column'; // 6-column format with dynamic data
+                console.log('Using six-column table format');
+            } else {
+                tableFormat = 'new'; // New simplified 4-column format
+                console.log('Using new simplified table format');
+            }
+            continue;
+        }
+        
+        if (line.startsWith('|-----')) {
+            console.log('Found table separator at line', i);
+            continue;
+        }
+        
+        if (inTable && line.startsWith('|') && !line.startsWith('|---')) {
+            console.log('Processing table row at line', i, ':', line);
+            // Don't filter out empty columns - we need to preserve column positions
+            const columns = line.split('|').map(col => col.trim()).slice(1, -1); // Remove first and last empty elements
+            console.log('Columns found:', columns);
+            
+            // Skip completely empty rows
+            if (columns.every(col => col === '')) {
+                console.log('Skipping empty row');
+                continue;
+            }
+            
+            let ticker, date, labels, notes;
+            
+            if (tableFormat === 'old' && columns.length >= 5) {
+                // Old format: Stock Symbol | Date Added | Cumulative Return | Label | Notes
+                [ticker, date, , labels, notes] = columns; // Skip return column
+            } else if (tableFormat === 'six-column' && columns.length >= 4) {
+                // Six-column format: Ticker | Date | Labels | Notes | Current Price | Return (%)
+                // Handle missing columns gracefully, ignore price and return
+                ticker = columns[0] || '';
+                date = columns[1] || '';
+                labels = columns[2] || '';
+                notes = columns[3] || '';
+                // Ignore columns[4] (price) and columns[5] (return)
+            } else if (tableFormat === 'new' && columns.length >= 4) {
+                // New simplified format: Ticker | Date | Labels | Notes
+                ticker = columns[0] || '';
+                date = columns[1] || '';
+                labels = columns[2] || '';
+                notes = columns[3] || '';
+            } else {
+                console.log('Skipping row - wrong number of columns for format:', tableFormat, columns.length);
+                continue;
+            }
+            
+            if (ticker && ticker !== 'Ticker' && ticker !== 'Stock Symbol' && date && date !== 'Date' && date !== 'Date Added') {
+                console.log('Adding stock:', ticker, date);
+                portfolioData.push({
+                    ticker: ticker,
+                    date: date,
+                    labels: labels ? labels.split(',').map(l => l.trim()).filter(l => l) : [],
+                    notes: notes ? notes.replace(/\\|/g, '|') : '', // Unescape pipes
+                    nowPrice: 'Loading...', // Always start fresh - don't save/load dynamic data
+                    cumulativeReturn: 'Calculating...', // Always start fresh - don't save/load dynamic data
+                    starred: false // Will be set based on local data if exists
+                });
+            } else {
+                console.log('Skipping row - invalid ticker or date:', ticker, date);
+            }
+        }
+        
+        if (inTable && !line.startsWith('|')) {
+            console.log('End of table at line', i);
+            inTable = false;
+        }
+    }
+    
+    console.log('Portfolio data parsed:', portfolioData.length, 'stocks');
+    return portfolioData;
+}
+
+// Asynchronously update all stock data with progress feedback
+async function updateAllStockDataAsync(stocks) {
+    if (!stocks || stocks.length === 0) return;
+    
+    let completed = 0;
+    const total = stocks.length;
+    
+    // Process stocks in batches to avoid overwhelming the API
+    const batchSize = 3;
+    
+    for (let i = 0; i < stocks.length; i += batchSize) {
+        const batch = stocks.slice(i, i + batchSize);
+        
+        // Process batch in parallel
+        const promises = batch.map(async (stock, index) => {
+            try {
+                await updateStockData(stock);
+                completed++;
+                
+                // Update status every few completions
+                if (completed % 2 === 0 || completed === total) {
+                    showStatus(`Updated ${completed}/${total} stocks...`, 'info');
+                }
+            } catch (error) {
+                console.error(`Error updating ${stock.ticker}:`, error);
+                completed++;
+            }
+        });
+        
+        await Promise.all(promises);
+        
+        // Small delay between batches to be nice to the API
+        if (i + batchSize < stocks.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+    }
+    
+    showStatus(`All ${total} stocks updated successfully!`, 'success');
 }
 
 // Render portfolio
@@ -69,8 +347,8 @@ function updatePortfolioTable() {
     // Sort: starred first, then by cumulative return if requested
     let sorted = [...portfolio];
     sorted.sort((a, b) => {
-        if (a.star && !b.star) return -1;
-        if (!a.star && b.star) return 1;
+        if (a.starred && !b.starred) return -1;
+        if (!a.starred && b.starred) return 1;
         if (sortByCumulativeReturn) {
             const aVal = parseFloat(a.cumulativeReturn) || -Infinity;
             const bVal = parseFloat(b.cumulativeReturn) || -Infinity;
@@ -92,7 +370,7 @@ function updatePortfolioTable() {
         const stockIdx = portfolio.indexOf(stock);
         
         tr.innerHTML = `
-            <td style="text-align:center;"><button class="star-btn" data-idx="${stockIdx}">${stock.star ? '★' : '☆'}</button></td>
+            <td style="text-align:center;"><button class="star-btn" data-idx="${stockIdx}">${stock.starred ? '★' : '☆'}</button></td>
             <td style="text-align:center;">
                 <div class="ticker-cell" style="cursor:pointer;" data-ticker="${stock.ticker}">
                     <div style="font-weight:bold; color:#0066cc;">${stock.ticker}</div>
@@ -120,32 +398,43 @@ function updatePortfolioTable() {
             </td>
             <td style="text-align:right;">${stock.nowPrice != null ? (stock.loading ? '...' : '$' + stock.nowPrice) : ''}</td>
             <td class="cumulative-return" style="text-align:right;">${stock.loading ? '...' : stock.cumulativeReturn}</td>
+            <td style="text-align:center;"><button class="remove-btn" data-idx="${stockIdx}" style="background:#f44336; color:white; border:none; border-radius:3px; cursor:pointer; padding:4px 8px; font-size:11px;">🗑️</button></td>
         `;
         
         // Star button event listener
         const starBtn = tr.querySelector('.star-btn');
-        starBtn.addEventListener('click', async () => {
-            portfolio[stockIdx].star = !portfolio[stockIdx].star;
+        starBtn.addEventListener('click', () => {
+            portfolio[stockIdx].starred = !portfolio[stockIdx].starred;
             updatePortfolioTable();
-            await savePortfolioToMarkdown();
+            // Portfolio will be saved manually using the save button
+        });
+        
+        // Remove button event listener
+        const removeBtn = tr.querySelector('.remove-btn');
+        removeBtn.addEventListener('click', () => {
+            const stock = portfolio[stockIdx];
+            const confirmMessage = `Are you sure you want to remove ${stock.ticker} from your portfolio?`;
+            
+            if (confirm(confirmMessage)) {
+                portfolio.splice(stockIdx, 1);
+                updatePortfolioTable();
+                showStatus(`${stock.ticker} removed from portfolio`, 'info');
+                // Portfolio will be saved manually using the save button
+            }
         });
         
         // Date input event listener
         const dateInput = tr.querySelector('.edit-date');
-        dateInput.addEventListener('change', async (e) => {
+        dateInput.addEventListener('change', (e) => {
             const newDate = e.target.value;
             portfolio[stockIdx].date = newDate;
             
-            // Re-fetch start price and cumulative return
+            // Update prices asynchronously without blocking
             const ticker = portfolio[stockIdx].ticker;
-            const startPrice = await fetchHistoricalPrice(ticker, newDate);
-            const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
-            portfolio[stockIdx].nowPrice = Number(nowPrice).toFixed(2);
-            portfolio[stockIdx].cumulativeReturn = (startPrice && nowPrice) ? 
-                ((nowPrice - startPrice) / startPrice * 100).toFixed(2) : '';
-                
+            updateStockPricesAsync(ticker, newDate, stockIdx);
+            
             updatePortfolioTable();
-            await savePortfolioToMarkdown();
+            // Portfolio will be saved manually using the save button
         });
         
         // Label management
@@ -180,12 +469,12 @@ function updatePortfolioTable() {
         });
         
         // Add label
-        const addLabel = async () => {
+        const addLabel = () => {
             const newLabel = labelInput.value.trim();
             if (newLabel && !portfolio[stockIdx].labels.includes(newLabel)) {
                 portfolio[stockIdx].labels.push(newLabel);
                 updatePortfolioTable();
-                await savePortfolioToMarkdown();
+                // Portfolio will be saved manually using the save button
             }
             labelPopup.style.display = 'none';
             labelInput.value = '';
@@ -211,12 +500,12 @@ function updatePortfolioTable() {
         
         // Remove labels
         tr.querySelectorAll('.remove-label').forEach(removeBtn => {
-            removeBtn.addEventListener('click', async (e) => {
+            removeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const labelToRemove = removeBtn.getAttribute('data-label');
                 portfolio[stockIdx].labels = portfolio[stockIdx].labels.filter(l => l !== labelToRemove);
                 updatePortfolioTable();
-                await savePortfolioToMarkdown();
+                // Portfolio will be saved manually using the save button
             });
         });
         
@@ -232,12 +521,12 @@ function updatePortfolioTable() {
             notesInput.select();
         });
         
-        notesInput.addEventListener('blur', async () => {
+        notesInput.addEventListener('blur', () => {
             portfolio[stockIdx].notes = notesInput.value;
             notesSpan.style.display = 'inline-block';
             notesInput.style.display = 'none';
             updatePortfolioTable();
-            await savePortfolioToMarkdown();
+            // Portfolio will be saved manually using the save button
         });
         
         notesInput.addEventListener('keydown', (e) => {
@@ -287,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Add stock
-    stockInput.addEventListener('change', async (e) => {
+    stockInput.addEventListener('change', (e) => {
         const ticker = stockInput.value.trim().toUpperCase();
         if (!ticker) {
             return;
@@ -296,61 +585,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear input immediately for better UX
         stockInput.value = '';
         
-        // Validate ticker exists on Yahoo before adding
-        const suggestions = await fetchTickerSuggestions(ticker);
-        const matchedStock = suggestions.find(s => s.symbol.toUpperCase() === ticker);
-        if (!matchedStock) {
-            alert('Stock ticker not found. Please try again.');
-            return;
-        }
-        
-        const date = new Date().toISOString().slice(0,10);
-        
-        // Add stock immediately with loading state
-        const stock = {
-            ticker, 
-            name: matchedStock.name || ticker,
-            date, 
-            labels: [], 
-            notes: '',
-            nowPrice: '...',
-            cumulativeReturn: '...',
-            star: false,
-            loading: true
-        };
-        portfolio.push(stock);
-        updatePortfolioTable();
-        
-        // Then fetch prices asynchronously
-        try {
-            const startPrice = await fetchHistoricalPrice(ticker, date);
-            const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
-            
-            // Find the stock again (in case portfolio changed)
-            const stockIndex = portfolio.findIndex(s => s.ticker === ticker && s.loading);
-            if (stockIndex !== -1) {
-                if (startPrice != null && nowPrice != null) {
-                    const cumulativeReturn = ((nowPrice - startPrice) / startPrice * 100).toFixed(2);
-                    portfolio[stockIndex].nowPrice = Number(nowPrice).toFixed(2);
-                    portfolio[stockIndex].cumulativeReturn = cumulativeReturn;
-                } else {
-                    portfolio[stockIndex].nowPrice = 'N/A';
-                    portfolio[stockIndex].cumulativeReturn = 'N/A';
-                }
-                portfolio[stockIndex].loading = false;
-                updatePortfolioTable();
-                await savePortfolioToMarkdown();
-            }
-        } catch (error) {
-            // Find the stock and mark as error
-            const stockIndex = portfolio.findIndex(s => s.ticker === ticker && s.loading);
-            if (stockIndex !== -1) {
-                portfolio[stockIndex].nowPrice = 'Error';
-                portfolio[stockIndex].cumulativeReturn = 'Error';
-                portfolio[stockIndex].loading = false;
-                updatePortfolioTable();
-            }
-        }
+        // Handle stock addition asynchronously without blocking
+        addStockAsync(ticker);
     });
     
     // Label filter dropdown logic
@@ -470,6 +706,259 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Initialize GitHub integration
+    initializeGitHubIntegration();
+
     // Initial render of portfolio
     updatePortfolioTable();
 });
+
+// GitHub Integration Functions
+function showStatus(message, type = 'info') {
+    const statusElement = document.getElementById('save-status');
+    if (statusElement) {
+        statusElement.textContent = message;
+        statusElement.className = `status-message ${type}`;
+        
+        // Auto-hide success/info messages after 5 seconds
+        if (type === 'success' || type === 'info') {
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+    }
+}
+
+function updateGitHubUI() {
+    const loginSection = document.getElementById('github-login');
+    const statusSection = document.getElementById('github-status');
+    const saveButton = document.getElementById('save-portfolio');
+    const githubInfo = document.getElementById('github-info');
+    
+    if (window.githubClient && window.githubClient.isAuthenticated()) {
+        loginSection.style.display = 'none';
+        statusSection.style.display = 'block';
+        saveButton.disabled = false;
+        
+        if (githubInfo) {
+            githubInfo.textContent = `✅ Connected to ${window.githubClient.repoOwner}/${window.githubClient.repoName}`;
+        }
+    } else {
+        loginSection.style.display = 'block';
+        statusSection.style.display = 'none';
+        saveButton.disabled = true;
+    }
+}
+
+function initializeGitHubIntegration() {
+    // Update UI based on current auth status
+    updateGitHubUI();
+    
+    // If already authenticated, automatically load portfolio from GitHub
+    if (window.githubClient && window.githubClient.isAuthenticated()) {
+        showStatus('Auto-loading portfolio from GitHub...', 'info');
+        loadPortfolioFromGitHub().catch(error => {
+            console.error('Auto-load error:', error);
+            showStatus('Auto-load failed, continuing with local data', 'info');
+        });
+    }
+    
+    // GitHub authentication form
+    const authForm = document.getElementById('github-auth-form');
+    if (authForm) {
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const token = document.getElementById('github-token').value.trim();
+            const repoOwner = document.getElementById('repo-owner').value.trim();
+            const repoName = document.getElementById('repo-name').value.trim();
+            
+            if (!token || !repoOwner || !repoName) {
+                showStatus('Please fill in all fields', 'error');
+                return;
+            }
+            
+            try {
+                // Test the authentication by making a simple API call
+                showStatus('Testing GitHub connection...', 'info');
+                
+                window.githubClient.authenticate(token, repoOwner, repoName);
+                
+                // Test the connection
+                await window.githubClient.getCurrentFileInfo();
+                
+                showStatus('Successfully connected to GitHub!', 'success');
+                updateGitHubUI();
+                
+                // Clear the token field for security
+                document.getElementById('github-token').value = '';
+                
+            } catch (error) {
+                console.error('GitHub auth error:', error);
+                showStatus(`Authentication failed: ${error.message}`, 'error');
+                window.githubClient.logout();
+                updateGitHubUI();
+            }
+        });
+    }
+    
+    // GitHub logout
+    const logoutButton = document.getElementById('github-logout');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            window.githubClient.logout();
+            updateGitHubUI();
+            showStatus('Disconnected from GitHub', 'info');
+        });
+    }
+    
+    // Save button
+    const saveButton = document.getElementById('save-portfolio');
+    if (saveButton) {
+        saveButton.addEventListener('click', (e) => {
+            // Disable button immediately
+            saveButton.disabled = true;
+            saveButton.textContent = '💾 Saving...';
+            
+            // Fire and forget - handle result in callback
+            savePortfolioAsync()
+                .then(() => {
+                    // Success handled in savePortfolioToMarkdown
+                })
+                .catch((error) => {
+                    console.error('Save error:', error);
+                    showStatus(`Save failed: ${error.message}`, 'error');
+                })
+                .finally(() => {
+                    const btn = document.getElementById('save-portfolio');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = '💾 Save to GitHub';
+                    }
+                });
+        });
+    }
+
+    // Async function that doesn't block
+    function savePortfolioAsync() {
+        return savePortfolioToMarkdown();
+    }
+}
+
+// Helper function to update individual stock data
+async function updateStockData(stock) {
+    try {
+        // Fetch current price
+        const currentPrice = await fetchCurrentPrice(stock.ticker);
+        if (currentPrice !== null) {
+            stock.nowPrice = currentPrice.toFixed(2);
+        }
+        
+        // Fetch historical price and calculate return
+        const historicalPrice = await fetchHistoricalPrice(stock.ticker, stock.date);
+        if (historicalPrice !== null && currentPrice !== null) {
+            const returnPercent = ((currentPrice - historicalPrice) / historicalPrice * 100);
+            stock.cumulativeReturn = returnPercent.toFixed(2);
+        }
+        
+        // Update the table (use debounced update to avoid excessive re-renders)
+        debouncedUpdateTable();
+        
+    } catch (error) {
+        console.error(`Error updating ${stock.ticker}:`, error);
+        // Set fallback values on error
+        if (!stock.nowPrice || stock.nowPrice === 'Loading...') {
+            stock.nowPrice = 'Error';
+        }
+        if (!stock.cumulativeReturn || stock.cumulativeReturn === 'Calculating...') {
+            stock.cumulativeReturn = 'Error';
+        }
+    }
+}
+
+// Async helper for adding stocks without blocking the event handler
+async function addStockAsync(ticker) {
+    try {
+        // Validate ticker exists on Yahoo before adding
+        const suggestions = await fetchTickerSuggestions(ticker);
+        const matchedStock = suggestions.find(s => s.symbol.toUpperCase() === ticker);
+        if (!matchedStock) {
+            alert('Stock ticker not found. Please try again.');
+            return;
+        }
+        
+        const date = new Date().toISOString().slice(0,10);
+        
+        // Add stock immediately with loading state
+        const stock = {
+            ticker, 
+            name: matchedStock.name || ticker,
+            date, 
+            labels: [], 
+            notes: '',
+            nowPrice: '...',
+            cumulativeReturn: '...',
+            starred: false,
+            loading: true
+        };
+        portfolio.push(stock);
+        updatePortfolioTable();
+        
+        // Then fetch prices asynchronously
+        try {
+            const startPrice = await fetchHistoricalPrice(ticker, date);
+            const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
+            
+            // Find the stock again (in case portfolio changed)
+            const stockIndex = portfolio.findIndex(s => s.ticker === ticker && s.loading);
+            if (stockIndex !== -1) {
+                if (startPrice != null && nowPrice != null) {
+                    const cumulativeReturn = ((nowPrice - startPrice) / startPrice * 100).toFixed(2);
+                    portfolio[stockIndex].nowPrice = Number(nowPrice).toFixed(2);
+                    portfolio[stockIndex].cumulativeReturn = cumulativeReturn;
+                } else {
+                    portfolio[stockIndex].nowPrice = 'N/A';
+                    portfolio[stockIndex].cumulativeReturn = 'N/A';
+                }
+                portfolio[stockIndex].loading = false;
+                updatePortfolioTable();
+                // Auto-save is disabled - user saves manually
+            }
+        } catch (error) {
+            // Find the stock and mark as error
+            const stockIndex = portfolio.findIndex(s => s.ticker === ticker && s.loading);
+            if (stockIndex !== -1) {
+                portfolio[stockIndex].nowPrice = 'Error';
+                portfolio[stockIndex].cumulativeReturn = 'Error';
+                portfolio[stockIndex].loading = false;
+                updatePortfolioTable();
+            }
+        }
+    } catch (error) {
+        console.error('Error adding stock:', error);
+        alert('Error adding stock. Please try again.');
+    }
+}
+
+// Async helper for updating stock prices without blocking the event handler
+function updateStockPricesAsync(ticker, newDate, stockIdx) {
+    // Fire and forget - update prices in background
+    Promise.all([
+        fetchHistoricalPrice(ticker, newDate),
+        fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10))
+    ]).then(([startPrice, nowPrice]) => {
+        if (portfolio[stockIdx]) {
+            portfolio[stockIdx].nowPrice = nowPrice ? Number(nowPrice).toFixed(2) : 'N/A';
+            portfolio[stockIdx].cumulativeReturn = (startPrice && nowPrice) ? 
+                ((nowPrice - startPrice) / startPrice * 100).toFixed(2) : 'N/A';
+            updatePortfolioTable();
+        }
+    }).catch(error => {
+        console.error(`Error updating prices for ${ticker}:`, error);
+        if (portfolio[stockIdx]) {
+            portfolio[stockIdx].nowPrice = 'Error';
+            portfolio[stockIdx].cumulativeReturn = 'Error';
+            updatePortfolioTable();
+        }
+    });
+}
