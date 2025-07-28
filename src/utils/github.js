@@ -180,3 +180,4 @@ class GitHubClient {
 
 // Create global instance
 window.githubClient = new GitHubClient();
+console.log('GitHub client initialized:', window.githubClient.isAuthenticated() ? 'authenticated' : 'not authenticated');
