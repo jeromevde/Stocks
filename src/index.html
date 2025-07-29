@@ -9,33 +9,56 @@
 <body>
     <div class="container">
         
-        <!-- GitHub Authentication Section -->
-        <div id="github-auth-section" class="auth-section">
-            <div id="github-login">
-                <h3>GitHub Authentication</h3>
-                <p>To save your portfolio to GitHub, please authenticate:</p>
-                <form id="github-auth-form">
-                    <div class="form-group">
-                        <label for="github-token">GitHub Personal Access Token:</label>
-                        <input type="password" id="github-token" placeholder="ghp_..." required>
-                        <small>Need a token? <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank">Create one here</a> (requires 'repo' scope)</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="repo-owner">Repository Owner:</label>
-                        <input type="text" id="repo-owner" value="jeromevde" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="repo-name">Repository Name:</label>
-                        <input type="text" id="repo-name" value="Stocks" required>
-                    </div>
-                    <button type="submit">Connect to GitHub</button>
-                </form>
+        <!-- GitHub Authentication Modal -->
+        <div id="github-auth-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>GitHub Authentication</h3>
+                    <span class="close" id="close-auth-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 25px; color: #666;">To save your portfolio to GitHub, please provide your authentication details:</p>
+                    <form id="github-auth-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="repo-owner">Repository Owner:</label>
+                                <input type="text" id="repo-owner" value="jeromevde" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="repo-name">Repository Name:</label>
+                                <input type="text" id="repo-name" value="Stocks" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="github-token">GitHub Personal Access Token:</label>
+                            <input type="password" id="github-token" placeholder="ghp_..." required>
+                            <small style="margin-top: 8px; display: block;">Need a token? <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank">Create one here</a> (requires 'repo' scope)</small>
+                        </div>
+                        <div class="modal-buttons">
+                            <button type="submit" class="btn-primary">Connect to GitHub</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            
-            <div id="github-status" style="display: none;">
-                <div class="github-connected">
-                    <span id="github-info">✅ Connected to GitHub</span>
-                    <button id="github-logout" class="btn-secondary">Disconnect</button>
+        </div>
+
+        <!-- GitHub Status Section (only visible when authenticated) -->
+        <div id="github-status" style="display: none;">
+            <div class="github-connected">
+                <span id="github-info">✅ Connected to GitHub</span>
+                <button id="github-logout" class="btn-secondary">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Notes Popup -->
+        <div id="notes-popup-overlay" class="notes-popup-overlay">
+            <div class="notes-popup-content">
+                <div class="notes-popup-header">
+                    <h3 id="notes-popup-title">Edit Notes</h3>
+                    <button class="notes-popup-close" id="notes-popup-close">&times;</button>
+                </div>
+                <div class="notes-popup-body">
+                    <textarea id="notes-textarea" class="notes-textarea" placeholder="Add your notes here..."></textarea>
                 </div>
             </div>
         </div>
@@ -57,8 +80,8 @@
                     </th>
                     <th>Notes</th>
                     <th>Current Price</th>
-                    <th id="sort-cumret" style="cursor:pointer;">Cumulative Return (%)</th>
-                    <th>Remove</th>
+                    <th id="sort-cumret" style="cursor:pointer;">Cumulative Return</th>
+                    <th style="width: 30px;"></th>
                 </tr>
             </thead>
             <tbody id="portfolio-tbody"></tbody>
