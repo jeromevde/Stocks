@@ -778,6 +778,41 @@ window.addEventListener('beforeunload', (e) => {
     }
 });
 
+// Add keyboard shortcut for force refresh (Ctrl+Shift+R or Cmd+Shift+R)
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        forceRefreshFromGitHub();
+    }
+});
+
+// Force refresh from GitHub (clears cache)
+async function forceRefreshFromGitHub() {
+    try {
+        showStatus('🔄 Force refreshing from GitHub (clearing cache)...', 'info');
+        
+        // Clear all caches
+        if (window.githubClient) {
+            window.githubClient.clearCache();
+        }
+        
+        // Also clear browser cache for the current page
+        if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+                cacheNames.map(cacheName => caches.delete(cacheName))
+            );
+        }
+        
+        // Force reload from GitHub
+        await loadPortfolioFromGitHub();
+        
+    } catch (error) {
+        console.error('Force refresh error:', error);
+        showStatus(`❌ Force refresh failed: ${error.message}`, 'error');
+    }
+}
+
 // GitHub Integration Functions
 function showStatus(message, type = 'info') {
     const statusElement = document.getElementById('save-status');
@@ -935,6 +970,15 @@ function initializeGitHubIntegration() {
                 savePortfolioToMarkdown()
                     .catch(error => console.error('Save error:', error));
             }, 0);
+        });
+    }
+    
+    // Refresh button
+    const refreshButton = document.getElementById('refresh-portfolio');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            forceRefreshFromGitHub();
         });
     }
 }

@@ -32,19 +32,13 @@ class GitHubClient {
         return {
             'Authorization': `token ${this.token}`,
             'Accept': 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
+            'Content-Type': 'application/json'
         };
     }
 
     getPublicHeaders() {
         return {
-            'Accept': 'application/vnd.github.v3+json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
+            'Accept': 'application/vnd.github.v3+json'
         };
     }
 
@@ -212,6 +206,16 @@ class GitHubClient {
         localStorage.removeItem('portfolio_sha');
         localStorage.removeItem('portfolio_content');
         localStorage.removeItem('portfolio_saved_hash');
+    }
+
+    clearCache() {
+        // Clear local storage cache
+        localStorage.removeItem('portfolio_sha');
+        localStorage.removeItem('portfolio_content');
+        localStorage.removeItem('portfolio_saved_hash');
+        this.lastKnownSha = null;
+        this.lastKnownContent = null;
+        this.lastSavedHash = null;
     }
 
     calculateContentHash(content) {
