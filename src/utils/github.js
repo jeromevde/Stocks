@@ -54,6 +54,7 @@ class GitHubClient {
                 method: 'GET'
             });
             
+            
             // If unauthorized and we have a token, try with authentication
             if (!response.ok && response.status === 401 && this.token) {
                 response = await fetch(url, { 
