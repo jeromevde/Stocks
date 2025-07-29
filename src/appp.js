@@ -853,7 +853,6 @@ function initializeGitHubIntegration() {
                 return;
             }
             
-            
             try {
                 // Test the authentication by making a simple API call
                 showStatus('Testing GitHub connection...', 'info');
