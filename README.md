@@ -10,6 +10,9 @@ A full HTML/JavaScript stock tracker that allows you to search Yahoo Finance sto
 - Clickable tickers that open Yahoo Finance
 - GitHub integration for portfolio persistence
 
+## How to use
+1. For this repo
+2. Activate github page deployment from github actions in the repo settings
 
 ## Local testing
 ```
