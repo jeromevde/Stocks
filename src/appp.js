@@ -309,7 +309,31 @@ async function parseMarkdownContent(content) {
         
         // Process data rows
         if (inTable && line.startsWith('|')) {
-            const columns = line.split('|').map(col => col.trim()).slice(1, -1);
+            // Split by | but preserve escaped \| characters
+            const columns = [];
+            let currentCol = '';
+            let i = 1; // Start after first |
+            
+            while (i < line.length - 1) { // End before last |
+                if (line[i] === '\\' && line[i + 1] === '|') {
+                    // Escaped pipe - add literal pipe to current column
+                    currentCol += '|';
+                    i += 2;
+                } else if (line[i] === '|') {
+                    // Column separator - finish current column
+                    columns.push(currentCol.trim());
+                    currentCol = '';
+                    i += 1;
+                } else {
+                    // Regular character
+                    currentCol += line[i];
+                    i += 1;
+                }
+            }
+            // Add the last column
+            if (currentCol || columns.length > 0) {
+                columns.push(currentCol.trim());
+            }
             
             // Skip empty rows
             if (columns.every(col => col === '' || /^[\s-]*$/.test(col))) {
@@ -332,10 +356,10 @@ async function parseMarkdownContent(content) {
                 if (ticker && date && ticker !== 'Ticker' && date !== 'Date') {
                     portfolioData.push({
                         ticker: ticker.trim(),
-                        name: name ? name.replace(/\\|/g, '|').trim() : '',
+                        name: name ? name.trim() : '', // No need to replace \\| anymore since we handled it during splitting
                         date: date.trim(),
                         labels: labels ? labels.split(',').map(l => l.trim()).filter(l => l) : [],
-                        notes: notes ? notes.replace(/\\|/g, '|') : '',
+                        notes: notes ? notes.trim() : '', // No need to replace \\| anymore
                         starred: starred ? starred.trim() === 'true' : false,
                         nowPrice: 'Loading...',
                         cumulativeReturn: 'Calculating...'
