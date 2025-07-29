@@ -7,6 +7,7 @@ class GitHubClient {
         this.filePath = 'portfolio.md';
         this.lastKnownSha = localStorage.getItem('portfolio_sha');
         this.lastKnownContent = localStorage.getItem('portfolio_content');
+        this.lastSavedHash = localStorage.getItem('portfolio_saved_hash');
     }
 
     isAuthenticated() {
@@ -39,10 +40,16 @@ class GitHubClient {
         const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`;
         
         try {
-            const response = await fetch(url, { 
-                headers: this.getHeaders(),
-                method: 'GET'
-            });
+            // Try without authentication first for public repos
+            let response = await fetch(url);
+            
+            // If unauthorized and we have a token, try with authentication
+            if (!response.ok && response.status === 401 && this.token) {
+                response = await fetch(url, { 
+                    headers: this.getHeaders(),
+                    method: 'GET'
+                });
+            }
             
             if (response.status === 404) {
                 // File doesn't exist yet
@@ -54,7 +61,7 @@ class GitHubClient {
                 if (errorData.message && errorData.message.includes('rate limit')) {
                     throw new Error('GitHub API rate limit exceeded. Please try again later.');
                 }
-                throw new Error('GitHub API access forbidden. Check your token permissions.');
+                throw new Error('GitHub API access forbidden. Repository may be private or you need authentication.');
             }
             
             if (!response.ok) {
@@ -187,6 +194,29 @@ class GitHubClient {
         localStorage.removeItem('github_repo_name');
         localStorage.removeItem('portfolio_sha');
         localStorage.removeItem('portfolio_content');
+        localStorage.removeItem('portfolio_saved_hash');
+    }
+
+    calculateContentHash(content) {
+        // Simple hash function for content comparison
+        let hash = 0;
+        for (let i = 0; i < content.length; i++) {
+            const char = content.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return hash;
+    }
+
+    hasUnsavedChanges(currentContent) {
+        if (!this.lastSavedHash) return false;
+        const currentHash = this.calculateContentHash(currentContent);
+        return this.lastSavedHash !== currentHash;
+    }
+
+    markAsSaved(content) {
+        this.lastSavedHash = this.calculateContentHash(content);
+        localStorage.setItem('portfolio_saved_hash', this.lastSavedHash.toString());
     }
 }
 

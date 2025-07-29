@@ -372,3 +372,33 @@ iframe {
     background: #c82333 !important;
     transform: scale(1.05);
 }
+
+/* Save button states */
+.btn-primary:disabled {
+    background-color: #e0e0e0 !important;
+    color: #999 !important;
+    cursor: not-allowed !important;
+    opacity: 0.5 !important;
+}
+
+.btn-primary:disabled:hover {
+    background-color: #e0e0e0 !important;
+    transform: none !important;
+}
+
+.btn-primary.has-changes {
+    background-color: #4CAF50 !important;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+
+/* Unsaved changes indicator in title */
+title:before {
+    content: "* ";
+    color: #ff6b6b;
+}
