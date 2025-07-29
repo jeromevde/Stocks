@@ -1,3 +1,10 @@
+# Todo 
+- squash commits
+- handle markdown issue when long note
+- align label filtering
+- add star but also bad stock sign
+- drag & drop ?
+
 # Stock Tracker
 
 
