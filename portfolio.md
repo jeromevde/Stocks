@@ -1,11 +1,11 @@
 # Portfolio
 
-Last updated: 2025-07-29T18:19:22.741Z
+Last updated: 2025-07-29T18:19:47.541Z
 
 | Ticker | Name | Date | Labels | Notes | Starred |
 |--------|------|------|--------|---------|---------|
 | TSLA | Tesla, Inc. | 2024-06-01 | ai, robotics, energy |  | true |
-| TWST |  | 2025-07-29 | genetics |  | true |
+| TWST |  | 2025-07-01 | genetics |  | true |
 | XPEV | XPeng Inc. | 2024-08-01 | ai, robotics |  | true |
 
 ---
