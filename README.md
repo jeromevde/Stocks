@@ -10,6 +10,7 @@ A full HTML/JavaScript stock tracker that allows you to search Yahoo Finance sto
 2. Activate **github pages** deployment from github actions in the repo settings
 
 ## Local testing
+
 ```
 npx live-server src --port=8080 
 ```

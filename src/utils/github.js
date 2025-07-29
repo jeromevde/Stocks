@@ -32,16 +32,33 @@ class GitHubClient {
         return {
             'Authorization': `token ${this.token}`,
             'Accept': 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        };
+    }
+
+    getPublicHeaders() {
+        return {
+            'Accept': 'application/vnd.github.v3+json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         };
     }
 
     async getCurrentFileInfo() {
-        const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`;
+        // Add timestamp to prevent caching
+        const timestamp = Date.now();
+        const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}?t=${timestamp}`;
         
         try {
-            // Try without authentication first for public repos
-            let response = await fetch(url);
+            // Try without authentication first for public repos (with cache-busting headers)
+            let response = await fetch(url, {
+                headers: this.getPublicHeaders(),
+                method: 'GET'
+            });
             
             // If unauthorized and we have a token, try with authentication
             if (!response.ok && response.status === 401 && this.token) {
