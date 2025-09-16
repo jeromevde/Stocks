@@ -1,12 +1,17 @@
 // Initialize GitHub integration: setup login, logout, save, refresh knoppen
 function initializeGitHubIntegration() {
-    // GitHub login
-    const loginButton = document.getElementById('github-login');
-    if (loginButton) {
-        loginButton.addEventListener('click', () => {
+    // Voorkom reload bij submit van het GitHub-authenticatieformulier
+    const githubAuthForm = document.getElementById('github-auth-form');
+    if (githubAuthForm) {
+        githubAuthForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Sla portfolio tijdelijk op vóór authenticatie
+            try {
+                localStorage.setItem('portfolio_temp', JSON.stringify(portfolio));
+            } catch (e) {}
             const tokenInput = document.getElementById('github-token');
-            const ownerInput = document.getElementById('github-owner');
-            const repoInput = document.getElementById('github-repo');
+            const ownerInput = document.getElementById('repo-owner');
+            const repoInput = document.getElementById('repo-name');
             const token = tokenInput ? tokenInput.value : '';
             const owner = ownerInput ? ownerInput.value : '';
             const repo = repoInput ? repoInput.value : '';
@@ -14,6 +19,17 @@ function initializeGitHubIntegration() {
                 window.githubClient.authenticate(token, owner, repo);
                 updateGitHubUI();
                 showStatus('Authenticated with GitHub!', 'success');
+                // Herstel portfolio na authenticatie
+                try {
+                    const temp = localStorage.getItem('portfolio_temp');
+                    if (temp) {
+                        portfolio = JSON.parse(temp);
+                        localStorage.removeItem('portfolio_temp');
+                        debouncedUpdateTable();
+                        hasUnsavedChanges = true;
+                        updateSaveButtonState();
+                    }
+                } catch (e) {}
             } else {
                 showStatus('Please enter all GitHub credentials.', 'error');
             }
@@ -653,6 +669,8 @@ function updatePortfolioTable() {
 
 // Initialize everything after DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Direct refresh bij laden
+    forceRefreshFromGitHub();
     const stockInput = document.getElementById('stock-input');
     const portfolioTableBody = document.getElementById('portfolio-tbody');
     
@@ -814,6 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial render of portfolio
     updatePortfolioTable();
+});
 });
 
 // Add before page unload warning
@@ -1052,13 +1071,12 @@ function openNotesPopup(stockIndex) {
     currentNotesStockIndex = stockIndex;
     const stock = portfolio[stockIndex];
     
-    // Update popup title and content
-    const popupTitle = document.getElementById('notes-popup-title');
+    // Update popup content
     const textarea = document.getElementById('notes-textarea');
     const overlay = document.getElementById('notes-popup-overlay');
-    
-    popupTitle.textContent = `Notes for ${stock.ticker}`;
-    textarea.value = stock.notes || '';
+    const stockTitle = document.getElementById('notes-popup-stock');
+    if (stockTitle) stockTitle.textContent = stock.ticker || '';
+    if (textarea) textarea.value = stock.notes || '';
     
     // Show popup with animation
     overlay.style.display = 'flex';
@@ -1104,10 +1122,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close button
     notesCloseBtn.addEventListener('click', closeNotesPopup);
     
-    // Keyboard shortcuts
+    // Keyboard shortcuts en Enter-fix
     notesTextarea.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeNotesPopup();
+        }
+        // Voorkom form submit op Enter (alleen als er geen modifier is)
+        if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            // Gewoon een nieuwe regel toevoegen, geen submit
+            // (standaardgedrag textarea is goed, maar we voorkomen bubbling)
+            e.stopPropagation();
         }
     });
 });

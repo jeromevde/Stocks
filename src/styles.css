@@ -1,3 +1,11 @@
+.notes-popup-stock {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 6px;
+    margin-top: 2px;
+    text-align: left;
+    letter-spacing: 0.5px;
+}
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -559,14 +567,27 @@ title:before {
 }
 
 .notes-popup-content {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    width: 98%;
-    max-width: 900px;
-    max-height: 92vh;
-    transform: scale(0.8) translateY(20px);
-    transition: transform 0.3s ease;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    width: 100%;
+    max-width: 420px;
+    max-height: 70vh;
+    margin: 0 auto;
+    padding: 12px 12px 8px 12px;
+    transform: scale(0.98) translateY(10px);
+    transition: transform 0.2s;
+}
+.notes-popup-content.minimal {
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    padding: 12px 12px 8px 12px;
+    max-width: 700px;
+    width: 100%;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
 }
 
 .notes-popup-overlay.show .notes-popup-content {
@@ -574,11 +595,7 @@ title:before {
 }
 
 .notes-popup-header {
-    padding: 20px 20px 10px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: none;
 }
 
 .notes-popup-header h3 {
@@ -590,12 +607,23 @@ title:before {
 .notes-popup-close {
     background: none;
     border: none;
-    font-size: 24px;
-    color: #aaa;
+    font-size: 20px;
+    color: #bbb;
     cursor: pointer;
-    padding: 0;
+    padding: 0 0 4px 0;
     line-height: 1;
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    z-index: 2;
     transition: color 0.2s;
+}
+.notes-popup-close.minimal {
+    font-size: 20px;
+    color: #bbb;
+    top: 10px;
+    right: 14px;
+}
 }
 
 .notes-popup-close:hover {
@@ -603,21 +631,44 @@ title:before {
 }
 
 .notes-popup-body {
-    padding: 20px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    box-shadow: none;
 }
 
 .notes-textarea {
     width: 100%;
-    min-height: 260px;
-    font-size: 16px;
-    padding: 12px;
-    border: 1px solid #ddd;
+    min-height: 120px;
+    font-size: 15px;
+    border: none;
+    background: #f7f7f7;
     border-radius: 6px;
-    font-family: inherit;
-    font-size: 14px;
+    box-shadow: none;
+    padding: 10px;
+    margin-top: 8px;
+    margin-bottom: 4px;
     resize: vertical;
+    font-family: inherit;
     box-sizing: border-box;
     transition: border-color 0.2s;
+}
+.notes-textarea.minimal {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    font-size: 17px;
+    border: none;
+    background: #f7f7f7;
+    border-radius: 6px;
+    box-shadow: none;
+    padding: 10px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    margin-left: 0;
+    margin-right: 0;
+    resize: none;
 }
 
 .notes-textarea:focus {

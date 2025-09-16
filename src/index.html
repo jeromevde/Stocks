@@ -35,7 +35,7 @@
                             <small style="margin-top: 8px; display: block;">Need a token? <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank">Create one here</a> (requires 'repo' scope)</small>
                         </div>
                         <div class="modal-buttons">
-                            <button type="submit" class="btn-primary">Connect to GitHub</button>
+                            <button type="submit" class="btn-primary" id="github-login">Connect to GitHub</button>
                         </div>
                     </form>
                 </div>
@@ -52,14 +52,10 @@
 
         <!-- Notes Popup -->
         <div id="notes-popup-overlay" class="notes-popup-overlay">
-            <div class="notes-popup-content">
-                <div class="notes-popup-header">
-                    <h3 id="notes-popup-title">Edit Notes</h3>
-                    <button class="notes-popup-close" id="notes-popup-close">&times;</button>
-                </div>
-                <div class="notes-popup-body">
-                    <textarea id="notes-textarea" class="notes-textarea" placeholder="Add your notes here..."></textarea>
-                </div>
+            <div class="notes-popup-content minimal">
+                <div id="notes-popup-stock" class="notes-popup-stock"></div>
+                <button class="notes-popup-close minimal" id="notes-popup-close" title="Close">×</button>
+                <textarea id="notes-textarea" class="notes-textarea minimal"></textarea>
             </div>
         </div>
 
