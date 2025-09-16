@@ -833,7 +833,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial render of portfolio
     updatePortfolioTable();
 });
-});
 
 // Add before page unload warning
 window.addEventListener('beforeunload', (e) => {
