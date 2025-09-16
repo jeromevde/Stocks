@@ -4,7 +4,7 @@ class GitHubClient {
         this.token = localStorage.getItem('github_token');
         this.repoOwner = localStorage.getItem('github_repo_owner') || 'jeromevde'; // Default from repo context
         this.repoName = localStorage.getItem('github_repo_name') || 'Stocks'; // Default from repo context
-        this.filePath = 'portfolio.md';
+    this.filePath = 'portfolio.html';
         this.lastKnownSha = localStorage.getItem('portfolio_sha');
         this.lastKnownContent = localStorage.getItem('portfolio_content');
         this.lastSavedHash = localStorage.getItem('portfolio_saved_hash');

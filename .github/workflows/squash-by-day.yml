@@ -1,0 +1,27 @@
+name: Squash Commits By Day
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to squash (default: main)'
+        required: false
+        default: 'main'
+
+jobs:
+  squash-by-day:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Git user
+        run: |
+          git config --global user.name "jerome"
+          git config --global user.email "je.vanderelst@gmail.com"
+      - name: Make script executable
+        run: chmod +x scripts/squash_by_day.sh
+      - name: Squash commits by day
+        run: |
+          bash scripts/squash_by_day.sh ${{ github.event.inputs.branch }}
