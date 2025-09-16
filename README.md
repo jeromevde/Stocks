@@ -4,6 +4,8 @@
 - improve date view
 - discovery date instead of start date
 - 3 month trailing return
+- automatic github loging
+- phone compatibility
 
 # Stock Tracker
 
