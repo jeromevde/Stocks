@@ -1,9 +1,9 @@
 # Todo 
-- squash commits
-- handle markdown issue when long note
-- align label filtering
-- add star but also bad stock sign
-- drag & drop ?
+- 5 star system
+- add image
+- improve date view
+- discovery date instead of start date
+- 3 month trailing return
 
 # Stock Tracker
 
