@@ -1,5 +1,8 @@
 // Initialize GitHub integration: setup login, logout, save, refresh knoppen
 function initializeGitHubIntegration() {
+    // Try automatic login from stored credentials
+    tryAutoLogin();
+    
     // Voorkom reload bij submit van het GitHub-authenticatieformulier
     const githubAuthForm = document.getElementById('github-auth-form');
     if (githubAuthForm) {
@@ -16,9 +19,14 @@ function initializeGitHubIntegration() {
             const owner = ownerInput ? ownerInput.value : '';
             const repo = repoInput ? repoInput.value : '';
             if (token && owner && repo) {
+                // Save credentials for auto-login
+                saveGitHubCredentials(token, owner, repo);
                 window.githubClient.authenticate(token, owner, repo);
                 updateGitHubUI();
                 showStatus('Authenticated with GitHub!', 'success');
+                // Close the modal
+                const authModal = document.getElementById('github-auth-modal');
+                if (authModal) authModal.style.display = 'none';
                 // Herstel portfolio na authenticatie
                 try {
                     const temp = localStorage.getItem('portfolio_temp');
@@ -40,6 +48,7 @@ function initializeGitHubIntegration() {
     const logoutButton = document.getElementById('github-logout');
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
+            clearGitHubCredentials();
             window.githubClient.logout();
             updateGitHubUI();
             showStatus('Disconnected from GitHub', 'info');
@@ -66,7 +75,56 @@ function initializeGitHubIntegration() {
             forceRefreshFromGitHub();
         });
     }
+    
+    // Close modal button
+    const closeModalBtn = document.getElementById('close-auth-modal');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            const authModal = document.getElementById('github-auth-modal');
+            if (authModal) authModal.style.display = 'none';
+        });
+    }
 }
+
+// Auto-login functions for GitHub
+function saveGitHubCredentials(token, owner, repo) {
+    try {
+        localStorage.setItem('github_token', token);
+        localStorage.setItem('github_owner', owner);
+        localStorage.setItem('github_repo', repo);
+    } catch (e) {
+        console.warn('Could not save GitHub credentials:', e);
+    }
+}
+
+function clearGitHubCredentials() {
+    try {
+        localStorage.removeItem('github_token');
+        localStorage.removeItem('github_owner');
+        localStorage.removeItem('github_repo');
+    } catch (e) {
+        console.warn('Could not clear GitHub credentials:', e);
+    }
+}
+
+function tryAutoLogin() {
+    try {
+        const token = localStorage.getItem('github_token');
+        const owner = localStorage.getItem('github_owner');
+        const repo = localStorage.getItem('github_repo');
+        
+        if (token && owner && repo && window.githubClient) {
+            window.githubClient.authenticate(token, owner, repo);
+            updateGitHubUI();
+            showStatus('Auto-logged in to GitHub', 'success');
+            return true;
+        }
+    } catch (e) {
+        console.warn('Auto-login failed:', e);
+    }
+    return false;
+}
+
 // Helper: Fetch ticker suggestions from Yahoo Finance
 async function fetchTickerSuggestions(query) {
     if (!query) return [];
@@ -84,6 +142,7 @@ async function fetchTickerSuggestions(query) {
 // Global variables
 let portfolio = [];
 let sortByCumulativeReturn = false;
+let sortBy3MonthReturn = false;
 let labelFilterSet = new Set();
 let tableUpdateTimeout = null;
 let hasUnsavedChanges = false;
@@ -96,7 +155,7 @@ function calculatePortfolioHash() {
         date: stock.date,
         labels: stock.labels.slice().sort(), // Sort labels for consistent hashing
         notes: stock.notes,
-        starred: stock.starred
+        rating: stock.rating || 0
     })).sort((a, b) => a.ticker.localeCompare(b.ticker))); // Sort by ticker for consistency
     
     let hash = 0;
@@ -155,13 +214,14 @@ function updateSaveButtonState() {
 }
 
 function generateHtmlContent() {
-    let html = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Portfolio</title>\n  <style>\n    body { font-family: Arial, sans-serif; margin: 2em; }\n    table { border-collapse: collapse; width: 100%; }\n    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }\n    th { background: #f4f4f4; }\n    tr:nth-child(even) { background: #fafafa; }\n    .star { color: gold; font-size: 1.2em; }\n  </style>\n</head>\n<body>\n  <h1>Portfolio</h1>\n  <p><em>Last updated: ${new Date().toISOString()}</em></p>\n  <table>\n    <thead>\n      <tr>\n        <th>Ticker</th>\n        <th>Name</th>\n        <th>Date</th>\n        <th>Labels</th>\n        <th>Notes</th>\n        <th>Starred</th>\n      </tr>\n    </thead>\n    <tbody>\n`;
+    let html = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Portfolio</title>\n  <style>\n    body { font-family: Arial, sans-serif; margin: 2em; }\n    table { border-collapse: collapse; width: 100%; }\n    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }\n    th { background: #f4f4f4; }\n    tr:nth-child(even) { background: #fafafa; }\n    .star { color: gold; font-size: 1.2em; }\n  </style>\n</head>\n<body>\n  <h1>Portfolio</h1>\n  <p><em>Last updated: ${new Date().toISOString()}</em></p>\n  <table>\n    <thead>\n      <tr>\n        <th>Ticker</th>\n        <th>Name</th>\n        <th>Date</th>\n        <th>Labels</th>\n        <th>Notes</th>\n        <th>Rating</th>\n      </tr>\n    </thead>\n    <tbody>\n`;
     portfolio.forEach(s => {
         const labels = s.labels.join(', ');
         const notes = s.notes.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const starred = s.starred ? '<span class="star">★</span>' : '';
+        const rating = s.rating || 0;
+        const ratingStars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
         const name = (s.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        html += `      <tr><td>${s.ticker}</td><td>${name}</td><td>${s.date}</td><td>${labels}</td><td>${notes}</td><td>${starred}</td></tr>\n`;
+        html += `      <tr><td>${s.ticker}</td><td>${name}</td><td>${s.date}</td><td>${labels}</td><td>${notes}</td><td><span class="star">${ratingStars}</span> (${rating})</td></tr>\n`;
     });
     html += `    </tbody>\n  </table>\n  <p><small>Generated by Stock Tracker - ${portfolio.length} stocks tracked</small></p>\n</body>\n</html>\n`;
     return html;
@@ -253,6 +313,69 @@ async function fetchCurrentPrice(ticker) {
     } catch (e) {
         return null;
     }
+}
+
+// Fetch 3-month trailing return from Yahoo Finance
+async function fetch3MonthReturn(ticker) {
+    const CORS_PROXY = 'https://corsproxy.io/?';
+    const now = new Date();
+    const threeMonthsAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+    const start = Math.floor(threeMonthsAgo.getTime() / 1000);
+    const end = Math.floor(now.getTime() / 1000);
+    const url = CORS_PROXY + `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=1d`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (
+            data.chart &&
+            data.chart.result &&
+            data.chart.result[0] &&
+            data.chart.result[0].indicators &&
+            data.chart.result[0].indicators.quote[0] &&
+            data.chart.result[0].indicators.quote[0].close
+        ) {
+            const prices = data.chart.result[0].indicators.quote[0].close.filter(p => p != null);
+            if (prices.length >= 2) {
+                const oldPrice = prices[0];
+                const newPrice = prices[prices.length - 1];
+                return ((newPrice - oldPrice) / oldPrice * 100).toFixed(2);
+            }
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Format date for improved display
+function formatDateDisplay(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+    const formatted = date.toLocaleDateString('en-US', options);
+    
+    let timeAgo = '';
+    if (diffDays === 0) {
+        timeAgo = 'Today';
+    } else if (diffDays === 1) {
+        timeAgo = '1 day ago';
+    } else if (diffDays < 7) {
+        timeAgo = `${diffDays} days ago`;
+    } else if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        timeAgo = weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    } else if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        timeAgo = months === 1 ? '1 month ago' : `${months} months ago`;
+    } else {
+        const years = Math.floor(diffDays / 365);
+        timeAgo = years === 1 ? '1 year ago' : `${years} years ago`;
+    }
+    
+    return { formatted, timeAgo, diffDays };
 }
 
 // Save portfolio to markdown and upload to GitHub
@@ -490,14 +613,20 @@ function updatePortfolioTable() {
     // Clear the table
     portfolioTableBody.innerHTML = '';
     
-    // Sort: starred first, then by cumulative return if requested
+    // Sort: by rating (highest first), then by return metrics if requested
     let sorted = [...portfolio];
     sorted.sort((a, b) => {
-        if (a.starred && !b.starred) return -1;
-        if (!a.starred && b.starred) return 1;
+        const aRating = a.rating || 0;
+        const bRating = b.rating || 0;
+        if (aRating !== bRating) return bRating - aRating;
         if (sortByCumulativeReturn) {
             const aVal = parseFloat(a.cumulativeReturn) || -Infinity;
             const bVal = parseFloat(b.cumulativeReturn) || -Infinity;
+            return bVal - aVal;
+        }
+        if (sortBy3MonthReturn) {
+            const aVal = parseFloat(a.return3m) || -Infinity;
+            const bVal = parseFloat(b.return3m) || -Infinity;
             return bVal - aVal;
         }
         return 0;
@@ -514,16 +643,41 @@ function updatePortfolioTable() {
         const tr = document.createElement('tr');
         const notesShort = stock.notes && stock.notes.length > 20 ? stock.notes.slice(0, 20) + '…' : stock.notes;
         const stockIdx = portfolio.indexOf(stock);
+        const rating = stock.rating || 0;
+        const dateInfo = formatDateDisplay(stock.date);
+        
+        // Generate 5-star rating display
+        const ratingHtml = [1,2,3,4,5].map(i => 
+            `<span class="rating-star" data-rating="${i}" style="cursor:pointer; font-size:1.1em; color:${i <= rating ? '#f5b301' : '#ddd'};">${i <= rating ? '★' : '☆'}</span>`
+        ).join('');
+        
+        // Notes preview with markdown indicator
+        const hasImages = stock.notes && stock.notes.includes('![');
+        const notesPreview = hasImages ? '🖼️ ' + (notesShort || 'Image') : (notesShort || '');
+        
+        // 3-month return display
+        const return3m = stock.return3m;
+        const return3mDisplay = return3m != null && return3m !== 'N/A' && return3m !== 'Error' ? 
+            `<span style="color:${parseFloat(return3m) >= 0 ? '#4caf50' : '#f44336'}">${return3m}%</span>` : 
+            (stock.loading ? '...' : 'N/A');
         
         tr.innerHTML = `
-            <td style="text-align:center;"><button class="star-btn" data-idx="${stockIdx}">${stock.starred ? '★' : '☆'}</button></td>
+            <td style="text-align:center;">
+                <div class="rating-container" data-idx="${stockIdx}">${ratingHtml}</div>
+            </td>
             <td style="text-align:center;">
                 <div class="ticker-cell" style="cursor:pointer;" data-ticker="${stock.ticker}">
                     <div style="font-weight:bold; color:#0066cc;">${stock.ticker}</div>
                     <div style="font-size:11px; color:#888; margin-top:2px;">${stock.name || ''}</div>
                 </div>
             </td>
-            <td style="text-align:center;"><input type="date" value="${stock.date}" data-idx="${stockIdx}" class="edit-date" style="width:130px; border:none; background:transparent; font-size:12px; color:#666;"></td>
+            <td style="text-align:center;">
+                <div class="date-display" style="cursor:pointer;" data-idx="${stockIdx}">
+                    <div style="font-size:12px; color:#333;">${dateInfo.formatted}</div>
+                    <div style="font-size:10px; color:#999;">${dateInfo.timeAgo}</div>
+                </div>
+                <input type="date" value="${stock.date}" data-idx="${stockIdx}" class="edit-date" style="display:none; width:130px; border:1px solid #ddd; border-radius:4px; padding:4px; font-size:12px;">
+            </td>
             <td style="text-align:center;">
                 <div class="labels-container" data-idx="${stockIdx}" style="cursor:pointer; min-width:80px; padding:4px; border:1px solid transparent;">
                     ${stock.labels.map(label => `<span class="label-tag" style="display:inline-block; background:#e3f2fd; color:#1976d2; padding:2px 6px; margin:1px; border-radius:3px; font-size:11px;">${label}<span class="remove-label" data-label="${label}" style="margin-left:4px; cursor:pointer; font-weight:bold;">×</span></span>`).join('')}
@@ -538,19 +692,24 @@ function updatePortfolioTable() {
                 </div>
             </td>
             <td style="text-align:center;">
-                <span class="notes-display" data-idx="${stockIdx}" style="cursor:pointer; display:inline-block; min-width:80px; padding:8px; border:1px solid transparent; background:#f9f9f9; color:#666; border-radius:3px; min-height:16px;">${notesShort || ''}</span>
+                <span class="notes-display" data-idx="${stockIdx}" style="cursor:pointer; display:inline-block; min-width:80px; padding:8px; border:1px solid transparent; background:#f9f9f9; color:#666; border-radius:3px; min-height:16px;">${notesPreview}</span>
             </td>
             <td style="text-align:right;">${stock.nowPrice != null ? (stock.loading ? '...' : '$' + stock.nowPrice) : ''}</td>
+            <td class="return-3m" style="text-align:right;">${return3mDisplay}</td>
             <td class="cumulative-return" style="text-align:right; color: ${stock.loading || !stock.cumulativeReturn || stock.cumulativeReturn === 'N/A' || stock.cumulativeReturn === 'Error' ? '#666' : (parseFloat(stock.cumulativeReturn) >= 0 ? '#4caf50' : '#f44336')};">${stock.loading ? '...' : (stock.cumulativeReturn !== 'N/A' && stock.cumulativeReturn !== 'Error' ? stock.cumulativeReturn + '%' : stock.cumulativeReturn)}</td>
             <td style="text-align:center; width:30px;"><button class="remove-btn" data-idx="${stockIdx}" style="background:none; color:#ccc; border:none; cursor:pointer; padding:2px; font-size:16px; transition:color 0.2s; line-height:1;">×</button></td>
         `;
         
-        // Star button event listener
-        const starBtn = tr.querySelector('.star-btn');
-        starBtn.addEventListener('click', () => {
-            portfolio[stockIdx].starred = !portfolio[stockIdx].starred;
-            markPortfolioChanged(); // Mark as changed
-            updatePortfolioTable();
+        // Rating star click handlers
+        tr.querySelectorAll('.rating-star').forEach(star => {
+            star.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newRating = parseInt(star.getAttribute('data-rating'));
+                // Toggle: if clicking same rating, set to 0
+                portfolio[stockIdx].rating = (portfolio[stockIdx].rating === newRating) ? 0 : newRating;
+                markPortfolioChanged();
+                updatePortfolioTable();
+            });
         });
         
         // Remove button event listener
@@ -567,8 +726,16 @@ function updatePortfolioTable() {
             }
         });
         
-        // Date input event listener
+        // Date display click to show date picker
+        const dateDisplay = tr.querySelector('.date-display');
         const dateInput = tr.querySelector('.edit-date');
+        dateDisplay.addEventListener('click', () => {
+            dateDisplay.style.display = 'none';
+            dateInput.style.display = 'block';
+            dateInput.focus();
+        });
+        
+        // Date input event listener
         dateInput.addEventListener('change', (e) => {
             const newDate = e.target.value;
             portfolio[stockIdx].date = newDate;
@@ -579,6 +746,11 @@ function updatePortfolioTable() {
             updateStockPricesAsync(ticker, newDate, stockIdx);
             
             updatePortfolioTable();
+        });
+        
+        dateInput.addEventListener('blur', () => {
+            dateDisplay.style.display = 'block';
+            dateInput.style.display = 'none';
         });
         
         // Label management
@@ -816,11 +988,22 @@ document.addEventListener('DOMContentLoaded', () => {
         dropdown.addEventListener('click', (e) => e.stopPropagation());
     }
     
-    // Add sort event listener
+    // Add sort event listener for cumulative return
     const sortHeader = document.getElementById('sort-cumret');
     if (sortHeader) {
         sortHeader.addEventListener('click', () => {
             sortByCumulativeReturn = !sortByCumulativeReturn;
+            sortBy3MonthReturn = false;
+            updatePortfolioTable();
+        });
+    }
+    
+    // Add sort event listener for 3-month return
+    const sort3MHeader = document.getElementById('sort-3m-return');
+    if (sort3MHeader) {
+        sort3MHeader.addEventListener('click', () => {
+            sortBy3MonthReturn = !sortBy3MonthReturn;
+            sortByCumulativeReturn = false;
             updatePortfolioTable();
         });
     }
@@ -927,16 +1110,30 @@ async function parseHtmlContent(content) {
         if (cells.length === 6) {
             const labels = cells[3].textContent.split(',').map(l => l.trim()).filter(Boolean);
             const notes = cells[4].textContent;
-            const starred = cells[5].innerHTML.includes('★');
+            // Parse rating from content like "★★★☆☆ (3)" or just count stars
+            const ratingText = cells[5].textContent;
+            let rating = 0;
+            const ratingMatch = ratingText.match(/\((\d)\)/);
+            if (ratingMatch) {
+                rating = parseInt(ratingMatch[1]);
+            } else {
+                // Count filled stars
+                rating = (ratingText.match(/★/g) || []).length;
+            }
+            // Backwards compatibility: if it just says "true" or has a single star, treat as starred (rating 5)
+            if (ratingText.includes('true') || (rating === 0 && ratingText.includes('★'))) {
+                rating = 5;
+            }
             portfolioData.push({
                 ticker: cells[0].textContent,
                 name: cells[1].textContent,
                 date: cells[2].textContent,
                 labels,
                 notes,
-                starred,
+                rating,
                 nowPrice: 'Loading...',
-                cumulativeReturn: 'Calculating...'
+                cumulativeReturn: 'Calculating...',
+                return3m: 'Loading...'
             });
         }
     });
@@ -960,6 +1157,14 @@ async function updateStockData(stock) {
             stock.cumulativeReturn = returnPercent.toFixed(2);
         }
         
+        // Fetch 3-month trailing return
+        const return3m = await fetch3MonthReturn(stock.ticker);
+        if (return3m !== null) {
+            stock.return3m = return3m;
+        } else {
+            stock.return3m = 'N/A';
+        }
+        
         // Update the table (use debounced update to avoid excessive re-renders)
         debouncedUpdateTable();
         
@@ -971,6 +1176,9 @@ async function updateStockData(stock) {
         }
         if (!stock.cumulativeReturn || stock.cumulativeReturn === 'Calculating...') {
             stock.cumulativeReturn = 'Error';
+        }
+        if (!stock.return3m) {
+            stock.return3m = 'Error';
         }
     }
 }
@@ -997,7 +1205,8 @@ async function addStockAsync(ticker) {
             notes: '',
             nowPrice: '...',
             cumulativeReturn: '...',
-            starred: false,
+            return3m: '...',
+            rating: 0,
             loading: true
         };
         portfolio.push(stock);
@@ -1008,6 +1217,7 @@ async function addStockAsync(ticker) {
         try {
             const startPrice = await fetchHistoricalPrice(ticker, date);
             const nowPrice = await fetchHistoricalPrice(ticker, new Date().toISOString().slice(0,10));
+            const return3m = await fetch3MonthReturn(ticker);
             
             // Find the stock again (in case portfolio changed)
             const stockIndex = portfolio.findIndex(s => s.ticker === ticker && s.loading);
@@ -1020,6 +1230,7 @@ async function addStockAsync(ticker) {
                     portfolio[stockIndex].nowPrice = 'N/A';
                     portfolio[stockIndex].cumulativeReturn = 'N/A';
                 }
+                portfolio[stockIndex].return3m = return3m || 'N/A';
                 portfolio[stockIndex].loading = false;
                 updatePortfolioTable();
                 // Auto-save is disabled - user saves manually
@@ -1030,6 +1241,7 @@ async function addStockAsync(ticker) {
             if (stockIndex !== -1) {
                 portfolio[stockIndex].nowPrice = 'Error';
                 portfolio[stockIndex].cumulativeReturn = 'Error';
+                portfolio[stockIndex].return3m = 'Error';
                 portfolio[stockIndex].loading = false;
                 updatePortfolioTable();
             }
@@ -1076,6 +1288,17 @@ function openNotesPopup(stockIndex) {
     const stockTitle = document.getElementById('notes-popup-stock');
     if (stockTitle) stockTitle.textContent = stock.ticker || '';
     if (textarea) textarea.value = stock.notes || '';
+    
+    // Reset to edit tab
+    const notesTabs = document.querySelectorAll('.notes-tab');
+    notesTabs.forEach(t => t.classList.remove('active'));
+    const editTab = document.querySelector('.notes-tab[data-tab="edit"]');
+    if (editTab) editTab.classList.add('active');
+    
+    const editPanel = document.getElementById('notes-edit-panel');
+    const previewPanel = document.getElementById('notes-preview-panel');
+    if (editPanel) editPanel.style.display = 'flex';
+    if (previewPanel) previewPanel.style.display = 'none';
     
     // Show popup with animation
     overlay.style.display = 'flex';
@@ -1133,4 +1356,98 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
         }
     });
+    
+    // Notes tabs
+    const notesTabs = document.querySelectorAll('.notes-tab');
+    notesTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.getAttribute('data-tab');
+            
+            // Update active tab
+            notesTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Show/hide panels
+            const editPanel = document.getElementById('notes-edit-panel');
+            const previewPanel = document.getElementById('notes-preview-panel');
+            
+            if (tabName === 'edit') {
+                editPanel.style.display = 'flex';
+                previewPanel.style.display = 'none';
+            } else {
+                editPanel.style.display = 'none';
+                previewPanel.style.display = 'flex';
+                // Update preview
+                const preview = document.getElementById('notes-preview');
+                const textarea = document.getElementById('notes-textarea');
+                preview.innerHTML = renderMarkdown(textarea.value);
+            }
+        });
+    });
+    
+    // Image upload
+    const addImageBtn = document.getElementById('add-image-btn');
+    const imageUpload = document.getElementById('image-upload');
+    
+    if (addImageBtn && imageUpload) {
+        addImageBtn.addEventListener('click', () => {
+            imageUpload.click();
+        });
+        
+        imageUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Convert to base64
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64 = reader.result;
+                const textarea = document.getElementById('notes-textarea');
+                const cursorPos = textarea.selectionStart;
+                const textBefore = textarea.value.substring(0, cursorPos);
+                const textAfter = textarea.value.substring(cursorPos);
+                
+                // Insert markdown image
+                const imageMarkdown = `\n![${file.name}](${base64})\n`;
+                textarea.value = textBefore + imageMarkdown + textAfter;
+                
+                // Update cursor position
+                textarea.selectionStart = textarea.selectionEnd = cursorPos + imageMarkdown.length;
+                textarea.focus();
+                
+                // Mark as changed
+                if (currentNotesStockIndex !== null) {
+                    portfolio[currentNotesStockIndex].notes = textarea.value;
+                    markPortfolioChanged();
+                }
+            };
+            reader.readAsDataURL(file);
+            
+            // Reset input
+            imageUpload.value = '';
+        });
+    }
 });
+
+// Simple markdown renderer
+function renderMarkdown(text) {
+    if (!text) return '<p style="color: #999;">No notes yet...</p>';
+    
+    let html = text
+        // Escape HTML first
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // Images (must be before links) - support base64 images
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%; border-radius:4px; margin:8px 0;">')
+        // Bold
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        // Line breaks
+        .replace(/\n/g, '<br>');
+    
+    return html;
+}

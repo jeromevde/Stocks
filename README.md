@@ -1,14 +1,10 @@
-# Todo 
-- 5 star system
-- add image
-- improve date view
-- discovery date instead of start date
-- 3 month trailing return
-- automatic github loging
-- phone compatibility
+
 
 # Stock Tracker
 
+Todo
+- image data url shortening preview
+- 
 
 ![](example.png)
 

@@ -134,9 +134,13 @@ class GitHubClient {
             const currentInfo = conflictCheck.currentInfo;
             const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`;
             
+            // Use UTF-8 safe base64 encoding
+            const utf8Bytes = new TextEncoder().encode(content);
+            const base64Content = btoa(String.fromCharCode(...utf8Bytes));
+            
             const body = {
                 message: commitMessage,
-                content: btoa(content), // Encode to base64
+                content: base64Content,
             };
             
             // Include SHA if file exists (for updates)
