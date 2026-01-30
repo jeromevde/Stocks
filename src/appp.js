@@ -194,7 +194,7 @@ function startAutosaveTimer() {
     if (hasUnsavedChanges && window.githubClient && window.githubClient.isAuthenticated()) {
         autosaveTimerId = setTimeout(() => {
             showAutosavePopup();
-        }, 5 * 60 * 1000 + 10 * 1000); // 5 minutes and 10 seconds
+        }, 5 * 60 * 1000); // 5 minutes
     }
 }
 
@@ -1436,311 +1436,31 @@ function openNotesPopup(stockIndex) {
     // Update popup content
     const overlay = document.getElementById('notes-popup-overlay');
     const stockTitle = document.getElementById('notes-popup-stock');
-    const inlineEditor = document.getElementById('notes-inline-editor');
+    const textarea = document.getElementById('notes-textarea');
     
     if (stockTitle) stockTitle.textContent = stock.ticker || '';
     
     // Store and shorten images for editing
-    const notesText = storeAndShortenImages(stock.notes || '');
-    
-    // Render inline editor
-    renderInlineEditor(inlineEditor, notesText);
+    if (textarea) {
+        textarea.value = storeAndShortenImages(stock.notes || '');
+    }
     
     // Show popup with animation
     overlay.style.display = 'flex';
     setTimeout(() => {
         overlay.classList.add('show');
+        if (textarea) {
+            textarea.focus();
+        }
     }, 10);
-}
-
-// Render the inline editor with click-to-edit lines
-function renderInlineEditor(container, text) {
-    container.innerHTML = '';
-    
-    // Parse text into lines (text and images)
-    const lines = parseNotesIntoLines(text);
-    
-    lines.forEach((line, index) => {
-        if (line.type === 'image') {
-            // Image element with delete button
-            const imageDiv = document.createElement('div');
-            imageDiv.className = 'note-image';
-            imageDiv.dataset.index = index;
-            
-            // Restore full URL for display
-            const fullUrl = restoreFullImageUrl(line.content);
-            
-            imageDiv.innerHTML = `
-                <img src="${fullUrl}" alt="${line.alt || 'image'}">
-                <button class="delete-image-btn" title="Delete image">×</button>
-            `;
-            
-            // Delete button handler
-            imageDiv.querySelector('.delete-image-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                deleteLineAtIndex(container, index);
-            });
-            
-            container.appendChild(imageDiv);
-        } else {
-            // Text line - preview mode by default
-            const lineDiv = document.createElement('div');
-            lineDiv.className = 'note-line';
-            lineDiv.dataset.index = index;
-            
-            // Render preview
-            lineDiv.innerHTML = renderLinePreview(line.content);
-            
-            // Click to edit
-            lineDiv.addEventListener('click', () => {
-                if (!lineDiv.classList.contains('editing')) {
-                    enterEditMode(lineDiv, line.content, index, container);
-                }
-            });
-            
-            container.appendChild(lineDiv);
-        }
-    });
-    
-    // Add placeholder to add new lines
-    const placeholder = document.createElement('div');
-    placeholder.className = 'add-line-placeholder';
-    placeholder.textContent = 'Click here to add more notes...';
-    placeholder.addEventListener('click', () => {
-        addNewLine(container);
-    });
-    container.appendChild(placeholder);
-}
-
-// Parse notes into structured lines
-function parseNotesIntoLines(text) {
-    if (!text) return [];
-    
-    const lines = [];
-    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    let lastIndex = 0;
-    let match;
-    
-    while ((match = imageRegex.exec(text)) !== null) {
-        // Add text before image
-        const textBefore = text.substring(lastIndex, match.index).trim();
-        if (textBefore) {
-            textBefore.split('\n').filter(l => l.trim()).forEach(l => {
-                lines.push({ type: 'text', content: l });
-            });
-        }
-        
-        // Add image
-        lines.push({ type: 'image', alt: match[1], content: match[2] });
-        lastIndex = match.index + match[0].length;
-    }
-    
-    // Add remaining text
-    const remaining = text.substring(lastIndex).trim();
-    if (remaining) {
-        remaining.split('\n').filter(l => l.trim()).forEach(l => {
-            lines.push({ type: 'text', content: l });
-        });
-    }
-    
-    // If no lines, add empty placeholder
-    if (lines.length === 0) {
-        lines.push({ type: 'text', content: '' });
-    }
-    
-    return lines;
-}
-
-// Restore full URL for a single image
-function restoreFullImageUrl(shortUrl) {
-    const match = shortUrl.match(/^(data:image\/[^;]+;base64,)([A-Za-z0-9+/=]{20})\.\.\.$/);
-    if (match) {
-        const prefix = match[1];
-        const shortKey = match[2];
-        const fullBase64 = imageDataMap[shortKey];
-        if (fullBase64) {
-            return prefix + fullBase64;
-        }
-    }
-    return shortUrl;
-}
-
-// Render a text line as preview (with markdown)
-function renderLinePreview(text) {
-    if (!text || !text.trim()) return '<span style="color:#999; font-style:italic;">Empty line - click to edit</span>';
-    
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-}
-
-// Enter edit mode for a line
-function enterEditMode(lineDiv, content, index, container) {
-    // Exit any other editing lines
-    container.querySelectorAll('.note-line.editing').forEach(el => {
-        if (el !== lineDiv) {
-            exitEditMode(el, container);
-        }
-    });
-    
-    lineDiv.classList.add('editing');
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = content || '';
-    input.placeholder = 'Type your note here...';
-    
-    lineDiv.innerHTML = '';
-    lineDiv.appendChild(input);
-    input.focus();
-    input.select();
-    
-    // Save on blur or enter
-    const saveEdit = () => {
-        const newContent = input.value;
-        lineDiv.classList.remove('editing');
-        lineDiv.innerHTML = renderLinePreview(newContent);
-        lineDiv.dataset.content = newContent;
-        
-        // Re-attach click handler
-        lineDiv.onclick = () => enterEditMode(lineDiv, newContent, index, container);
-        
-        // Update notes
-        saveInlineEditorToNotes(container);
-    };
-    
-    input.addEventListener('blur', saveEdit);
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            saveEdit();
-            // Add new line after this one
-            addNewLineAfter(container, index);
-        }
-        if (e.key === 'Escape') {
-            lineDiv.classList.remove('editing');
-            lineDiv.innerHTML = renderLinePreview(content);
-            lineDiv.onclick = () => enterEditMode(lineDiv, content, index, container);
-        }
-    });
-}
-
-// Exit edit mode
-function exitEditMode(lineDiv, container) {
-    if (!lineDiv.classList.contains('editing')) return;
-    const input = lineDiv.querySelector('input');
-    if (input) {
-        const newContent = input.value;
-        lineDiv.classList.remove('editing');
-        lineDiv.innerHTML = renderLinePreview(newContent);
-        lineDiv.dataset.content = newContent;
-        lineDiv.onclick = () => enterEditMode(lineDiv, newContent, parseInt(lineDiv.dataset.index), container);
-    }
-}
-
-// Delete a line at index
-function deleteLineAtIndex(container, index) {
-    const element = container.querySelector(`[data-index="${index}"]`);
-    if (element) {
-        element.remove();
-        reindexLines(container);
-        saveInlineEditorToNotes(container);
-    }
-}
-
-// Add new line at the end
-function addNewLine(container) {
-    const placeholder = container.querySelector('.add-line-placeholder');
-    const lines = container.querySelectorAll('.note-line, .note-image');
-    const newIndex = lines.length;
-    
-    const lineDiv = document.createElement('div');
-    lineDiv.className = 'note-line';
-    lineDiv.dataset.index = newIndex;
-    lineDiv.innerHTML = renderLinePreview('');
-    
-    container.insertBefore(lineDiv, placeholder);
-    
-    // Enter edit mode immediately
-    enterEditMode(lineDiv, '', newIndex, container);
-}
-
-// Add new line after a specific index
-function addNewLineAfter(container, afterIndex) {
-    const lines = Array.from(container.querySelectorAll('.note-line, .note-image'));
-    const afterElement = lines.find(el => parseInt(el.dataset.index) === afterIndex);
-    
-    if (afterElement) {
-        const lineDiv = document.createElement('div');
-        lineDiv.className = 'note-line';
-        lineDiv.dataset.index = afterIndex + 1;
-        lineDiv.innerHTML = renderLinePreview('');
-        
-        afterElement.after(lineDiv);
-        reindexLines(container);
-        enterEditMode(lineDiv, '', afterIndex + 1, container);
-    }
-}
-
-// Reindex all lines
-function reindexLines(container) {
-    const elements = container.querySelectorAll('.note-line, .note-image');
-    elements.forEach((el, i) => {
-        el.dataset.index = i;
-    });
-}
-
-// Save inline editor content back to notes
-function saveInlineEditorToNotes(container) {
-    const elements = container.querySelectorAll('.note-line, .note-image');
-    let notesText = '';
-    
-    elements.forEach(el => {
-        if (el.classList.contains('note-image')) {
-            const img = el.querySelector('img');
-            if (img) {
-                // Find the shortened version from the map
-                const fullSrc = img.src;
-                const shortUrl = shortenImageUrl(fullSrc);
-                const alt = img.alt || 'image';
-                notesText += `![${alt}](${shortUrl})\n`;
-            }
-        } else {
-            const input = el.querySelector('input');
-            const content = input ? input.value : (el.dataset.content || el.textContent.trim());
-            if (content && content !== 'Empty line - click to edit') {
-                notesText += content + '\n';
-            }
-        }
-    });
-    
-    if (currentNotesStockIndex !== null) {
-        portfolio[currentNotesStockIndex].notes = restoreFullImageUrls(notesText.trim());
-        markPortfolioChanged();
-    }
-}
-
-// Shorten a full image URL for storage
-function shortenImageUrl(fullUrl) {
-    const match = fullUrl.match(/^(data:image\/[^;]+;base64,)(.+)$/);
-    if (match) {
-        const prefix = match[1];
-        const data = match[2];
-        const shortKey = data.substring(0, 20);
-        imageDataMap[shortKey] = data;
-        return `${prefix}${shortKey}...`;
-    }
-    return fullUrl;
 }
 
 function closeNotesPopup() {
     // Save notes before closing
-    const container = document.getElementById('notes-inline-editor');
-    if (container && currentNotesStockIndex !== null) {
-        saveInlineEditorToNotes(container);
+    const textarea = document.getElementById('notes-textarea');
+    if (textarea && currentNotesStockIndex !== null) {
+        portfolio[currentNotesStockIndex].notes = restoreFullImageUrls(textarea.value);
+        markPortfolioChanged();
         updatePortfolioTable();
     }
     
@@ -1770,7 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Notes popup event listeners
     const notesOverlay = document.getElementById('notes-popup-overlay');
     const notesCloseBtn = document.getElementById('notes-popup-close');
-    const inlineEditor = document.getElementById('notes-inline-editor');
+    const notesTextarea = document.getElementById('notes-textarea');
     
     // Close popup when clicking overlay
     notesOverlay.addEventListener('click', (e) => {
@@ -1795,11 +1515,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = e.target.files[0];
             if (!file) return;
             
-            // Convert to base64 and add to inline editor
+            // Convert to base64 and add to textarea
             const reader = new FileReader();
             reader.onload = () => {
                 const base64 = reader.result;
-                addImageToInlineEditor(base64, file.name);
+                insertImageIntoTextarea(notesTextarea, base64, file.name);
             };
             reader.readAsDataURL(file);
             
@@ -1808,13 +1528,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Paste image from clipboard (Cmd+V / Ctrl+V) on the inline editor
-    if (inlineEditor) {
-        document.addEventListener('paste', (e) => {
-            // Only handle if notes popup is visible
-            const overlay = document.getElementById('notes-popup-overlay');
-            if (!overlay || overlay.style.display === 'none') return;
-            
+    // Paste image from clipboard (Cmd+V / Ctrl+V)
+    if (notesTextarea) {
+        notesTextarea.addEventListener('paste', (e) => {
             const items = e.clipboardData?.items;
             if (!items) return;
             
@@ -1827,7 +1543,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const reader = new FileReader();
                     reader.onload = () => {
                         const base64 = reader.result;
-                        addImageToInlineEditor(base64, 'pasted-image');
+                        insertImageIntoTextarea(notesTextarea, base64, 'pasted-image');
                     };
                     reader.readAsDataURL(file);
                     break;
@@ -1847,65 +1563,92 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Add image to inline editor
-function addImageToInlineEditor(base64, altText) {
-    const container = document.getElementById('notes-inline-editor');
-    if (!container) return;
+// Insert image into textarea with shortened URL
+function insertImageIntoTextarea(textarea, base64, altText) {
+    if (!textarea) return;
     
-    const placeholder = container.querySelector('.add-line-placeholder');
-    const lines = container.querySelectorAll('.note-line, .note-image');
-    const newIndex = lines.length;
+    const cursorPos = textarea.selectionStart;
+    const textBefore = textarea.value.substring(0, cursorPos);
+    const textAfter = textarea.value.substring(cursorPos);
     
-    // Store in image map
+    // Extract the base64 data part and shorten for display
     const base64Match = base64.match(/^(data:image\/[^;]+;base64,)(.+)$/);
-    let shortUrl = base64;
+    let imageMarkdown;
     if (base64Match) {
         const prefix = base64Match[1];
         const data = base64Match[2];
         const shortKey = data.substring(0, 20);
         imageDataMap[shortKey] = data;
-        shortUrl = `${prefix}${shortKey}...`;
+        imageMarkdown = `\n![${altText}](${prefix}${shortKey}...)\n`;
+    } else {
+        imageMarkdown = `\n![${altText}](${base64})\n`;
     }
     
-    // Create image element
-    const imageDiv = document.createElement('div');
-    imageDiv.className = 'note-image';
-    imageDiv.dataset.index = newIndex;
+    textarea.value = textBefore + imageMarkdown + textAfter;
+    textarea.selectionStart = textarea.selectionEnd = cursorPos + imageMarkdown.length;
+    textarea.focus();
     
-    imageDiv.innerHTML = `
-        <img src="${base64}" alt="${altText}">
-        <button class="delete-image-btn" title="Delete image">×</button>
-    `;
-    
-    // Delete button handler
-    imageDiv.querySelector('.delete-image-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteLineAtIndex(container, newIndex);
-    });
-    
-    container.insertBefore(imageDiv, placeholder);
-    reindexLines(container);
-    saveInlineEditorToNotes(container);
+    // Mark as changed
+    if (currentNotesStockIndex !== null) {
+        markPortfolioChanged();
+    }
 }
 
-// Simple markdown renderer
+// Simple markdown renderer with heading support
 function renderMarkdown(text) {
     if (!text) return '<p style="color: #999;">No notes yet...</p>';
     
-    let html = text
+    // Process line by line for headings
+    const lines = text.split('\n');
+    const processedLines = lines.map(line => {
         // Escape HTML first
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
+        let escaped = line
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        
+        // Headings (must be at start of line)
+        if (escaped.match(/^### /)) {
+            return `<h4 style="margin:12px 0 8px 0; font-size:1.1em;">${escaped.substring(4)}</h4>`;
+        }
+        if (escaped.match(/^## /)) {
+            return `<h3 style="margin:14px 0 10px 0; font-size:1.25em;">${escaped.substring(3)}</h3>`;
+        }
+        if (escaped.match(/^# /)) {
+            return `<h2 style="margin:16px 0 12px 0; font-size:1.4em;">${escaped.substring(2)}</h2>`;
+        }
+        
+        // Bullet points
+        if (escaped.match(/^- /)) {
+            return `<li style="margin-left:20px;">${escaped.substring(2)}</li>`;
+        }
+        if (escaped.match(/^\* /)) {
+            return `<li style="margin-left:20px;">${escaped.substring(2)}</li>`;
+        }
+        
+        // Numbered lists
+        const numberedMatch = escaped.match(/^(\d+)\. /);
+        if (numberedMatch) {
+            return `<li style="margin-left:20px; list-style-type:decimal;">${escaped.substring(numberedMatch[0].length)}</li>`;
+        }
+        
+        return escaped;
+    });
+    
+    let html = processedLines.join('\n')
         // Images (must be before links) - support base64 images
         .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%; border-radius:4px; margin:8px 0;">')
         // Bold
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        // Italic
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // Italic (but not in URLs or already processed)
+        .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code style="background:#f0f0f0; padding:2px 6px; border-radius:3px; font-family:monospace;">$1</code>')
         // Links
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-        // Line breaks
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#1976d2;">$1</a>')
+        // Horizontal rule
+        .replace(/^---$/gm, '<hr style="border:none; border-top:1px solid #ddd; margin:16px 0;">')
+        // Line breaks (only for non-heading lines)
         .replace(/\n/g, '<br>');
     
     return html;

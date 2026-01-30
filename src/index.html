@@ -106,16 +106,16 @@
                 <div id="notes-popup-stock" class="notes-popup-stock"></div>
                 <button class="notes-popup-close minimal" id="notes-popup-close" title="Close">×</button>
                 
-                <!-- Single unified notes editor with inline preview -->
+                <!-- Simple textarea editor -->
                 <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column;">
                     <div class="notes-toolbar">
                         <button type="button" class="toolbar-btn" id="add-image-btn" title="Add Image">
                             🖼️ Add Image
                         </button>
                         <input type="file" id="image-upload" accept="image/*" style="display: none;">
-                        <span class="toolbar-hint">Paste images with Ctrl+V | **bold** *italic*</span>
+                        <span class="toolbar-hint">Paste images with Ctrl+V | # heading | **bold** | *italic*</span>
                     </div>
-                    <div id="notes-inline-editor" class="notes-inline-editor" style="flex:1; overflow-y:auto;"></div>
+                    <textarea id="notes-textarea" class="notes-textarea minimal" placeholder="Write your notes here...&#10;&#10;Markdown supported:&#10;# Heading&#10;**bold** *italic*"></textarea>
                 </div>
             </div>
         </div>
