@@ -147,6 +147,9 @@ let labelFilterSet = new Set();
 let tableUpdateTimeout = null;
 let hasUnsavedChanges = false;
 let initialPortfolioHash = null;
+let showZeroStarStocks = false; // Collapsible zero-star stocks
+let autosaveTimerId = null; // Autosave timer
+let autosavePopupVisible = false; // Autosave popup state
 
 // Portfolio change tracking functions
 function calculatePortfolioHash() {
@@ -175,6 +178,79 @@ function markPortfolioChanged() {
     if (!document.title.includes('*')) {
         document.title = '* Stock Tracker';
     }
+    
+    // Start/restart autosave timer (5 minutes = 300000ms)
+    startAutosaveTimer();
+}
+
+// Autosave timer functions
+function startAutosaveTimer() {
+    // Clear existing timer
+    if (autosaveTimerId) {
+        clearTimeout(autosaveTimerId);
+    }
+    
+    // Only start timer if there are unsaved changes and user is authenticated
+    if (hasUnsavedChanges && window.githubClient && window.githubClient.isAuthenticated()) {
+        autosaveTimerId = setTimeout(() => {
+            showAutosavePopup();
+        }, 5 * 60 * 1000 + 10 * 1000); // 5 minutes and 10 seconds
+    }
+}
+
+function showAutosavePopup() {
+    if (!hasUnsavedChanges || autosavePopupVisible) return;
+    
+    autosavePopupVisible = true;
+    const popup = document.getElementById('autosave-popup');
+    if (popup) {
+        popup.style.display = 'flex';
+        
+        // Auto-save countdown (10 seconds)
+        let countdown = 10;
+        const countdownEl = document.getElementById('autosave-countdown');
+        if (countdownEl) countdownEl.textContent = countdown;
+        
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            if (countdownEl) countdownEl.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                confirmAutosave();
+            }
+        }, 1000);
+        
+        // Store interval for cancellation
+        popup.dataset.countdownInterval = countdownInterval;
+    }
+}
+
+function confirmAutosave() {
+    const popup = document.getElementById('autosave-popup');
+    if (popup) {
+        clearInterval(parseInt(popup.dataset.countdownInterval));
+        popup.style.display = 'none';
+    }
+    autosavePopupVisible = false;
+    
+    // Perform save
+    savePortfolioToMarkdown().catch(error => {
+        console.error('Autosave error:', error);
+        showStatus('Autosave failed: ' + error.message, 'error');
+    });
+}
+
+function cancelAutosave() {
+    const popup = document.getElementById('autosave-popup');
+    if (popup) {
+        clearInterval(parseInt(popup.dataset.countdownInterval));
+        popup.style.display = 'none';
+    }
+    autosavePopupVisible = false;
+    
+    // Restart timer for another 5 minutes
+    startAutosaveTimer();
 }
 
 function markPortfolioSaved() {
@@ -184,6 +260,12 @@ function markPortfolioSaved() {
     
     // Remove unsaved indicator from title
     document.title = 'Stock Tracker';
+    
+    // Clear autosave timer
+    if (autosaveTimerId) {
+        clearTimeout(autosaveTimerId);
+        autosaveTimerId = null;
+    }
     
     // Update GitHub client's saved state
     if (window.githubClient) {
@@ -638,8 +720,40 @@ function updatePortfolioTable() {
         filtered = sorted.filter(stock => stock.labels.some(label => labelFilterSet.has(label)));
     }
     
-    // Create and append rows with event listeners
-    filtered.forEach(stock => {
+    // Separate zero-star and rated stocks
+    const ratedStocks = filtered.filter(stock => (stock.rating || 0) > 0);
+    const zeroStarStocks = filtered.filter(stock => (stock.rating || 0) === 0);
+    
+    // Render rated stocks first
+    ratedStocks.forEach(stock => renderStockRow(portfolioTableBody, stock));
+    
+    // Render zero-star stocks toggle row if there are any
+    if (zeroStarStocks.length > 0) {
+        const toggleRow = document.createElement('tr');
+        toggleRow.className = 'zero-star-toggle-row';
+        toggleRow.innerHTML = `
+            <td colspan="9" style="text-align:center; background:#f5f5f5; cursor:pointer; padding:12px; border-top:2px solid #ddd;">
+                <span style="color:#666; font-size:14px;">
+                    <span class="zero-star-arrow" style="display:inline-block; transition:transform 0.2s; margin-right:8px;">${showZeroStarStocks ? '▼' : '▶'}</span>
+                    ${zeroStarStocks.length} unrated stock${zeroStarStocks.length > 1 ? 's' : ''} 
+                    <span style="color:#999; font-size:12px;">(click to ${showZeroStarStocks ? 'hide' : 'show'})</span>
+                </span>
+            </td>
+        `;
+        toggleRow.addEventListener('click', () => {
+            showZeroStarStocks = !showZeroStarStocks;
+            updatePortfolioTable();
+        });
+        portfolioTableBody.appendChild(toggleRow);
+        
+        // Render zero-star stocks if expanded
+        if (showZeroStarStocks) {
+            zeroStarStocks.forEach(stock => renderStockRow(portfolioTableBody, stock));
+        }
+    }
+}
+
+function renderStockRow(tableBody, stock) {
         const tr = document.createElement('tr');
         const notesShort = stock.notes && stock.notes.length > 20 ? stock.notes.slice(0, 20) + '…' : stock.notes;
         const stockIdx = portfolio.indexOf(stock);
@@ -835,8 +949,7 @@ function updatePortfolioTable() {
             window.open(`https://finance.yahoo.com/quote/${stock.ticker}`, '_blank');
         });
         
-        portfolioTableBody.appendChild(tr);
-    });
+        tableBody.appendChild(tr);
 }
 
 // Initialize everything after DOM is fully loaded
@@ -1321,40 +1434,313 @@ function openNotesPopup(stockIndex) {
     const stock = portfolio[stockIndex];
     
     // Update popup content
-    const textarea = document.getElementById('notes-textarea');
     const overlay = document.getElementById('notes-popup-overlay');
     const stockTitle = document.getElementById('notes-popup-stock');
+    const inlineEditor = document.getElementById('notes-inline-editor');
+    
     if (stockTitle) stockTitle.textContent = stock.ticker || '';
-    // Display shortened version of base64 images
-    if (textarea) textarea.value = storeAndShortenImages(stock.notes || '');
     
-    // Reset to edit tab
-    const notesTabs = document.querySelectorAll('.notes-tab');
-    notesTabs.forEach(t => t.classList.remove('active'));
-    const editTab = document.querySelector('.notes-tab[data-tab="edit"]');
-    if (editTab) editTab.classList.add('active');
+    // Store and shorten images for editing
+    const notesText = storeAndShortenImages(stock.notes || '');
     
-    const editPanel = document.getElementById('notes-edit-panel');
-    const previewPanel = document.getElementById('notes-preview-panel');
-    if (editPanel) editPanel.style.display = 'flex';
-    if (previewPanel) previewPanel.style.display = 'none';
+    // Render inline editor
+    renderInlineEditor(inlineEditor, notesText);
     
     // Show popup with animation
     overlay.style.display = 'flex';
     setTimeout(() => {
         overlay.classList.add('show');
-        textarea.focus();
-        textarea.select();
     }, 10);
 }
 
-function closeNotesPopup() {
-    // Auto-save notes before closing - restore full image URLs
+// Render the inline editor with click-to-edit lines
+function renderInlineEditor(container, text) {
+    container.innerHTML = '';
+    
+    // Parse text into lines (text and images)
+    const lines = parseNotesIntoLines(text);
+    
+    lines.forEach((line, index) => {
+        if (line.type === 'image') {
+            // Image element with delete button
+            const imageDiv = document.createElement('div');
+            imageDiv.className = 'note-image';
+            imageDiv.dataset.index = index;
+            
+            // Restore full URL for display
+            const fullUrl = restoreFullImageUrl(line.content);
+            
+            imageDiv.innerHTML = `
+                <img src="${fullUrl}" alt="${line.alt || 'image'}">
+                <button class="delete-image-btn" title="Delete image">×</button>
+            `;
+            
+            // Delete button handler
+            imageDiv.querySelector('.delete-image-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteLineAtIndex(container, index);
+            });
+            
+            container.appendChild(imageDiv);
+        } else {
+            // Text line - preview mode by default
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'note-line';
+            lineDiv.dataset.index = index;
+            
+            // Render preview
+            lineDiv.innerHTML = renderLinePreview(line.content);
+            
+            // Click to edit
+            lineDiv.addEventListener('click', () => {
+                if (!lineDiv.classList.contains('editing')) {
+                    enterEditMode(lineDiv, line.content, index, container);
+                }
+            });
+            
+            container.appendChild(lineDiv);
+        }
+    });
+    
+    // Add placeholder to add new lines
+    const placeholder = document.createElement('div');
+    placeholder.className = 'add-line-placeholder';
+    placeholder.textContent = 'Click here to add more notes...';
+    placeholder.addEventListener('click', () => {
+        addNewLine(container);
+    });
+    container.appendChild(placeholder);
+}
+
+// Parse notes into structured lines
+function parseNotesIntoLines(text) {
+    if (!text) return [];
+    
+    const lines = [];
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = imageRegex.exec(text)) !== null) {
+        // Add text before image
+        const textBefore = text.substring(lastIndex, match.index).trim();
+        if (textBefore) {
+            textBefore.split('\n').filter(l => l.trim()).forEach(l => {
+                lines.push({ type: 'text', content: l });
+            });
+        }
+        
+        // Add image
+        lines.push({ type: 'image', alt: match[1], content: match[2] });
+        lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    const remaining = text.substring(lastIndex).trim();
+    if (remaining) {
+        remaining.split('\n').filter(l => l.trim()).forEach(l => {
+            lines.push({ type: 'text', content: l });
+        });
+    }
+    
+    // If no lines, add empty placeholder
+    if (lines.length === 0) {
+        lines.push({ type: 'text', content: '' });
+    }
+    
+    return lines;
+}
+
+// Restore full URL for a single image
+function restoreFullImageUrl(shortUrl) {
+    const match = shortUrl.match(/^(data:image\/[^;]+;base64,)([A-Za-z0-9+/=]{20})\.\.\.$/);
+    if (match) {
+        const prefix = match[1];
+        const shortKey = match[2];
+        const fullBase64 = imageDataMap[shortKey];
+        if (fullBase64) {
+            return prefix + fullBase64;
+        }
+    }
+    return shortUrl;
+}
+
+// Render a text line as preview (with markdown)
+function renderLinePreview(text) {
+    if (!text || !text.trim()) return '<span style="color:#999; font-style:italic;">Empty line - click to edit</span>';
+    
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+}
+
+// Enter edit mode for a line
+function enterEditMode(lineDiv, content, index, container) {
+    // Exit any other editing lines
+    container.querySelectorAll('.note-line.editing').forEach(el => {
+        if (el !== lineDiv) {
+            exitEditMode(el, container);
+        }
+    });
+    
+    lineDiv.classList.add('editing');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = content || '';
+    input.placeholder = 'Type your note here...';
+    
+    lineDiv.innerHTML = '';
+    lineDiv.appendChild(input);
+    input.focus();
+    input.select();
+    
+    // Save on blur or enter
+    const saveEdit = () => {
+        const newContent = input.value;
+        lineDiv.classList.remove('editing');
+        lineDiv.innerHTML = renderLinePreview(newContent);
+        lineDiv.dataset.content = newContent;
+        
+        // Re-attach click handler
+        lineDiv.onclick = () => enterEditMode(lineDiv, newContent, index, container);
+        
+        // Update notes
+        saveInlineEditorToNotes(container);
+    };
+    
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEdit();
+            // Add new line after this one
+            addNewLineAfter(container, index);
+        }
+        if (e.key === 'Escape') {
+            lineDiv.classList.remove('editing');
+            lineDiv.innerHTML = renderLinePreview(content);
+            lineDiv.onclick = () => enterEditMode(lineDiv, content, index, container);
+        }
+    });
+}
+
+// Exit edit mode
+function exitEditMode(lineDiv, container) {
+    if (!lineDiv.classList.contains('editing')) return;
+    const input = lineDiv.querySelector('input');
+    if (input) {
+        const newContent = input.value;
+        lineDiv.classList.remove('editing');
+        lineDiv.innerHTML = renderLinePreview(newContent);
+        lineDiv.dataset.content = newContent;
+        lineDiv.onclick = () => enterEditMode(lineDiv, newContent, parseInt(lineDiv.dataset.index), container);
+    }
+}
+
+// Delete a line at index
+function deleteLineAtIndex(container, index) {
+    const element = container.querySelector(`[data-index="${index}"]`);
+    if (element) {
+        element.remove();
+        reindexLines(container);
+        saveInlineEditorToNotes(container);
+    }
+}
+
+// Add new line at the end
+function addNewLine(container) {
+    const placeholder = container.querySelector('.add-line-placeholder');
+    const lines = container.querySelectorAll('.note-line, .note-image');
+    const newIndex = lines.length;
+    
+    const lineDiv = document.createElement('div');
+    lineDiv.className = 'note-line';
+    lineDiv.dataset.index = newIndex;
+    lineDiv.innerHTML = renderLinePreview('');
+    
+    container.insertBefore(lineDiv, placeholder);
+    
+    // Enter edit mode immediately
+    enterEditMode(lineDiv, '', newIndex, container);
+}
+
+// Add new line after a specific index
+function addNewLineAfter(container, afterIndex) {
+    const lines = Array.from(container.querySelectorAll('.note-line, .note-image'));
+    const afterElement = lines.find(el => parseInt(el.dataset.index) === afterIndex);
+    
+    if (afterElement) {
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'note-line';
+        lineDiv.dataset.index = afterIndex + 1;
+        lineDiv.innerHTML = renderLinePreview('');
+        
+        afterElement.after(lineDiv);
+        reindexLines(container);
+        enterEditMode(lineDiv, '', afterIndex + 1, container);
+    }
+}
+
+// Reindex all lines
+function reindexLines(container) {
+    const elements = container.querySelectorAll('.note-line, .note-image');
+    elements.forEach((el, i) => {
+        el.dataset.index = i;
+    });
+}
+
+// Save inline editor content back to notes
+function saveInlineEditorToNotes(container) {
+    const elements = container.querySelectorAll('.note-line, .note-image');
+    let notesText = '';
+    
+    elements.forEach(el => {
+        if (el.classList.contains('note-image')) {
+            const img = el.querySelector('img');
+            if (img) {
+                // Find the shortened version from the map
+                const fullSrc = img.src;
+                const shortUrl = shortenImageUrl(fullSrc);
+                const alt = img.alt || 'image';
+                notesText += `![${alt}](${shortUrl})\n`;
+            }
+        } else {
+            const input = el.querySelector('input');
+            const content = input ? input.value : (el.dataset.content || el.textContent.trim());
+            if (content && content !== 'Empty line - click to edit') {
+                notesText += content + '\n';
+            }
+        }
+    });
+    
     if (currentNotesStockIndex !== null) {
-        const textarea = document.getElementById('notes-textarea');
-        // Restore full base64 URLs before saving
-        portfolio[currentNotesStockIndex].notes = restoreFullImageUrls(textarea.value);
+        portfolio[currentNotesStockIndex].notes = restoreFullImageUrls(notesText.trim());
         markPortfolioChanged();
+    }
+}
+
+// Shorten a full image URL for storage
+function shortenImageUrl(fullUrl) {
+    const match = fullUrl.match(/^(data:image\/[^;]+;base64,)(.+)$/);
+    if (match) {
+        const prefix = match[1];
+        const data = match[2];
+        const shortKey = data.substring(0, 20);
+        imageDataMap[shortKey] = data;
+        return `${prefix}${shortKey}...`;
+    }
+    return fullUrl;
+}
+
+function closeNotesPopup() {
+    // Save notes before closing
+    const container = document.getElementById('notes-inline-editor');
+    if (container && currentNotesStockIndex !== null) {
+        saveInlineEditorToNotes(container);
         updatePortfolioTable();
     }
     
@@ -1370,10 +1756,21 @@ function closeNotesPopup() {
 
 // Initialize notes popup event listeners
 document.addEventListener('DOMContentLoaded', () => {
+    // Autosave popup handlers
+    const autosaveConfirm = document.getElementById('autosave-confirm');
+    const autosaveCancel = document.getElementById('autosave-cancel');
+    
+    if (autosaveConfirm) {
+        autosaveConfirm.addEventListener('click', confirmAutosave);
+    }
+    if (autosaveCancel) {
+        autosaveCancel.addEventListener('click', cancelAutosave);
+    }
+
     // Notes popup event listeners
     const notesOverlay = document.getElementById('notes-popup-overlay');
     const notesCloseBtn = document.getElementById('notes-popup-close');
-    const notesTextarea = document.getElementById('notes-textarea');
+    const inlineEditor = document.getElementById('notes-inline-editor');
     
     // Close popup when clicking overlay
     notesOverlay.addEventListener('click', (e) => {
@@ -1384,47 +1781,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Close button
     notesCloseBtn.addEventListener('click', closeNotesPopup);
-    
-    // Keyboard shortcuts en Enter-fix
-    notesTextarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeNotesPopup();
-        }
-        // Voorkom form submit op Enter (alleen als er geen modifier is)
-        if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
-            // Gewoon een nieuwe regel toevoegen, geen submit
-            // (standaardgedrag textarea is goed, maar we voorkomen bubbling)
-            e.stopPropagation();
-        }
-    });
-    
-    // Notes tabs
-    const notesTabs = document.querySelectorAll('.notes-tab');
-    notesTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabName = tab.getAttribute('data-tab');
-            
-            // Update active tab
-            notesTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            // Show/hide panels
-            const editPanel = document.getElementById('notes-edit-panel');
-            const previewPanel = document.getElementById('notes-preview-panel');
-            
-            if (tabName === 'edit') {
-                editPanel.style.display = 'flex';
-                previewPanel.style.display = 'none';
-            } else {
-                editPanel.style.display = 'none';
-                previewPanel.style.display = 'flex';
-                // Update preview - restore full URLs for rendering
-                const preview = document.getElementById('notes-preview');
-                const textarea = document.getElementById('notes-textarea');
-                preview.innerHTML = renderMarkdown(restoreFullImageUrls(textarea.value));
-            }
-        });
-    });
     
     // Image upload
     const addImageBtn = document.getElementById('add-image-btn');
@@ -1439,39 +1795,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = e.target.files[0];
             if (!file) return;
             
-            // Convert to base64
+            // Convert to base64 and add to inline editor
             const reader = new FileReader();
             reader.onload = () => {
                 const base64 = reader.result;
-                const textarea = document.getElementById('notes-textarea');
-                const cursorPos = textarea.selectionStart;
-                const textBefore = textarea.value.substring(0, cursorPos);
-                const textAfter = textarea.value.substring(cursorPos);
-                
-                // Extract the base64 data part (after the prefix)
-                const base64Match = base64.match(/^(data:image\/[^;]+;base64,)(.+)$/);
-                let imageMarkdown;
-                if (base64Match) {
-                    const prefix = base64Match[1];
-                    const data = base64Match[2];
-                    const shortKey = data.substring(0, 20);
-                    imageDataMap[shortKey] = data; // Store full base64
-                    imageMarkdown = `\n![${file.name}](${prefix}${shortKey}...)\n`;
-                } else {
-                    imageMarkdown = `\n![${file.name}](${base64})\n`;
-                }
-                
-                textarea.value = textBefore + imageMarkdown + textAfter;
-                
-                // Update cursor position
-                textarea.selectionStart = textarea.selectionEnd = cursorPos + imageMarkdown.length;
-                textarea.focus();
-                
-                // Mark as changed
-                if (currentNotesStockIndex !== null) {
-                    portfolio[currentNotesStockIndex].notes = textarea.value;
-                    markPortfolioChanged();
-                }
+                addImageToInlineEditor(base64, file.name);
             };
             reader.readAsDataURL(file);
             
@@ -1480,9 +1808,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Paste image from clipboard (Cmd+V / Ctrl+V)
-    if (notesTextarea) {
-        notesTextarea.addEventListener('paste', (e) => {
+    // Paste image from clipboard (Cmd+V / Ctrl+V) on the inline editor
+    if (inlineEditor) {
+        document.addEventListener('paste', (e) => {
+            // Only handle if notes popup is visible
+            const overlay = document.getElementById('notes-popup-overlay');
+            if (!overlay || overlay.style.display === 'none') return;
+            
             const items = e.clipboardData?.items;
             if (!items) return;
             
@@ -1495,32 +1827,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const reader = new FileReader();
                     reader.onload = () => {
                         const base64 = reader.result;
-                        const cursorPos = notesTextarea.selectionStart;
-                        const textBefore = notesTextarea.value.substring(0, cursorPos);
-                        const textAfter = notesTextarea.value.substring(cursorPos);
-                        
-                        // Extract the base64 data part and shorten for display
-                        const base64Match = base64.match(/^(data:image\/[^;]+;base64,)(.+)$/);
-                        let imageMarkdown;
-                        if (base64Match) {
-                            const prefix = base64Match[1];
-                            const data = base64Match[2];
-                            const shortKey = data.substring(0, 20);
-                            imageDataMap[shortKey] = data;
-                            imageMarkdown = `\n![pasted-image](${prefix}${shortKey}...)\n`;
-                        } else {
-                            imageMarkdown = `\n![pasted-image](${base64})\n`;
-                        }
-                        
-                        notesTextarea.value = textBefore + imageMarkdown + textAfter;
-                        notesTextarea.selectionStart = notesTextarea.selectionEnd = cursorPos + imageMarkdown.length;
-                        notesTextarea.focus();
-                        
-                        // Mark as changed
-                        if (currentNotesStockIndex !== null) {
-                            portfolio[currentNotesStockIndex].notes = notesTextarea.value;
-                            markPortfolioChanged();
-                        }
+                        addImageToInlineEditor(base64, 'pasted-image');
                     };
                     reader.readAsDataURL(file);
                     break;
@@ -1528,7 +1835,58 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // Escape key to close popup
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('notes-popup-overlay');
+            if (overlay && overlay.style.display !== 'none') {
+                closeNotesPopup();
+            }
+        }
+    });
 });
+
+// Add image to inline editor
+function addImageToInlineEditor(base64, altText) {
+    const container = document.getElementById('notes-inline-editor');
+    if (!container) return;
+    
+    const placeholder = container.querySelector('.add-line-placeholder');
+    const lines = container.querySelectorAll('.note-line, .note-image');
+    const newIndex = lines.length;
+    
+    // Store in image map
+    const base64Match = base64.match(/^(data:image\/[^;]+;base64,)(.+)$/);
+    let shortUrl = base64;
+    if (base64Match) {
+        const prefix = base64Match[1];
+        const data = base64Match[2];
+        const shortKey = data.substring(0, 20);
+        imageDataMap[shortKey] = data;
+        shortUrl = `${prefix}${shortKey}...`;
+    }
+    
+    // Create image element
+    const imageDiv = document.createElement('div');
+    imageDiv.className = 'note-image';
+    imageDiv.dataset.index = newIndex;
+    
+    imageDiv.innerHTML = `
+        <img src="${base64}" alt="${altText}">
+        <button class="delete-image-btn" title="Delete image">×</button>
+    `;
+    
+    // Delete button handler
+    imageDiv.querySelector('.delete-image-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteLineAtIndex(container, newIndex);
+    });
+    
+    container.insertBefore(imageDiv, placeholder);
+    reindexLines(container);
+    saveInlineEditorToNotes(container);
+}
 
 // Simple markdown renderer
 function renderMarkdown(text) {

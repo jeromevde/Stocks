@@ -568,23 +568,25 @@ title:before {
 
 .notes-popup-content {
     background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
-    width: 100%;
-    max-width: 420px;
-    max-height: 70vh;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    width: 90%;
+    max-width: 800px;
+    height: 80vh;
+    max-height: 80vh;
     margin: 0 auto;
-    padding: 12px 12px 8px 12px;
+    padding: 16px 20px;
     transform: scale(0.98) translateY(10px);
     transition: transform 0.2s;
 }
 .notes-popup-content.minimal {
-    border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
-    padding: 12px 12px 8px 12px;
-    max-width: 700px;
-    width: 100%;
-    min-height: 320px;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    padding: 16px 20px;
+    max-width: 800px;
+    width: 90%;
+    height: 80vh;
+    max-height: 80vh;
     display: flex;
     flex-direction: column;
     background: #fff;
@@ -673,6 +675,100 @@ title:before {
     outline: none;
     border-color: #35424a;
     box-shadow: 0 0 0 2px rgba(53, 66, 74, 0.1);
+}
+
+/* Inline Notes Editor */
+.notes-inline-editor {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 200px;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-y: auto;
+}
+
+.notes-inline-editor .note-line {
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 4px;
+    cursor: text;
+    min-height: 24px;
+    transition: background 0.15s;
+}
+
+.notes-inline-editor .note-line:hover {
+    background: #f0f0f0;
+}
+
+.notes-inline-editor .note-line.editing {
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.notes-inline-editor .note-line input,
+.notes-inline-editor .note-line textarea {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    resize: none;
+    padding: 0;
+    margin: 0;
+}
+
+.notes-inline-editor .note-image {
+    position: relative;
+    display: inline-block;
+    margin: 8px 0;
+}
+
+.notes-inline-editor .note-image img {
+    max-width: 100%;
+    border-radius: 8px;
+    display: block;
+}
+
+.notes-inline-editor .note-image .delete-image-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(244, 67, 54, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notes-inline-editor .note-image:hover .delete-image-btn {
+    opacity: 1;
+}
+
+.notes-inline-editor .add-line-placeholder {
+    padding: 12px;
+    color: #999;
+    font-style: italic;
+    cursor: text;
+    border: 2px dashed #ddd;
+    border-radius: 4px;
+    text-align: center;
+    margin-top: 12px;
+}
+
+.notes-inline-editor .add-line-placeholder:hover {
+    border-color: #bbb;
+    color: #666;
 }
 
 /* GitHub OAuth Button */
@@ -922,7 +1018,9 @@ title:before {
     /* Notes popup */
     .notes-popup-content.minimal {
         max-width: 95%;
-        min-height: 250px;
+        width: 95%;
+        height: 85vh;
+        max-height: 85vh;
         margin: 10px;
     }
     

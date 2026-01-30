@@ -2,9 +2,6 @@
 
 # Stock Tracker
 
-Todo
-- automatic save popup ?
-
 ![](example.png)
 
 A full HTML/JavaScript stock tracker that allows you to search Yahoo Finance stocks and manage your portfolio with date-based cumulative return calculations, customizable labels for filtering, personal notes for each stock, clickable tickers that open Yahoo Finance, GitHub integration for portfolio persistence

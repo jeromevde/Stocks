@@ -88,33 +88,34 @@
             </div>
         </div>
 
+        <!-- Autosave Popup -->
+        <div id="autosave-popup" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+            <div style="background:white; border-radius:12px; padding:24px 32px; box-shadow:0 4px 20px rgba(0,0,0,0.3); text-align:center; max-width:400px;">
+                <h3 style="margin:0 0 16px 0; color:#333;">💾 Unsaved Changes</h3>
+                <p style="margin:0 0 20px 0; color:#666;">You have unsaved changes. Auto-saving in <strong id="autosave-countdown">10</strong> seconds...</p>
+                <div style="display:flex; gap:12px; justify-content:center;">
+                    <button id="autosave-confirm" style="padding:10px 24px; background:#4CAF50; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">Save Now</button>
+                    <button id="autosave-cancel" style="padding:10px 24px; background:#f44336; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Notes Popup with Markdown & Image Support -->
         <div id="notes-popup-overlay" class="notes-popup-overlay">
             <div class="notes-popup-content minimal">
                 <div id="notes-popup-stock" class="notes-popup-stock"></div>
                 <button class="notes-popup-close minimal" id="notes-popup-close" title="Close">×</button>
                 
-                <!-- Tab buttons -->
-                <div class="notes-tabs">
-                    <button class="notes-tab active" data-tab="edit">Edit</button>
-                    <button class="notes-tab" data-tab="preview">Preview</button>
-                </div>
-                
-                <!-- Edit mode -->
-                <div id="notes-edit-panel" class="notes-panel">
+                <!-- Single unified notes editor with inline preview -->
+                <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column;">
                     <div class="notes-toolbar">
                         <button type="button" class="toolbar-btn" id="add-image-btn" title="Add Image">
                             🖼️ Add Image
                         </button>
                         <input type="file" id="image-upload" accept="image/*" style="display: none;">
-                        <span class="toolbar-hint">Supports Markdown: **bold**, *italic*, ![image](url)</span>
+                        <span class="toolbar-hint">Paste images with Ctrl+V | **bold** *italic*</span>
                     </div>
-                    <textarea id="notes-textarea" class="notes-textarea minimal" placeholder="Write your notes here...&#10;&#10;Markdown supported:&#10;**bold** *italic*&#10;![alt text](image url)"></textarea>
-                </div>
-                
-                <!-- Preview mode -->
-                <div id="notes-preview-panel" class="notes-panel" style="display: none;">
-                    <div id="notes-preview" class="notes-preview"></div>
+                    <div id="notes-inline-editor" class="notes-inline-editor" style="flex:1; overflow-y:auto;"></div>
                 </div>
             </div>
         </div>
