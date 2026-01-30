@@ -3,7 +3,6 @@
 # Stock Tracker
 
 Todo
-- image data url shortening preview
 - automatic save popup ?
 
 ![](example.png)

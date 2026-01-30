@@ -1479,6 +1479,55 @@ document.addEventListener('DOMContentLoaded', () => {
             imageUpload.value = '';
         });
     }
+    
+    // Paste image from clipboard (Cmd+V / Ctrl+V)
+    if (notesTextarea) {
+        notesTextarea.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const base64 = reader.result;
+                        const cursorPos = notesTextarea.selectionStart;
+                        const textBefore = notesTextarea.value.substring(0, cursorPos);
+                        const textAfter = notesTextarea.value.substring(cursorPos);
+                        
+                        // Extract the base64 data part and shorten for display
+                        const base64Match = base64.match(/^(data:image\/[^;]+;base64,)(.+)$/);
+                        let imageMarkdown;
+                        if (base64Match) {
+                            const prefix = base64Match[1];
+                            const data = base64Match[2];
+                            const shortKey = data.substring(0, 20);
+                            imageDataMap[shortKey] = data;
+                            imageMarkdown = `\n![pasted-image](${prefix}${shortKey}...)\n`;
+                        } else {
+                            imageMarkdown = `\n![pasted-image](${base64})\n`;
+                        }
+                        
+                        notesTextarea.value = textBefore + imageMarkdown + textAfter;
+                        notesTextarea.selectionStart = notesTextarea.selectionEnd = cursorPos + imageMarkdown.length;
+                        notesTextarea.focus();
+                        
+                        // Mark as changed
+                        if (currentNotesStockIndex !== null) {
+                            portfolio[currentNotesStockIndex].notes = notesTextarea.value;
+                            markPortfolioChanged();
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                    break;
+                }
+            }
+        });
+    }
 });
 
 // Simple markdown renderer
