@@ -1278,6 +1278,44 @@ function updateStockPricesAsync(ticker, newDate, stockIdx) {
 // Notes popup functionality
 let currentNotesStockIndex = null;
 
+// Helper: Shorten base64 image URLs for display in textarea
+function shortenImageUrlsForDisplay(text) {
+    if (!text) return '';
+    // Match markdown images with base64 data URLs and shorten them
+    return text.replace(/!\[([^\]]*)\]\((data:image\/[^;]+;base64,)([A-Za-z0-9+/=]{50,})\)/g, (match, alt, prefix, base64) => {
+        // Keep first 20 chars of base64 for identification
+        const shortBase64 = base64.substring(0, 20) + '...';
+        return `![${alt}](${prefix}${shortBase64})`;
+    });
+}
+
+// Helper: Restore shortened base64 URLs back to full data
+// We store a map of shortened URLs to full URLs
+let imageDataMap = {};
+
+function storeAndShortenImages(text) {
+    if (!text) return '';
+    imageDataMap = {}; // Reset map
+    
+    return text.replace(/!\[([^\]]*)\]\((data:image\/[^;]+;base64,)([A-Za-z0-9+/=]{50,})\)/g, (match, alt, prefix, base64) => {
+        const shortKey = base64.substring(0, 20);
+        imageDataMap[shortKey] = base64; // Store full base64
+        return `![${alt}](${prefix}${shortKey}...)`;
+    });
+}
+
+function restoreFullImageUrls(text) {
+    if (!text) return '';
+    // Restore shortened base64 URLs to full data
+    return text.replace(/!\[([^\]]*)\]\((data:image\/[^;]+;base64,)([A-Za-z0-9+/=]{20})\.\.\.\)/g, (match, alt, prefix, shortKey) => {
+        const fullBase64 = imageDataMap[shortKey];
+        if (fullBase64) {
+            return `![${alt}](${prefix}${fullBase64})`;
+        }
+        return match; // Return original if no match found
+    });
+}
+
 function openNotesPopup(stockIndex) {
     currentNotesStockIndex = stockIndex;
     const stock = portfolio[stockIndex];
@@ -1287,7 +1325,8 @@ function openNotesPopup(stockIndex) {
     const overlay = document.getElementById('notes-popup-overlay');
     const stockTitle = document.getElementById('notes-popup-stock');
     if (stockTitle) stockTitle.textContent = stock.ticker || '';
-    if (textarea) textarea.value = stock.notes || '';
+    // Display shortened version of base64 images
+    if (textarea) textarea.value = storeAndShortenImages(stock.notes || '');
     
     // Reset to edit tab
     const notesTabs = document.querySelectorAll('.notes-tab');
@@ -1310,10 +1349,11 @@ function openNotesPopup(stockIndex) {
 }
 
 function closeNotesPopup() {
-    // Auto-save notes before closing
+    // Auto-save notes before closing - restore full image URLs
     if (currentNotesStockIndex !== null) {
         const textarea = document.getElementById('notes-textarea');
-        portfolio[currentNotesStockIndex].notes = textarea.value;
+        // Restore full base64 URLs before saving
+        portfolio[currentNotesStockIndex].notes = restoreFullImageUrls(textarea.value);
         markPortfolioChanged();
         updatePortfolioTable();
     }
@@ -1324,6 +1364,7 @@ function closeNotesPopup() {
     setTimeout(() => {
         overlay.style.display = 'none';
         currentNotesStockIndex = null;
+        imageDataMap = {}; // Clear image map
     }, 300);
 }
 
@@ -1377,10 +1418,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 editPanel.style.display = 'none';
                 previewPanel.style.display = 'flex';
-                // Update preview
+                // Update preview - restore full URLs for rendering
                 const preview = document.getElementById('notes-preview');
                 const textarea = document.getElementById('notes-textarea');
-                preview.innerHTML = renderMarkdown(textarea.value);
+                preview.innerHTML = renderMarkdown(restoreFullImageUrls(textarea.value));
             }
         });
     });
@@ -1407,8 +1448,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const textBefore = textarea.value.substring(0, cursorPos);
                 const textAfter = textarea.value.substring(cursorPos);
                 
-                // Insert markdown image
-                const imageMarkdown = `\n![${file.name}](${base64})\n`;
+                // Extract the base64 data part (after the prefix)
+                const base64Match = base64.match(/^(data:image\/[^;]+;base64,)(.+)$/);
+                let imageMarkdown;
+                if (base64Match) {
+                    const prefix = base64Match[1];
+                    const data = base64Match[2];
+                    const shortKey = data.substring(0, 20);
+                    imageDataMap[shortKey] = data; // Store full base64
+                    imageMarkdown = `\n![${file.name}](${prefix}${shortKey}...)\n`;
+                } else {
+                    imageMarkdown = `\n![${file.name}](${base64})\n`;
+                }
+                
                 textarea.value = textBefore + imageMarkdown + textAfter;
                 
                 // Update cursor position
