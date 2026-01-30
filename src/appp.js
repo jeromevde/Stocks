@@ -125,14 +125,35 @@ function tryAutoLogin() {
     return false;
 }
 
+// CORS Proxy fallback system - tries multiple proxies until one works
+const CORS_PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?',
+    'https://api.codetabs.com/v1/proxy?quest='
+];
+
+async function fetchWithCorsProxy(targetUrl) {
+    let lastError = null;
+    for (const proxy of CORS_PROXIES) {
+        try {
+            const res = await fetch(proxy + encodeURIComponent(targetUrl));
+            if (res.ok) {
+                return await res.json();
+            }
+        } catch (e) {
+            lastError = e;
+            continue; // Try next proxy
+        }
+    }
+    throw lastError || new Error('All CORS proxies failed');
+}
+
 // Helper: Fetch ticker suggestions from Yahoo Finance
 async function fetchTickerSuggestions(query) {
     if (!query) return [];
-    const CORS_PROXY = 'https://corsproxy.io/?';
-    const url = CORS_PROXY + `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=5&newsCount=0`;
+    const targetUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=5&newsCount=0`;
     try {
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchWithCorsProxy(targetUrl);
         return (data.quotes || []).map(q => ({symbol: q.symbol, name: q.shortname || q.longname || q.symbol}));
     } catch (e) {
         return [];
@@ -328,11 +349,9 @@ async function fetchHistoricalPrice(ticker, date) {
     const endDate = new Date(targetDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days later
     const end = Math.floor(endDate.getTime() / 1000);
     
-    const CORS_PROXY = 'https://corsproxy.io/?';
-    const url = CORS_PROXY + `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=1d`;
+    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=1d`;
     try {
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchWithCorsProxy(targetUrl);
         
         // Defensive checks for missing data
         if (
@@ -376,11 +395,9 @@ async function fetchHistoricalPrice(ticker, date) {
 
 // Fetch current price from Yahoo Finance
 async function fetchCurrentPrice(ticker) {
-    const CORS_PROXY = 'https://corsproxy.io/?';
-    const url = CORS_PROXY + `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1d&interval=1m`;
+    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1d&interval=1m`;
     try {
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchWithCorsProxy(targetUrl);
         // Get the most recent price
         if (
             data.chart &&
@@ -399,15 +416,13 @@ async function fetchCurrentPrice(ticker) {
 
 // Fetch 3-month trailing return from Yahoo Finance
 async function fetch3MonthReturn(ticker) {
-    const CORS_PROXY = 'https://corsproxy.io/?';
     const now = new Date();
     const threeMonthsAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
     const start = Math.floor(threeMonthsAgo.getTime() / 1000);
     const end = Math.floor(now.getTime() / 1000);
-    const url = CORS_PROXY + `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=1d`;
+    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=1d`;
     try {
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchWithCorsProxy(targetUrl);
         if (
             data.chart &&
             data.chart.result &&
