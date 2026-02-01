@@ -12,7 +12,6 @@ let autosavePopupVisible = false;
 
 // Notes popup state
 let currentNotesStockIndex = null;
-let imageDataMap = {};
 
 /**
  * Debounced table update to prevent excessive re-renders
@@ -184,9 +183,13 @@ function renderStockRow(tableBody, stock) {
         `<span class="rating-star" data-rating="${i}" style="cursor:pointer; font-size:1.1em; color:${i <= rating ? '#f5b301' : '#ddd'};">${i <= rating ? '★' : '☆'}</span>`
     ).join('');
     
-    // Notes preview
-    const hasImages = stock.notes && stock.notes.includes('![');
-    const notesPreview = hasImages ? '🖼️ ' + (notesShort || 'Image') : (notesShort || '');
+    // Notes preview - detect image URLs and YouTube links
+    const hasImageUrl = stock.notes && /(https?:\/\/[^\s]+?(?:\.(?:png|jpg|jpeg|gif|webp|svg)|substackcdn\.com|imgur\.com))/i.test(stock.notes);
+    const hasYoutube = stock.notes && /(?:youtube\.com|youtu\.be)/i.test(stock.notes);
+    let notesIcon = '';
+    if (hasImageUrl) notesIcon += '🖼️ ';
+    if (hasYoutube) notesIcon += '▶️ ';
+    const notesPreview = notesIcon + (notesShort || '');
     
     // 3-month return display
     const return3m = stock.return3m;
@@ -485,24 +488,209 @@ function cancelAutosave() {
     startAutosaveTimer();
 }
 
-// Notes popup functions
-function storeAndShortenImages(text) {
-    if (!text) return '';
-    imageDataMap = {};
+/**
+ * Create an inline media element (image or YouTube)
+ */
+function createMediaElement(url, type, videoId) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'media-embed';
+    wrapper.setAttribute('data-url', url);
+    wrapper.contentEditable = 'false';
+    wrapper.style.cssText = 'position:relative; display:block; margin:12px 0; width:100%;';
     
-    return text.replace(/!\[([^\]]*)\]\((data:image\/[^;]+;base64,)([A-Za-z0-9+/=]{50,})\)/g, (match, alt, prefix, base64) => {
-        const shortKey = base64.substring(0, 20);
-        imageDataMap[shortKey] = base64;
-        return `![${alt}](${prefix}${shortKey}...)`;
+    // Delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '×';
+    deleteBtn.style.cssText = 'position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.7); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:18px; line-height:1; z-index:10;';
+    deleteBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        wrapper.remove();
+        if (currentNotesStockIndex !== null) {
+            window.Portfolio.markChanged();
+        }
+    };
+    
+    if (type === 'youtube') {
+        const thumb = document.createElement('div');
+        thumb.style.cssText = 'position:relative; cursor:pointer; width:100%; aspect-ratio:16/9; max-height:70vh;';
+        
+        const img = document.createElement('img');
+        img.src = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        img.style.cssText = 'width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid #ddd;';
+        // Fallback to medium quality if maxres doesn't exist
+        img.onerror = () => { img.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`; };
+        
+        const playIcon = document.createElement('div');
+        playIcon.innerHTML = '▶';
+        playIcon.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(255,0,0,0.85); color:white; width:68px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px;';
+        
+        thumb.appendChild(img);
+        thumb.appendChild(playIcon);
+        thumb.onclick = () => window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+        
+        wrapper.appendChild(thumb);
+    } else {
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = 'width:100%; max-height:70vh; object-fit:contain; border-radius:8px; border:1px solid #ddd; cursor:pointer;';
+        img.onclick = () => window.open(url, '_blank');
+        img.onerror = () => { wrapper.innerHTML = '<span style="color:#999; font-size:12px;">[Image failed]</span>'; };
+        
+        wrapper.appendChild(img);
+    }
+    
+    wrapper.appendChild(deleteBtn);
+    return wrapper;
+}
+
+/**
+ * Scan text for URLs and convert them to media embeds
+ */
+function processUrlsInEditor(editor) {
+    if (!editor) return;
+    
+    // Get text content and find URLs
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
+    const nodesToProcess = [];
+    
+    while (walker.nextNode()) {
+        const node = walker.currentNode;
+        // Skip if parent is already a media embed
+        if (node.parentElement.closest('.media-embed')) continue;
+        
+        const text = node.textContent;
+        
+        // Check for YouTube URLs
+        const youtubeMatch = text.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)?/);
+        if (youtubeMatch) {
+            nodesToProcess.push({ node, match: youtubeMatch, type: 'youtube', videoId: youtubeMatch[1] });
+            continue;
+        }
+        
+        // Check for image URLs
+        const imageMatch = text.match(/(https?:\/\/[^\s]+?(?:\.(?:png|jpg|jpeg|gif|webp|svg)|substackcdn\.com\/image\/[^\s]+|imgur\.com\/[^\s]+))/i);
+        if (imageMatch) {
+            nodesToProcess.push({ node, match: imageMatch, type: 'image' });
+        }
+    }
+    
+    // Process found URLs (in reverse to maintain positions)
+    nodesToProcess.reverse().forEach(({ node, match, type, videoId }) => {
+        const url = match[0];
+        const startIndex = match.index;
+        const endIndex = startIndex + url.length;
+        
+        const beforeText = node.textContent.substring(0, startIndex);
+        const afterText = node.textContent.substring(endIndex);
+        
+        const mediaElement = createMediaElement(url, type, videoId);
+        
+        const parent = node.parentNode;
+        
+        // Insert: before text, media element, after text
+        if (afterText) {
+            parent.insertBefore(document.createTextNode(afterText), node.nextSibling);
+        }
+        parent.insertBefore(mediaElement, node.nextSibling);
+        if (beforeText) {
+            node.textContent = beforeText;
+        } else {
+            node.remove();
+        }
+        
+        // Mark as changed
+        if (currentNotesStockIndex !== null) {
+            window.Portfolio.markChanged();
+        }
     });
 }
 
-function restoreFullImageUrls(text) {
-    if (!text) return '';
-    return text.replace(/!\[([^\]]*)\]\((data:image\/[^;]+;base64,)([A-Za-z0-9+/=]{20})\.\.\.\)/g, (match, alt, prefix, shortKey) => {
-        const fullBase64 = imageDataMap[shortKey];
-        return fullBase64 ? `![${alt}](${prefix}${fullBase64})` : match;
+/**
+ * Convert editor content to storable text format
+ */
+function editorToText(editor) {
+    if (!editor) return '';
+    
+    let text = '';
+    const processNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            text += node.textContent;
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.classList.contains('media-embed')) {
+                // Store URL for media embeds
+                text += node.getAttribute('data-url') + ' ';
+            } else if (node.tagName === 'BR') {
+                text += '\n';
+            } else if (node.tagName === 'DIV' || node.tagName === 'P') {
+                if (text && !text.endsWith('\n')) text += '\n';
+                node.childNodes.forEach(processNode);
+                if (!text.endsWith('\n')) text += '\n';
+            } else {
+                node.childNodes.forEach(processNode);
+            }
+        }
+    };
+    
+    editor.childNodes.forEach(processNode);
+    return text.trim();
+}
+
+/**
+ * Convert stored text to editor HTML with embedded media
+ */
+function textToEditor(text, editor) {
+    if (!editor) return;
+    
+    editor.innerHTML = '';
+    
+    if (!text) {
+        editor.innerHTML = '<br>';
+        return;
+    }
+    
+    // Split by URLs and process
+    const urlPattern = /((?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)[a-zA-Z0-9_-]{11}(?:[^\s]*)?|https?:\/\/[^\s]+?(?:\.(?:png|jpg|jpeg|gif|webp|svg)|substackcdn\.com\/image\/[^\s]+|imgur\.com\/[^\s]+))/gi;
+    
+    const lines = text.split('\n');
+    
+    lines.forEach((line, lineIndex) => {
+        const parts = line.split(urlPattern);
+        const lineDiv = document.createElement('div');
+        
+        parts.forEach(part => {
+            if (!part) return;
+            
+            // Check if this part is a YouTube URL
+            const youtubeMatch = part.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+            if (youtubeMatch) {
+                lineDiv.appendChild(createMediaElement(part, 'youtube', youtubeMatch[1]));
+                return;
+            }
+            
+            // Check if this part is an image URL
+            const imageMatch = part.match(/https?:\/\/[^\s]+?(?:\.(?:png|jpg|jpeg|gif|webp|svg)|substackcdn\.com\/image\/|imgur\.com\/)/i);
+            if (imageMatch) {
+                lineDiv.appendChild(createMediaElement(part, 'image'));
+                return;
+            }
+            
+            // Regular text
+            lineDiv.appendChild(document.createTextNode(part));
+        });
+        
+        if (lineDiv.childNodes.length === 0) {
+            lineDiv.appendChild(document.createElement('br'));
+        }
+        
+        editor.appendChild(lineDiv);
     });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function openNotesPopup(stockIndex) {
@@ -511,22 +699,40 @@ function openNotesPopup(stockIndex) {
     
     const overlay = document.getElementById('notes-popup-overlay');
     const stockTitle = document.getElementById('notes-popup-stock');
-    const textarea = document.getElementById('notes-textarea');
+    const editor = document.getElementById('notes-editor');
     
     if (stockTitle) stockTitle.textContent = stock.ticker || '';
-    if (textarea) textarea.value = storeAndShortenImages(stock.notes || '');
+    
+    if (editor) {
+        // Load notes with embedded media
+        textToEditor(stock.notes || '', editor);
+        
+        // Auto-process URLs on paste
+        editor.onpaste = (e) => {
+            // Let the paste happen, then process URLs
+            setTimeout(() => processUrlsInEditor(editor), 100);
+        };
+        
+        // Process URLs on input (with debounce)
+        let inputTimeout;
+        editor.oninput = () => {
+            clearTimeout(inputTimeout);
+            inputTimeout = setTimeout(() => processUrlsInEditor(editor), 500);
+        };
+    }
     
     overlay.style.display = 'flex';
     setTimeout(() => {
         overlay.classList.add('show');
-        if (textarea) textarea.focus();
+        if (editor) editor.focus();
     }, 10);
 }
 
 function closeNotesPopup() {
-    const textarea = document.getElementById('notes-textarea');
-    if (textarea && currentNotesStockIndex !== null) {
-        window.Portfolio.updateNotes(currentNotesStockIndex, restoreFullImageUrls(textarea.value));
+    const editor = document.getElementById('notes-editor');
+    if (editor && currentNotesStockIndex !== null) {
+        const text = editorToText(editor);
+        window.Portfolio.updateNotes(currentNotesStockIndex, text);
     }
     
     const overlay = document.getElementById('notes-popup-overlay');
@@ -535,37 +741,7 @@ function closeNotesPopup() {
     setTimeout(() => {
         overlay.style.display = 'none';
         currentNotesStockIndex = null;
-        imageDataMap = {};
     }, 300);
-}
-
-function insertImageIntoTextarea(textarea, base64, altText) {
-    if (!textarea) return;
-    
-    const cursorPos = textarea.selectionStart;
-    const textBefore = textarea.value.substring(0, cursorPos);
-    const textAfter = textarea.value.substring(cursorPos);
-    
-    const base64Match = base64.match(/^(data:image\/[^;]+;base64,)(.+)$/);
-    let imageMarkdown;
-    
-    if (base64Match) {
-        const prefix = base64Match[1];
-        const data = base64Match[2];
-        const shortKey = data.substring(0, 20);
-        imageDataMap[shortKey] = data;
-        imageMarkdown = `\n![${altText}](${prefix}${shortKey}...)\n`;
-    } else {
-        imageMarkdown = `\n![${altText}](${base64})\n`;
-    }
-    
-    textarea.value = textBefore + imageMarkdown + textAfter;
-    textarea.selectionStart = textarea.selectionEnd = cursorPos + imageMarkdown.length;
-    textarea.focus();
-    
-    if (currentNotesStockIndex !== null) {
-        window.Portfolio.markChanged();
-    }
 }
 
 // Export functions
@@ -580,7 +756,7 @@ window.UI = {
     startAutosaveTimer,
     confirmAutosave,
     cancelAutosave,
-    insertImageIntoTextarea
+    processUrlsInEditor
 };
 
 // Make some functions globally available for compatibility

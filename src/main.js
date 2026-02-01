@@ -271,49 +271,6 @@ function initializeNotesPopup() {
     if (notesCloseBtn) {
         notesCloseBtn.addEventListener('click', () => window.UI?.closeNotesPopup());
     }
-    
-    // Image upload
-    const addImageBtn = document.getElementById('add-image-btn');
-    const imageUpload = document.getElementById('image-upload');
-    
-    if (addImageBtn && imageUpload) {
-        addImageBtn.addEventListener('click', () => imageUpload.click());
-        
-        imageUpload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = () => {
-                window.UI?.insertImageIntoTextarea(notesTextarea, reader.result, file.name);
-            };
-            reader.readAsDataURL(file);
-            imageUpload.value = '';
-        });
-    }
-    
-    // Paste image from clipboard
-    if (notesTextarea) {
-        notesTextarea.addEventListener('paste', (e) => {
-            const items = e.clipboardData?.items;
-            if (!items) return;
-            
-            for (const item of items) {
-                if (item.type.startsWith('image/')) {
-                    e.preventDefault();
-                    const file = item.getAsFile();
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        window.UI?.insertImageIntoTextarea(notesTextarea, reader.result, 'pasted-image');
-                    };
-                    reader.readAsDataURL(file);
-                    break;
-                }
-            }
-        });
-    }
 }
 
 /**

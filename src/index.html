@@ -117,16 +117,12 @@
                 <div id="notes-popup-stock" class="notes-popup-stock"></div>
                 <button class="notes-popup-close minimal" id="notes-popup-close" title="Close">×</button>
                 
-                <!-- Simple textarea editor -->
+                <!-- Rich editor with auto-embed -->
                 <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column;">
                     <div class="notes-toolbar">
-                        <button type="button" class="toolbar-btn" id="add-image-btn" title="Add Image">
-                            🖼️ Add Image
-                        </button>
-                        <input type="file" id="image-upload" accept="image/*" style="display: none;">
-                        <span class="toolbar-hint">Paste images with Ctrl+V | # heading | **bold** | *italic*</span>
+                        <span class="toolbar-hint">Paste image URLs or YouTube links - they auto-embed!</span>
                     </div>
-                    <textarea id="notes-textarea" class="notes-textarea minimal" placeholder="Write your notes here...&#10;&#10;Markdown supported:&#10;# Heading&#10;**bold** *italic*"></textarea>
+                    <div id="notes-editor" contenteditable="true" style="flex:1; min-height:200px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here... Paste URLs to auto-embed images and YouTube videos"></div>
                 </div>
             </div>
         </div>
