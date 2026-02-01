@@ -19,7 +19,7 @@ async function finnhubFetch(endpoint, cacheKey) {
     // Check cache
     const cached = apiCache.get(fullCacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.data;
+        return cached.data; 
     }
     
     const url = `${FINNHUB_BASE}${endpoint}${endpoint.includes('?') ? '&' : '?'}token=${FINNHUB_API_KEY}`;
