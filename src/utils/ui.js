@@ -321,10 +321,109 @@ function attachRowEventListeners(tr, stockIdx, stock) {
     // Notes
     tr.querySelector('.notes-display').addEventListener('click', () => openNotesPopup(stockIdx));
     
-    // Ticker click
+    // Ticker click - open TradingView popup
     tr.querySelector('.ticker-cell').addEventListener('click', () => {
-        window.open(`https://finance.yahoo.com/quote/${stock.ticker}`, '_blank');
+        openTradingViewPopup(stock.ticker, stock.name);
     });
+}
+
+/**
+ * Open TradingView chart popup for a stock
+ */
+function openTradingViewPopup(ticker, name) {
+    const popup = document.getElementById('tradingview-popup');
+    const container = document.getElementById('tradingview-container');
+    const title = document.getElementById('tradingview-title');
+    
+    if (!popup || !container) {
+        // Fallback to Yahoo Finance if popup elements don't exist
+        window.open(`https://finance.yahoo.com/quote/${ticker}`, '_blank');
+        return;
+    }
+    
+    // Convert ticker format for TradingView (e.g., ART.MC -> BME:ART)
+    const tvSymbol = convertToTradingViewSymbol(ticker);
+    
+    title.textContent = `${ticker} - ${name || 'Stock Chart'}`;
+    container.innerHTML = ''; // Clear previous chart
+    
+    popup.style.display = 'flex';
+    
+    // Create TradingView widget
+    if (typeof TradingView !== 'undefined') {
+        new TradingView.widget({
+            "autosize": true,
+            "symbol": tvSymbol,
+            "interval": "D",
+            "timezone": "Etc/UTC",
+            "theme": "light",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "allow_symbol_change": true,
+            "container_id": "tradingview-container",
+            "hide_side_toolbar": false,
+            "studies": [
+                "MASimple@tv-basicstudies"
+            ],
+            "show_popup_button": true,
+            "popup_width": "1000",
+            "popup_height": "650"
+        });
+    } else {
+        container.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#666;">
+                <p>TradingView widget loading failed.</p>
+                <a href="https://www.tradingview.com/chart/?symbol=${tvSymbol}" target="_blank" style="color:#2962FF;">Open in TradingView →</a>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Convert ticker to TradingView symbol format
+ */
+function convertToTradingViewSymbol(ticker) {
+    // Map common exchange suffixes to TradingView exchange prefixes
+    const exchangeMap = {
+        '.MC': 'BME:',      // Madrid Stock Exchange
+        '.HK': 'HKEX:',     // Hong Kong Stock Exchange
+        '.L': 'LSE:',       // London Stock Exchange
+        '.PA': 'EURONEXT:', // Paris (Euronext)
+        '.AS': 'EURONEXT:', // Amsterdam (Euronext)
+        '.BR': 'EURONEXT:', // Brussels (Euronext)
+        '.DE': 'XETR:',     // Germany (Xetra)
+        '.F': 'FWB:',       // Frankfurt
+        '.SW': 'SIX:',      // Swiss Exchange
+        '.TO': 'TSX:',      // Toronto Stock Exchange
+        '.AX': 'ASX:',      // Australian Stock Exchange
+        '.SI': 'SGX:',      // Singapore Exchange
+        '.KS': 'KRX:',      // Korea Stock Exchange
+        '.T': 'TSE:',       // Tokyo Stock Exchange
+        '.SS': 'SSE:',      // Shanghai Stock Exchange
+        '.SZ': 'SZSE:',     // Shenzhen Stock Exchange
+    };
+    
+    for (const [suffix, prefix] of Object.entries(exchangeMap)) {
+        if (ticker.endsWith(suffix)) {
+            return prefix + ticker.replace(suffix, '');
+        }
+    }
+    
+    // US stocks - no prefix needed or use NASDAQ/NYSE
+    return ticker;
+}
+
+/**
+ * Close TradingView popup
+ */
+function closeTradingViewPopup() {
+    const popup = document.getElementById('tradingview-popup');
+    const container = document.getElementById('tradingview-container');
+    
+    if (popup) popup.style.display = 'none';
+    if (container) container.innerHTML = '';
 }
 
 // Autosave functions

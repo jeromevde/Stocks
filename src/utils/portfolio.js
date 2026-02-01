@@ -324,10 +324,17 @@ async function updateStockData(stock) {
     try {
         const Yahoo = window.YahooFinance;
         
+        if (!Yahoo) {
+            console.warn('YahooFinance API not loaded yet');
+            return;
+        }
+        
         // Fetch current price
         const currentPrice = await Yahoo.fetchCurrentPrice(stock.ticker);
         if (currentPrice !== null) {
             stock.nowPrice = currentPrice.toFixed(2);
+        } else {
+            stock.nowPrice = 'N/A';
         }
         
         // Fetch historical price and calculate return
@@ -335,6 +342,8 @@ async function updateStockData(stock) {
         if (historicalPrice !== null && currentPrice !== null) {
             const returnPercent = ((currentPrice - historicalPrice) / historicalPrice * 100);
             stock.cumulativeReturn = returnPercent.toFixed(2);
+        } else {
+            stock.cumulativeReturn = 'N/A';
         }
         
         // Fetch 3-month return
@@ -347,9 +356,9 @@ async function updateStockData(stock) {
         
     } catch (error) {
         console.error(`Error updating ${stock.ticker}:`, error);
-        stock.nowPrice = stock.nowPrice === 'Loading...' ? 'Error' : stock.nowPrice;
-        stock.cumulativeReturn = stock.cumulativeReturn === 'Calculating...' ? 'Error' : stock.cumulativeReturn;
-        stock.return3m = stock.return3m === 'Loading...' ? 'Error' : stock.return3m;
+        stock.nowPrice = stock.nowPrice === 'Loading...' ? 'N/A' : stock.nowPrice;
+        stock.cumulativeReturn = stock.cumulativeReturn === 'Calculating...' ? 'N/A' : stock.cumulativeReturn;
+        stock.return3m = stock.return3m === 'Loading...' ? 'N/A' : stock.return3m;
     }
 }
 
@@ -359,6 +368,12 @@ async function updateStockData(stock) {
 async function addStock(ticker) {
     try {
         const Yahoo = window.YahooFinance;
+        if (!Yahoo) {
+            console.error('YahooFinance API not loaded');
+            alert('Unable to add stock: API not loaded. Please refresh the page.');
+            return false;
+        }
+        
         const tickerUpper = ticker.toUpperCase();
         
         // Check for duplicate ticker

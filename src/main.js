@@ -342,12 +342,16 @@ function initializeKeyboardShortcuts() {
             window.Portfolio?.refresh();
         }
         
-        // Escape to close notes popup
+        // Escape to close popups
         if (e.key === 'Escape') {
+            // Close notes popup
             const overlay = document.getElementById('notes-popup-overlay');
             if (overlay && overlay.style.display !== 'none') {
                 window.UI?.closeNotesPopup();
             }
+            
+            // Close TradingView popup
+            closeTradingViewPopup();
         }
     });
     
@@ -360,6 +364,27 @@ function initializeKeyboardShortcuts() {
             return message;
         }
     });
+}
+
+/**
+ * Initialize TradingView popup
+ */
+function initializeTradingViewPopup() {
+    const closeBtn = document.getElementById('tradingview-close');
+    const popup = document.getElementById('tradingview-popup');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => closeTradingViewPopup());
+    }
+    
+    // Close on background click
+    if (popup) {
+        popup.addEventListener('click', (e) => {
+            if (e.target === popup) {
+                closeTradingViewPopup();
+            }
+        });
+    }
 }
 
 /**
@@ -376,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeNotesPopup();
     initializeAutosavePopup();
     initializeKeyboardShortcuts();
+    initializeTradingViewPopup();
     
     // Initial table render
     updatePortfolioTable();
