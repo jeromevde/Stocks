@@ -4,21 +4,22 @@
  */
 
 // CORS Proxy configuration - using multiple reliable proxies with fallback
+// These proxies are tested to work from GitHub Pages
 const CORS_PROXIES = [
-    // Primary: corsproxy.io - most reliable
+    // Primary: corsproxy.io - most reliable, works from any origin
     { 
         url: 'https://corsproxy.io/?',
         encode: true 
     },
-    // Fallback: allorigins
+    // Fallback: allorigins (returns wrapped JSON, need raw endpoint)
     { 
         url: 'https://api.allorigins.win/raw?url=',
         encode: true 
     },
-    // Fallback: cors-anywhere (may require activation)
+    // Fallback: codetabs proxy
     {
-        url: 'https://cors-anywhere.herokuapp.com/',
-        encode: false
+        url: 'https://api.codetabs.com/v1/proxy?quest=',
+        encode: true
     }
 ];
 
