@@ -359,10 +359,17 @@ async function updateStockData(stock) {
 async function addStock(ticker) {
     try {
         const Yahoo = window.YahooFinance;
+        const tickerUpper = ticker.toUpperCase();
+        
+        // Check for duplicate ticker
+        if (portfolio.some(s => s.ticker.toUpperCase() === tickerUpper)) {
+            alert(`${tickerUpper} is already in your portfolio.`);
+            return false;
+        }
         
         // Validate ticker exists
         const suggestions = await Yahoo.fetchTickerSuggestions(ticker);
-        const matchedStock = suggestions.find(s => s.symbol.toUpperCase() === ticker.toUpperCase());
+        const matchedStock = suggestions.find(s => s.symbol.toUpperCase() === tickerUpper);
         
         if (!matchedStock) {
             alert('Stock ticker not found. Please try again.');

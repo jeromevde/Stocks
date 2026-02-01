@@ -151,7 +151,7 @@ function updatePortfolioTable() {
             <td colspan="9" style="text-align:center; background:#f5f5f5; cursor:pointer; padding:12px; border-top:2px solid #ddd;">
                 <span style="color:#666; font-size:14px;">
                     <span class="zero-star-arrow" style="display:inline-block; transition:transform 0.2s; margin-right:8px;">${window.Portfolio.showZeroStarStocks ? '▼' : '▶'}</span>
-                    ${zeroStarStocks.length} unrated stock${zeroStarStocks.length > 1 ? 's' : ''} 
+                    ${zeroStarStocks.length} 0-star stock${zeroStarStocks.length > 1 ? 's' : ''} 
                     <span style="color:#999; font-size:12px;">(click to ${window.Portfolio.showZeroStarStocks ? 'hide' : 'show'})</span>
                 </span>
             </td>
