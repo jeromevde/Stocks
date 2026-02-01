@@ -18,7 +18,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  * Fetch data using CORS proxy with fallback
  */
 async function fetchWithCorsProxy(url, cacheKey) {
-    // Check cache first
+    // Check cache first 
     const cached = apiCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         return cached.data;
