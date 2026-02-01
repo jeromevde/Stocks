@@ -1,5 +1,6 @@
 /**
  * Stock Finance API - Finnhub only (CORS enabled, no proxy needed)
+ * Free tier: quote + search only. Historical data not available.
  */
 
 const FINNHUB_API_KEY = 'd5vl98hr01qihi8ms730d5vl98hr01qihi8ms73g';
@@ -9,7 +10,7 @@ const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const apiCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-/** 
+/**
  * Fetch from Finnhub API (direct, no proxy needed)
  */
 async function finnhubFetch(endpoint, cacheKey) {
@@ -80,60 +81,23 @@ async function fetchCurrentPrice(ticker) {
 }
 
 /**
- * Fetch historical price (using candles endpoint)
- * Note: Finnhub free tier has limited historical data
+ * Fetch historical price - Finnhub free tier doesn't support this
+ * Returns null, calculations will show N/A
  */
 async function fetchHistoricalPrice(ticker, date) {
-    try {
-        const targetDate = new Date(date);
-        const from = Math.floor(targetDate.getTime() / 1000);
-        const to = from + (7 * 24 * 60 * 60); // 7 days range
-        
-        const data = await finnhubFetch(
-            `/stock/candle?symbol=${encodeURIComponent(ticker)}&resolution=D&from=${from}&to=${to}`,
-            `hist_${ticker}_${date}`
-        );
-        
-        if (data && data.c && data.c.length > 0) {
-            // Return first available close price
-            return data.c[0];
-        }
-        
-        // If no historical data, use current price as fallback
-        const currentPrice = await fetchCurrentPrice(ticker);
-        return currentPrice;
-    } catch (error) {
-        console.error(`Failed to fetch historical price for ${ticker}:`, error);
-        // Fallback to current price
-        return await fetchCurrentPrice(ticker);
-    }
+    // Finnhub free tier doesn't have historical candle data
+    // Return null - the UI will show N/A for cumulative return
+    return null;
 }
 
 /**
- * Fetch 3-month trailing return
+ * Fetch 3-month trailing return - Finnhub free tier doesn't support this
+ * Returns null, calculations will show N/A
  */
 async function fetch3MonthReturn(ticker) {
-    try {
-        const now = Math.floor(Date.now() / 1000);
-        const threeMonthsAgo = now - (90 * 24 * 60 * 60);
-        
-        const data = await finnhubFetch(
-            `/stock/candle?symbol=${encodeURIComponent(ticker)}&resolution=D&from=${threeMonthsAgo}&to=${now}`,
-            `3m_${ticker}`
-        );
-        
-        if (data && data.c && data.c.length >= 2) {
-            const oldPrice = data.c[0];
-            const newPrice = data.c[data.c.length - 1];
-            return ((newPrice - oldPrice) / oldPrice * 100).toFixed(2);
-        }
-        return null;
-    } catch (error) {
-        console.error(`Failed to fetch 3-month return for ${ticker}:`, error);
-        return null;
-    }
-}
-
+    // Finnhub free tier doesn't have historical candle data
+    // Return null - the UI will show N/A
+    return null;
 /**
  * Clear the API cache
  */
