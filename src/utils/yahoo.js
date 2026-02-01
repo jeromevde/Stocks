@@ -9,7 +9,7 @@ const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const apiCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-/**
+/** 
  * Fetch from Finnhub API (direct, no proxy needed)
  */
 async function finnhubFetch(endpoint, cacheKey) {
