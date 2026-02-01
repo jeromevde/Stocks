@@ -4,22 +4,25 @@
  */
 
 // CORS Proxy configuration - using multiple reliable proxies with fallback
-// These proxies are tested to work from GitHub Pages
+// Note: Yahoo Finance blocks many proxies, so we use multiple fallbacks
 const CORS_PROXIES = [
-    // Primary: corsproxy.io - most reliable, works from any origin
+    // Primary: thingproxy - good success rate
+    { 
+        url: 'https://thingproxy.freeboard.io/fetch/',
+        encode: false,
+        addOrigin: false
+    },
+    // Fallback: corsproxy.io with encoded URL
     { 
         url: 'https://corsproxy.io/?',
-        encode: true 
+        encode: true,
+        addOrigin: false
     },
-    // Fallback: allorigins (returns wrapped JSON, need raw endpoint)
+    // Fallback: allorigins raw endpoint
     { 
         url: 'https://api.allorigins.win/raw?url=',
-        encode: true 
-    },
-    // Fallback: codetabs proxy
-    {
-        url: 'https://api.codetabs.com/v1/proxy?quest=',
-        encode: true
+        encode: true,
+        addOrigin: false
     }
 ];
 
@@ -46,13 +49,17 @@ async function fetchWithCorsProxy(targetUrl) {
                 : proxy.url + targetUrl;
             
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
             
+            const headers = {
+                'Accept': 'application/json'
+            };
+            
+            // Some proxies need user-agent to be set
             const response = await fetch(proxyUrl, {
                 signal: controller.signal,
-                headers: {
-                    'Accept': 'application/json'
-                }
+                headers: headers,
+                mode: 'cors'
             });
             
             clearTimeout(timeoutId);
@@ -61,7 +68,16 @@ async function fetchWithCorsProxy(targetUrl) {
                 throw new Error(`HTTP ${response.status}`);
             }
             
-            const data = await response.json();
+            const text = await response.text();
+            
+            // Try to parse as JSON
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                // Some proxies wrap the response
+                throw new Error('Invalid JSON response');
+            }
             
             // Cache successful response
             apiCache.set(targetUrl, { data, timestamp: Date.now() });
