@@ -363,51 +363,6 @@ function initializeKeyboardShortcuts() {
 }
 
 /**
- * Update TradingView ticker tape widget with portfolio stocks
- */
-function updateTradingViewWidget() {
-    const container = document.getElementById('tradingview-ticker-container');
-    if (!container || !window.Portfolio?.data) return;
-    
-    const portfolio = window.Portfolio.data;
-    if (portfolio.length === 0) return;
-    
-    // Map tickers to TradingView format
-    const symbols = portfolio.slice(0, 20).map(stock => {
-        // Try to determine exchange (default to NASDAQ for tech stocks)
-        const ticker = stock.ticker.toUpperCase();
-        let exchange = 'NASDAQ';
-        
-        // Common NYSE stocks
-        if (['NIO', 'XPEV', 'LI', 'BABA', 'JD', 'PDD', 'WMT', 'DIS', 'BA', 'GE', 'F', 'GM'].includes(ticker)) {
-            exchange = 'NYSE';
-        }
-        
-        return {
-            proName: `${exchange}:${ticker}`,
-            title: stock.name || ticker
-        };
-    });
-    
-    // Create new widget HTML
-    container.innerHTML = `
-        <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-            ${JSON.stringify({
-                symbols: symbols,
-                showSymbolLogo: true,
-                isTransparent: false,
-                displayMode: "adaptive",
-                colorTheme: "light",
-                locale: "en"
-            })}
-            </script>
-        </div>
-    `;
-}
-
-/**
  * Main initialization
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -432,10 +387,3 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log('Stock Tracker initialized!');
 });
-
-// Update TradingView widget when portfolio changes
-const originalUpdateTable = window.updatePortfolioTable;
-window.updatePortfolioTable = function() {
-    if (originalUpdateTable) originalUpdateTable();
-    updateTradingViewWidget();
-};
