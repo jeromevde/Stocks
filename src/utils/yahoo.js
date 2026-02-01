@@ -4,8 +4,7 @@
  */
 
 // Finnhub API - free tier, 60 calls/minute, native CORS support!
-// Get your free API key at: https://finnhub.io/register
-const FINNHUB_API_KEY = 'demo'; // Replace with your key, or use 'demo' for testing
+const FINNHUB_API_KEY = 'd5vl98hr01qihi8ms730d5vl98hr01qihi8ms73g';
 
 // CORS Proxy fallback for Yahoo Finance (backup)
 const CORS_PROXIES = [
