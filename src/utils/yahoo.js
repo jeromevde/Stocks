@@ -24,6 +24,11 @@ const CACHE_TTL = {
 const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
 let lastRequestTime = 0;
 
+// Batch request queue
+const batchQueue = new Map(); // ticker -> { resolve, reject, timestamp }
+let batchTimeout = null;
+const BATCH_DELAY = 100; // Wait 100ms to collect batch requests
+
 /**
  * Throttle requests to avoid overwhelming proxies
  */
@@ -37,6 +42,37 @@ async function throttleRequest() {
     }
     
     lastRequestTime = Date.now();
+}
+
+/**
+ * Try direct fetch to Yahoo Finance first, fallback to CORS proxy
+ */
+async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price) {
+    // Check cache first
+    const cached = apiCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < cacheTTL) {
+        return cached.data;
+    }
+    
+    // Try direct access first (no CORS proxy)
+    try {
+        const response = await fetch(url, {
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(10000)
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            apiCache.set(cacheKey, { data, timestamp: Date.now() });
+            return data;
+        }
+    } catch (error) {
+        // Direct access failed, fall back to CORS proxy
+        console.log(`Direct access failed for ${cacheKey}, trying CORS proxy...`);
+    }
+    
+    // Fallback to CORS proxy with existing logic
+    return fetchWithCorsProxy(url, cacheKey, cacheTTL);
 }
 
 /**
@@ -117,7 +153,7 @@ async function fetchTickerSuggestions(query) {
     
     try {
         const yahooUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
-        const data = await fetchWithCorsProxy(yahooUrl, `search_${query}`, CACHE_TTL.search);
+        const data = await fetchWithHybridApproach(yahooUrl, `search_${query}`, CACHE_TTL.search);
         
         if (data?.quotes?.length > 0) {
             return data.quotes.slice(0, 8).map(item => ({
@@ -135,6 +171,96 @@ async function fetchTickerSuggestions(query) {
 }
 
 /**
+ * Batch fetch current prices for multiple tickers
+ * Uses parallel requests with staggered delays to avoid rate limiting
+ */
+async function fetchBatchCurrentPrices(tickers) {
+    if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
+        return {};
+    }
+    
+    console.log(`Batch fetching prices for ${tickers.length} tickers...`);
+    
+    const fetchWithDelay = async (ticker, index) => {
+        // Staggered delay to be polite to the endpoint
+        await new Promise(resolve => setTimeout(resolve, index * 50));
+        
+        try {
+            const now = Math.floor(Date.now() / 1000);
+            const oneDayAgo = now - 86400 * 2;
+            
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${oneDayAgo}&period2=${now}&interval=1d`;
+            const data = await fetchWithHybridApproach(yahooUrl, `price_${ticker}`, CACHE_TTL.price);
+            
+            // Extract price
+            let price = null;
+            if (data?.chart?.result?.[0]?.meta?.regularMarketPrice) {
+                price = data.chart.result[0].meta.regularMarketPrice;
+            } else if (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close) {
+                const closes = data.chart.result[0].indicators.quote[0].close.filter(p => p != null);
+                if (closes.length > 0) {
+                    price = closes[closes.length - 1];
+                }
+            }
+            
+            return [ticker, price];
+        } catch (error) {
+            console.warn(`Batch fetch failed for ${ticker}:`, error.message);
+            return [ticker, null];
+        }
+    };
+    
+    // Execute all requests in parallel with staggered delays
+    const results = await Promise.all(tickers.map((ticker, i) => fetchWithDelay(ticker, i)));
+    return Object.fromEntries(results);
+}
+
+/**
+ * Batch fetch 3-month returns for multiple tickers
+ */
+async function fetchBatch3MonthReturns(tickers) {
+    if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
+        return {};
+    }
+    
+    console.log(`Batch fetching 3M returns for ${tickers.length} tickers...`);
+    
+    const fetchWithDelay = async (ticker, index) => {
+        await new Promise(resolve => setTimeout(resolve, index * 50));
+        
+        try {
+            const now = new Date();
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            
+            const period1 = Math.floor(threeMonthsAgo.getTime() / 1000);
+            const period2 = Math.floor(now.getTime() / 1000);
+            
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=1d`;
+            const data = await fetchWithHybridApproach(yahooUrl, `3m_${ticker}`, CACHE_TTL.threeMonth);
+            
+            let returnPercent = null;
+            if (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close) {
+                const closes = data.chart.result[0].indicators.quote[0].close.filter(p => p != null);
+                if (closes.length >= 2) {
+                    const oldPrice = closes[0];
+                    const newPrice = closes[closes.length - 1];
+                    returnPercent = ((newPrice - oldPrice) / oldPrice * 100).toFixed(2);
+                }
+            }
+            
+            return [ticker, returnPercent];
+        } catch (error) {
+            console.warn(`Batch 3M fetch failed for ${ticker}:`, error.message);
+            return [ticker, null];
+        }
+    };
+    
+    const results = await Promise.all(tickers.map((ticker, i) => fetchWithDelay(ticker, i)));
+    return Object.fromEntries(results);
+}
+
+/**
  * Fetch current price for a stock from Yahoo Finance
  */
 async function fetchCurrentPrice(ticker) {
@@ -143,7 +269,7 @@ async function fetchCurrentPrice(ticker) {
         const oneDayAgo = now - 86400 * 2; // 2 days back to ensure we get data
         
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${oneDayAgo}&period2=${now}&interval=1d`;
-        const data = await fetchWithCorsProxy(yahooUrl, `price_${ticker}`, CACHE_TTL.price);
+        const data = await fetchWithHybridApproach(yahooUrl, `price_${ticker}`, CACHE_TTL.price);
         
         // Try to get the current market price from meta
         if (data?.chart?.result?.[0]?.meta?.regularMarketPrice) {
@@ -178,7 +304,7 @@ async function fetchHistoricalPrice(ticker, date) {
         
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=1d`;
         
-        const data = await fetchWithCorsProxy(yahooUrl, `hist_${ticker}_${date}`, CACHE_TTL.historical);
+        const data = await fetchWithHybridApproach(yahooUrl, `hist_${ticker}_${date}`, CACHE_TTL.historical);
         
         if (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close) {
             const closes = data.chart.result[0].indicators.quote[0].close.filter(p => p != null);
@@ -207,7 +333,7 @@ async function fetch3MonthReturn(ticker) {
         
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=1d`;
         
-        const data = await fetchWithCorsProxy(yahooUrl, `3m_${ticker}`, CACHE_TTL.threeMonth);
+        const data = await fetchWithHybridApproach(yahooUrl, `3m_${ticker}`, CACHE_TTL.threeMonth);
         
         if (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close) {
             const closes = data.chart.result[0].indicators.quote[0].close.filter(p => p != null);
@@ -238,5 +364,7 @@ window.YahooFinance = {
     fetchCurrentPrice,
     fetchHistoricalPrice,
     fetch3MonthReturn,
+    fetchBatchCurrentPrices,
+    fetchBatch3MonthReturns,
     clearCache
 };
