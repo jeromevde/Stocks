@@ -20,8 +20,4 @@ jobs:
       with:
         folder: src
         target-folder: dev
-        clean-exclude: |
-          index.html
-          main.js
-          styles.css
-          utils/
+        clean: false
