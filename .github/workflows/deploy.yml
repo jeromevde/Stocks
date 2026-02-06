@@ -1,16 +1,9 @@
 name: Deploy to GitHub Pages
 
-on:
-  push:
-    branches: [ main ]
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
-    # Only deploy if commit message contains [ci], [deploy], or [build]
-    if: contains(github.event.head_commit.message, '[ci]') || contains(github.event.head_commit.message, '[deploy]') || contains(github.event.head_commit.message, '[build]')
-    
+        
     permissions:
       contents: write
 
