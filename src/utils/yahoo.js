@@ -102,7 +102,7 @@ async function fetchWithCorsProxy(url, cacheKey, cacheTTL = CACHE_TTL.price) {
     
     // If we have cached data (even if expired), return it as fallback
     if (cached) {
-        console.warn('Using expired cache due to proxy failures');
+        console.warn(`Using expired cache for ${cacheKey} due to proxy failures`);
         return cached.data;
     }
     
