@@ -22,8 +22,6 @@ const CACHE_TTL = {
 };
 
 // Request throttling
-const requestQueue = [];
-let isProcessingQueue = false;
 const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
 let lastRequestTime = 0;
 
@@ -79,7 +77,7 @@ async function fetchWithCorsProxy(url, cacheKey, cacheTTL = CACHE_TTL.price) {
                 
                 // If rate limited (429) or server error (5xx), retry with backoff
                 if (response.status === 429 || response.status >= 500) {
-                    const backoffDelay = Math.min(1000 * Math.pow(2, attempt), 5000);
+                    const backoffDelay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
                     await new Promise(resolve => setTimeout(resolve, backoffDelay));
                     lastError = new Error(`Proxy returned ${response.status}`);
                     continue;
@@ -93,7 +91,7 @@ async function fetchWithCorsProxy(url, cacheKey, cacheTTL = CACHE_TTL.price) {
                 
                 // If timeout or network error, retry with backoff
                 if (attempt < 2) {
-                    const backoffDelay = Math.min(1000 * Math.pow(2, attempt), 5000);
+                    const backoffDelay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
                     await new Promise(resolve => setTimeout(resolve, backoffDelay));
                 } else {
                     // Move to next proxy after 3 failed attempts
