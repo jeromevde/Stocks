@@ -8,8 +8,7 @@
 const CORS_PROXIES = [
     'https://corsproxy.io/?',
     'https://api.allorigins.win/raw?url=',
-    'https://api.codetabs.com/v1/proxy?quest=',
-    'https://cors-anywhere.herokuapp.com/'
+    'https://api.codetabs.com/v1/proxy?quest='  // Note: quest is the correct parameter
 ];
 
 // Cache for API responses with different TTLs
