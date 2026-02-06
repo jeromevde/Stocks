@@ -118,22 +118,37 @@ function initializeStockInput() {
     const stockInput = document.getElementById('stock-input');
     if (!stockInput) return;
     
-    // Ticker autocomplete
+    // Debounce timer for autocomplete
+    let debounceTimer = null;
+    
+    // Ticker autocomplete with debouncing
     stockInput.addEventListener('input', async (e) => {
         const val = e.target.value;
-        if (val.length < 1) return;
-        
-        const suggestions = await window.YahooFinance?.fetchTickerSuggestions(val) || [];
-        const datalist = document.getElementById('ticker-list');
-        if (datalist) {
-            datalist.innerHTML = '';
-            suggestions.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.symbol;
-                opt.label = s.name;
-                datalist.appendChild(opt);
-            });
+        if (val.length < 1) {
+            const datalist = document.getElementById('ticker-list');
+            if (datalist) datalist.innerHTML = '';
+            return;
         }
+        
+        // Clear existing timer
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+        
+        // Set new timer to delay API call
+        debounceTimer = setTimeout(async () => {
+            const suggestions = await window.YahooFinance?.fetchTickerSuggestions(val) || [];
+            const datalist = document.getElementById('ticker-list');
+            if (datalist) {
+                datalist.innerHTML = '';
+                suggestions.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.symbol;
+                    opt.label = s.name;
+                    datalist.appendChild(opt);
+                });
+            }
+        }, 300); // Wait 300ms after user stops typing
     });
     
     // Add stock on change

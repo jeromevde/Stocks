@@ -4,47 +4,112 @@
  * Provides: search, current prices, historical prices, 3M return
  */
 
-// CORS proxies for Yahoo Finance (fallback chain)
+// CORS proxies for Yahoo Finance (fallback chain with more alternatives)
 const CORS_PROXIES = [
     'https://corsproxy.io/?',
-    'https://api.allorigins.win/raw?url='
+    'https://api.allorigins.win/raw?url=',
+    'https://api.codetabs.com/v1/proxy?quest=',
+    'https://cors-anywhere.herokuapp.com/'
 ];
 
-// Cache for API responses
+// Cache for API responses with different TTLs
 const apiCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = {
+    search: 10 * 60 * 1000,      // 10 minutes for search results
+    price: 2 * 60 * 1000,         // 2 minutes for current prices
+    historical: 24 * 60 * 60 * 1000,  // 24 hours for historical prices (they don't change)
+    threeMonth: 5 * 60 * 1000     // 5 minutes for 3-month returns
+};
+
+// Request throttling
+const requestQueue = [];
+let isProcessingQueue = false;
+const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
+let lastRequestTime = 0;
 
 /**
- * Fetch data using CORS proxy with fallback
+ * Throttle requests to avoid overwhelming proxies
  */
-async function fetchWithCorsProxy(url, cacheKey) {
+async function throttleRequest() {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+        const delay = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    lastRequestTime = Date.now();
+}
+
+/**
+ * Fetch data using CORS proxy with fallback and exponential backoff
+ */
+async function fetchWithCorsProxy(url, cacheKey, cacheTTL = CACHE_TTL.price) {
     // Check cache first 
     const cached = apiCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    if (cached && Date.now() - cached.timestamp < cacheTTL) {
         return cached.data;
     }
     
-    // Try each proxy in order
-    for (const proxy of CORS_PROXIES) {
-        try {
-            const proxyUrl = proxy + encodeURIComponent(url);
-            const response = await fetch(proxyUrl, {
-                headers: { 'Accept': 'application/json' }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                // Cache successful response
-                apiCache.set(cacheKey, { data, timestamp: Date.now() });
-                return data;
+    // Throttle the request
+    await throttleRequest();
+    
+    let lastError = null;
+    
+    // Try each proxy in order with exponential backoff
+    for (let proxyIndex = 0; proxyIndex < CORS_PROXIES.length; proxyIndex++) {
+        const proxy = CORS_PROXIES[proxyIndex];
+        
+        // Try with exponential backoff (3 attempts per proxy)
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const proxyUrl = proxy + encodeURIComponent(url);
+                const response = await fetch(proxyUrl, {
+                    headers: { 'Accept': 'application/json' },
+                    signal: AbortSignal.timeout(10000) // 10 second timeout
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    // Cache successful response
+                    apiCache.set(cacheKey, { data, timestamp: Date.now() });
+                    return data;
+                }
+                
+                // If rate limited (429) or server error (5xx), retry with backoff
+                if (response.status === 429 || response.status >= 500) {
+                    const backoffDelay = Math.min(1000 * Math.pow(2, attempt), 5000);
+                    await new Promise(resolve => setTimeout(resolve, backoffDelay));
+                    lastError = new Error(`Proxy returned ${response.status}`);
+                    continue;
+                }
+                
+                // For other errors, try next proxy immediately
+                lastError = new Error(`Proxy returned ${response.status}`);
+                break;
+            } catch (e) {
+                lastError = e;
+                
+                // If timeout or network error, retry with backoff
+                if (attempt < 2) {
+                    const backoffDelay = Math.min(1000 * Math.pow(2, attempt), 5000);
+                    await new Promise(resolve => setTimeout(resolve, backoffDelay));
+                } else {
+                    // Move to next proxy after 3 failed attempts
+                    break;
+                }
             }
-        } catch (e) {
-            // Try next proxy
-            continue;
         }
     }
     
-    throw new Error('All CORS proxies failed');
+    // If we have cached data (even if expired), return it as fallback
+    if (cached) {
+        console.warn('Using expired cache due to proxy failures');
+        return cached.data;
+    }
+    
+    throw lastError || new Error('All CORS proxies failed');
 }
 
 /**
@@ -55,7 +120,7 @@ async function fetchTickerSuggestions(query) {
     
     try {
         const yahooUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
-        const data = await fetchWithCorsProxy(yahooUrl, `search_${query}`);
+        const data = await fetchWithCorsProxy(yahooUrl, `search_${query}`, CACHE_TTL.search);
         
         if (data?.quotes?.length > 0) {
             return data.quotes.slice(0, 8).map(item => ({
@@ -81,7 +146,7 @@ async function fetchCurrentPrice(ticker) {
         const oneDayAgo = now - 86400 * 2; // 2 days back to ensure we get data
         
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${oneDayAgo}&period2=${now}&interval=1d`;
-        const data = await fetchWithCorsProxy(yahooUrl, `price_${ticker}`);
+        const data = await fetchWithCorsProxy(yahooUrl, `price_${ticker}`, CACHE_TTL.price);
         
         // Try to get the current market price from meta
         if (data?.chart?.result?.[0]?.meta?.regularMarketPrice) {
@@ -116,7 +181,7 @@ async function fetchHistoricalPrice(ticker, date) {
         
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=1d`;
         
-        const data = await fetchWithCorsProxy(yahooUrl, `hist_${ticker}_${date}`);
+        const data = await fetchWithCorsProxy(yahooUrl, `hist_${ticker}_${date}`, CACHE_TTL.historical);
         
         if (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close) {
             const closes = data.chart.result[0].indicators.quote[0].close.filter(p => p != null);
@@ -145,7 +210,7 @@ async function fetch3MonthReturn(ticker) {
         
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=1d`;
         
-        const data = await fetchWithCorsProxy(yahooUrl, `3m_${ticker}`);
+        const data = await fetchWithCorsProxy(yahooUrl, `3m_${ticker}`, CACHE_TTL.threeMonth);
         
         if (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close) {
             const closes = data.chart.result[0].indicators.quote[0].close.filter(p => p != null);
