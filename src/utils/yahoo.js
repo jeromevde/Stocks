@@ -24,11 +24,6 @@ const CACHE_TTL = {
 const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
 let lastRequestTime = 0;
 
-// Batch request queue
-const batchQueue = new Map(); // ticker -> { resolve, reject, timestamp }
-let batchTimeout = null;
-const BATCH_DELAY = 100; // Wait 100ms to collect batch requests
-
 /**
  * Throttle requests to avoid overwhelming proxies
  */
@@ -56,10 +51,16 @@ async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price
     
     // Try direct access first (no CORS proxy)
     try {
+        // Create abort controller for timeout (better browser compatibility)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
         const response = await fetch(url, {
             headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
             const data = await response.json();
