@@ -30,6 +30,12 @@ const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
 let lastRequestTime = 0;
 
 /**
+ * Global puter object provided by Puter.js SDK (loaded via CDN in index.html)
+ * @external puter
+ * @see {@link https://js.puter.com/v2/}
+ */
+
+/**
  * Throttle requests to avoid overwhelming proxies
  */
 async function throttleRequest() {
