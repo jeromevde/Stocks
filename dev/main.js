@@ -1,175 +1,387 @@
 /**
- * Main entry point - initializes app and event listeners
+ * Main entry point
+ * Initializes the application and sets up event listeners
  */
 
-function tryAutoLogin() {
+// GitHub credentials management
+function saveGitHubCredentials(token, owner, repo) {
     try {
-        const t = localStorage.getItem('github_token');
-        const o = localStorage.getItem('github_owner');
-        const r = localStorage.getItem('github_repo');
-        if (t && o && r && window.githubClient) {
-            window.githubClient.authenticate(t, o, r);
-            updateGitHubUI();
-            showStatus('Auto-logged in to GitHub', 'success');
-        }
-    } catch (e) { console.warn('Auto-login failed:', e); }
+        localStorage.setItem('github_token', token);
+        localStorage.setItem('github_owner', owner);
+        localStorage.setItem('github_repo', repo);
+    } catch (e) {
+        console.warn('Could not save GitHub credentials:', e);
+    }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing Stock Tracker...');
-    tryAutoLogin();
-
-    // GitHub auth form
-    document.getElementById('github-auth-form')?.addEventListener('submit', e => {
-        e.preventDefault();
-        const token = document.getElementById('github-token')?.value || '';
-        const owner = document.getElementById('repo-owner')?.value || '';
-        const repo = document.getElementById('repo-name')?.value || '';
-        if (token && owner && repo) {
-            localStorage.setItem('github_token', token);
-            localStorage.setItem('github_owner', owner);
-            localStorage.setItem('github_repo', repo);
-            window.githubClient.authenticate(token, owner, repo);
-            updateGitHubUI();
-            showStatus('Authenticated with GitHub!', 'success');
-            document.getElementById('github-auth-modal').style.display = 'none';
-        } else {
-            showStatus('Please enter all GitHub credentials.', 'error');
-        }
-    });
-
-    // GitHub logout
-    document.getElementById('github-logout')?.addEventListener('click', () => {
+function clearGitHubCredentials() {
+    try {
         localStorage.removeItem('github_token');
         localStorage.removeItem('github_owner');
         localStorage.removeItem('github_repo');
-        window.githubClient.logout();
-        updateGitHubUI();
-        showStatus('Disconnected from GitHub', 'info');
-    });
+    } catch (e) {
+        console.warn('Could not clear GitHub credentials:', e);
+    }
+}
 
-    // Close auth modal
-    document.getElementById('close-auth-modal')?.addEventListener('click', () => {
-        document.getElementById('github-auth-modal').style.display = 'none';
-    });
+function tryAutoLogin() {
+    try {
+        const token = localStorage.getItem('github_token');
+        const owner = localStorage.getItem('github_owner');
+        const repo = localStorage.getItem('github_repo');
+        
+        if (token && owner && repo && window.githubClient) {
+            window.githubClient.authenticate(token, owner, repo);
+            updateGitHubUI();
+            showStatus('Auto-logged in to GitHub', 'success');
+            return true;
+        }
+    } catch (e) {
+        console.warn('Auto-login failed:', e);
+    }
+    return false;
+}
 
-    // Save & refresh
-    document.getElementById('save-portfolio')?.addEventListener('click', e => {
-        e.preventDefault();
-        window.Portfolio?.save().catch(err => console.error('Save error:', err));
-    });
-    document.getElementById('refresh-portfolio')?.addEventListener('click', e => {
-        e.preventDefault();
-        window.Portfolio?.refresh();
-    });
-
-    // Stock input with autocomplete
-    const stockInput = document.getElementById('stock-input');
-    if (stockInput) {
-        let debounce = null;
-        stockInput.addEventListener('input', e => {
-            clearTimeout(debounce);
-            if (e.target.value.length < 1) { document.getElementById('ticker-list').innerHTML = ''; return; }
-            debounce = setTimeout(async () => {
-                const suggestions = await window.YahooFinance?.fetchTickerSuggestions(e.target.value) || [];
-                const dl = document.getElementById('ticker-list');
-                dl.innerHTML = '';
-                suggestions.forEach(s => { const o = document.createElement('option'); o.value = s.symbol; o.label = s.name; dl.appendChild(o); });
-            }, 300);
-        });
-        stockInput.addEventListener('change', async () => {
-            const ticker = stockInput.value.trim().toUpperCase();
-            if (!ticker) return;
-            stockInput.value = '';
-            await window.Portfolio?.add(ticker);
+/**
+ * Initialize GitHub integration
+ */
+function initializeGitHubIntegration() {
+    tryAutoLogin();
+    
+    // GitHub auth form
+    const githubAuthForm = document.getElementById('github-auth-form');
+    if (githubAuthForm) {
+        githubAuthForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const token = document.getElementById('github-token')?.value || '';
+            const owner = document.getElementById('repo-owner')?.value || '';
+            const repo = document.getElementById('repo-name')?.value || '';
+            
+            if (token && owner && repo) {
+                saveGitHubCredentials(token, owner, repo);
+                window.githubClient.authenticate(token, owner, repo);
+                updateGitHubUI();
+                showStatus('Authenticated with GitHub!', 'success');
+                
+                const authModal = document.getElementById('github-auth-modal');
+                if (authModal) authModal.style.display = 'none';
+            } else {
+                showStatus('Please enter all GitHub credentials.', 'error');
+            }
         });
     }
 
-    // Label filter dropdown
+    // Logout button
+    const logoutButton = document.getElementById('github-logout');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            clearGitHubCredentials();
+            window.githubClient.logout();
+            updateGitHubUI();
+            showStatus('Disconnected from GitHub', 'info');
+        });
+    }
+
+    // Save button
+    const saveButton = document.getElementById('save-portfolio');
+    if (saveButton) {
+        saveButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.Portfolio?.save().catch(error => console.error('Save error:', error));
+        });
+    }
+
+    // Refresh button
+    const refreshButton = document.getElementById('refresh-portfolio');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.Portfolio?.refresh();
+        });
+    }
+    
+    // Close modal button
+    const closeModalBtn = document.getElementById('close-auth-modal');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            const authModal = document.getElementById('github-auth-modal');
+            if (authModal) authModal.style.display = 'none';
+        });
+    }
+}
+
+/**
+ * Initialize stock input with autocomplete
+ */
+function initializeStockInput() {
+    const stockInput = document.getElementById('stock-input');
+    if (!stockInput) return;
+    
+    // Debounce timer for autocomplete
+    let debounceTimer = null;
+    
+    // Ticker autocomplete with debouncing
+    stockInput.addEventListener('input', async (e) => {
+        const val = e.target.value;
+        if (val.length < 1) {
+            const datalist = document.getElementById('ticker-list');
+            if (datalist) datalist.innerHTML = '';
+            return;
+        }
+        
+        // Clear existing timer
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+        
+        // Set new timer to delay API call
+        debounceTimer = setTimeout(async () => {
+            const suggestions = await window.YahooFinance?.fetchTickerSuggestions(val) || [];
+            const datalist = document.getElementById('ticker-list');
+            if (datalist) {
+                datalist.innerHTML = '';
+                suggestions.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.symbol;
+                    opt.label = s.name;
+                    datalist.appendChild(opt);
+                });
+            }
+        }, 300); // Wait 300ms after user stops typing
+    });
+    
+    // Add stock on change
+    stockInput.addEventListener('change', async (e) => {
+        const ticker = stockInput.value.trim().toUpperCase();
+        if (!ticker) return;
+        
+        stockInput.value = '';
+        await window.Portfolio?.add(ticker);
+    });
+}
+
+/**
+ * Initialize label filter dropdown
+ */
+function initializeLabelFilter() {
     const labelHeader = document.getElementById('label-header');
     const dropdown = document.getElementById('label-filter-dropdown');
-    if (labelHeader && dropdown) {
-        labelHeader.addEventListener('click', e => {
-            e.stopPropagation();
-            const labels = Array.from(new Set((window.Portfolio?.data || []).flatMap(s => s.labels).filter(Boolean)));
-            const filterSet = window.Portfolio?.labelFilterSet || new Set();
-            const rect = labelHeader.getBoundingClientRect();
-            dropdown.style.left = rect.left + 'px';
-            dropdown.style.top = (rect.bottom + 5) + 'px';
-            dropdown.innerHTML = '';
-
-            // Select All
-            const allDiv = document.createElement('div');
-            allDiv.style.cssText = 'margin-bottom:8px;border-bottom:1px solid #ccc;padding-bottom:5px';
-            allDiv.innerHTML = `<label><input type="checkbox" id="label-filter-all" ${labels.every(l => filterSet.has(l)) ? 'checked' : ''}> <strong>Select All</strong></label>`;
-            dropdown.appendChild(allDiv);
-            allDiv.querySelector('input').addEventListener('change', ev => {
-                labels.forEach(l => ev.target.checked ? filterSet.add(l) : filterSet.delete(l));
-                dropdown.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = ev.target.checked);
+    
+    if (!labelHeader || !dropdown) return;
+    
+    labelHeader.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        const portfolio = window.Portfolio?.data || [];
+        const labels = Array.from(new Set(portfolio.flatMap(s => s.labels).filter(l => l)));
+        const labelFilterSet = window.Portfolio?.labelFilterSet || new Set();
+        
+        const rect = labelHeader.getBoundingClientRect();
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.top = (rect.bottom + 5) + 'px';
+        
+        dropdown.innerHTML = '';
+        
+        // Select All checkbox
+        const selectAllDiv = document.createElement('div');
+        selectAllDiv.style.cssText = 'margin-bottom:8px; border-bottom:1px solid #ccc; padding-bottom:5px;';
+        const allChecked = labels.length > 0 && labels.every(label => labelFilterSet.has(label));
+        selectAllDiv.innerHTML = `<label><input type="checkbox" id="label-filter-select-all" ${allChecked ? 'checked' : ''}> <strong>Select All</strong></label>`;
+        dropdown.appendChild(selectAllDiv);
+        
+        selectAllDiv.querySelector('input').addEventListener('change', (ev) => {
+            if (ev.target.checked) {
+                labels.forEach(label => labelFilterSet.add(label));
+            } else {
+                labelFilterSet.clear();
+            }
+            dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = ev.target.checked);
+            updatePortfolioTable();
+        });
+        
+        // Individual labels
+        labels.forEach(label => {
+            const div = document.createElement('div');
+            div.innerHTML = `<label><input type="checkbox" value="${label}" ${labelFilterSet.has(label) ? 'checked' : ''}> ${label}</label>`;
+            dropdown.appendChild(div);
+            
+            div.querySelector('input').addEventListener('change', (ev) => {
+                if (ev.target.checked) {
+                    labelFilterSet.add(label);
+                } else {
+                    labelFilterSet.delete(label);
+                }
+                
+                const allChecked = labels.every(l => labelFilterSet.has(l));
+                const selectAllCb = document.getElementById('label-filter-select-all');
+                if (selectAllCb) selectAllCb.checked = allChecked;
+                
                 updatePortfolioTable();
             });
-
-            labels.forEach(label => {
-                const div = document.createElement('div');
-                div.innerHTML = `<label><input type="checkbox" value="${label}" ${filterSet.has(label) ? 'checked' : ''}> ${label}</label>`;
-                dropdown.appendChild(div);
-                div.querySelector('input').addEventListener('change', ev => {
-                    ev.target.checked ? filterSet.add(label) : filterSet.delete(label);
-                    const allCb = document.getElementById('label-filter-all');
-                    if (allCb) allCb.checked = labels.every(l => filterSet.has(l));
-                    updatePortfolioTable();
-                });
-            });
-
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         });
-        document.body.addEventListener('click', () => dropdown.style.display = 'none');
-        dropdown.addEventListener('click', e => e.stopPropagation());
+        
+        // Clear All button
+        if (labels.length > 0) {
+            const clearDiv = document.createElement('div');
+            clearDiv.style.cssText = 'margin-top:8px; border-top:1px solid #ccc; padding-top:5px;';
+            const clearBtn = document.createElement('button');
+            clearBtn.innerText = 'Clear All';
+            clearBtn.style.cssText = 'padding:3px 8px; font-size:12px;';
+            clearBtn.addEventListener('click', () => {
+                labelFilterSet.clear();
+                dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                updatePortfolioTable();
+            });
+            clearDiv.appendChild(clearBtn);
+            dropdown.appendChild(clearDiv);
+        }
+        
+        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    });
+    
+    document.body.addEventListener('click', () => dropdown.style.display = 'none');
+    dropdown.addEventListener('click', (e) => e.stopPropagation());
+}
+
+/**
+ * Initialize sorting headers
+ */
+function initializeSortHeaders() {
+    const sortHeader = document.getElementById('sort-cumret');
+    if (sortHeader) {
+        sortHeader.addEventListener('click', () => {
+            if (window.Portfolio) {
+                window.Portfolio.sortByCumulativeReturn = !window.Portfolio.sortByCumulativeReturn;
+            }
+            updatePortfolioTable();
+        });
     }
+    
+    const sort3MHeader = document.getElementById('sort-3m-return');
+    if (sort3MHeader) {
+        sort3MHeader.addEventListener('click', () => {
+            if (window.Portfolio) {
+                window.Portfolio.sortBy3MonthReturn = !window.Portfolio.sortBy3MonthReturn;
+            }
+            updatePortfolioTable();
+        });
+    }
+}
 
-    // Sort headers
-    document.getElementById('sort-cumret')?.addEventListener('click', () => {
-        if (window.Portfolio) window.Portfolio.sortByCumulativeReturn = !window.Portfolio.sortByCumulativeReturn;
-        updatePortfolioTable();
-    });
-    document.getElementById('sort-3m-return')?.addEventListener('click', () => {
-        if (window.Portfolio) window.Portfolio.sortBy3MonthReturn = !window.Portfolio.sortBy3MonthReturn;
-        updatePortfolioTable();
-    });
+/**
+ * Initialize notes popup
+ */
+function initializeNotesPopup() {
+    const notesOverlay = document.getElementById('notes-popup-overlay');
+    const notesCloseBtn = document.getElementById('notes-popup-close');
+    const notesTextarea = document.getElementById('notes-textarea');
+    
+    if (notesOverlay) {
+        notesOverlay.addEventListener('click', (e) => {
+            if (e.target === notesOverlay) window.UI?.closeNotesPopup();
+        });
+    }
+    
+    if (notesCloseBtn) {
+        notesCloseBtn.addEventListener('click', () => window.UI?.closeNotesPopup());
+    }
+}
 
-    // Notes popup
-    document.getElementById('notes-popup-overlay')?.addEventListener('click', e => {
-        if (e.target.id === 'notes-popup-overlay') window.UI?.closeNotesPopup();
-    });
-    document.getElementById('notes-popup-close')?.addEventListener('click', () => window.UI?.closeNotesPopup());
+/**
+ * Initialize autosave popup
+ */
+function initializeAutosavePopup() {
+    const autosaveConfirm = document.getElementById('autosave-confirm');
+    const autosaveCancel = document.getElementById('autosave-cancel');
+    
+    if (autosaveConfirm) {
+        autosaveConfirm.addEventListener('click', () => window.UI?.confirmAutosave());
+    }
+    if (autosaveCancel) {
+        autosaveCancel.addEventListener('click', () => window.UI?.cancelAutosave());
+    }
+}
 
-    // Autosave
-    document.getElementById('autosave-confirm')?.addEventListener('click', () => window.UI?.confirmAutosave());
-    document.getElementById('autosave-cancel')?.addEventListener('click', () => window.UI?.cancelAutosave());
-
-    // TradingView popup
-    document.getElementById('tradingview-close')?.addEventListener('click', () => closeTradingViewPopup());
-    document.getElementById('tradingview-popup')?.addEventListener('click', e => {
-        if (e.target.id === 'tradingview-popup') closeTradingViewPopup();
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', e => {
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') { e.preventDefault(); window.Portfolio?.refresh(); }
+/**
+ * Initialize keyboard shortcuts
+ */
+function initializeKeyboardShortcuts() {
+    // Force refresh: Ctrl+Shift+R or Cmd+Shift+R
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+            e.preventDefault();
+            window.Portfolio?.refresh();
+        }
+        
+        // Escape to close popups
         if (e.key === 'Escape') {
+            // Close notes popup
             const overlay = document.getElementById('notes-popup-overlay');
-            if (overlay && overlay.style.display !== 'none') window.UI?.closeNotesPopup();
+            if (overlay && overlay.style.display !== 'none') {
+                window.UI?.closeNotesPopup();
+            }
+            
+            // Close TradingView popup
             closeTradingViewPopup();
         }
     });
-
+    
     // Warn before leaving with unsaved changes
-    window.addEventListener('beforeunload', e => {
-        if (window.Portfolio?.hasUnsavedChanges) { e.preventDefault(); e.returnValue = 'Unsaved changes'; }
+    window.addEventListener('beforeunload', (e) => {
+        if (window.Portfolio?.hasUnsavedChanges) {
+            const message = 'You have unsaved changes. Are you sure you want to leave?';
+            e.preventDefault();
+            e.returnValue = message;
+            return message;
+        }
     });
+}
 
-    // Initial render & load
+/**
+ * Initialize TradingView popup
+ */
+function initializeTradingViewPopup() {
+    const closeBtn = document.getElementById('tradingview-close');
+    const popup = document.getElementById('tradingview-popup');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => closeTradingViewPopup());
+    }
+    
+    // Close on background click
+    if (popup) {
+        popup.addEventListener('click', (e) => {
+            if (e.target === popup) {
+                closeTradingViewPopup();
+            }
+        });
+    }
+}
+
+/**
+ * Main initialization
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing Stock Tracker...');
+    
+    // Initialize all modules
+    initializeGitHubIntegration();
+    initializeStockInput();
+    initializeLabelFilter();
+    initializeSortHeaders();
+    initializeNotesPopup();
+    initializeAutosavePopup();
+    initializeKeyboardShortcuts();
+    initializeTradingViewPopup();
+    
+    // Initial table render
     updatePortfolioTable();
-    setTimeout(() => window.Portfolio?.refresh(), 100);
+    
+    // Load portfolio from GitHub
+    setTimeout(() => {
+        window.Portfolio?.refresh();
+    }, 100);
+    
     console.log('Stock Tracker initialized!');
 });

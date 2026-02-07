@@ -353,11 +353,6 @@ async function updateStockData(stock) {
         if (typeof debouncedUpdateTable === 'function') {
             debouncedUpdateTable();
         }
-        console.log(`[updateStockData] done ${stock.ticker}`, {
-            nowPrice: stock.nowPrice,
-            cumulativeReturn: stock.cumulativeReturn,
-            return3m: stock.return3m
-        });
         
     } catch (error) {
         console.error(`Error updating ${stock.ticker}:`, error);
@@ -399,7 +394,6 @@ async function addStock(ticker) {
         const date = new Date().toISOString().slice(0, 10);
         
         // Add stock with loading state
-        console.log(`[addStock] adding ${tickerUpper} (loading state)`);
         const stock = {
             ticker: ticker.toUpperCase(),
             name: matchedStock.name || ticker,
