@@ -170,34 +170,45 @@ function convertToTradingViewSymbol(ticker) {
     return ticker;
 }
 
-function parseImages(text) {
+function parseMedia(text) {
     if (!text) return '';
-    let html = text;
-    // Images
-    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg))(?:\?[^\s]*)?/gi;
-    html = html.replace(imageRegex, '<img src="$1" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />');
-    // YouTube
-    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
-    html = html.replace(youtubeRegex, '<iframe width="100%" height="315" src="https://www.youtube.com/embed/$1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:8px; margin:8px 0;"></iframe>');
-    return html;
+    // Work on plain text - split lines, process each
+    const lines = text.split('\n');
+    return lines.map(line => {
+        const trimmed = line.trim();
+        // YouTube - full URL
+        const ytMatch = trimmed.match(/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
+        if (ytMatch) {
+            return `<a href="https://www.youtube.com/watch?v=${ytMatch[1]}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
+                <img src="https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                    <div style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:24px solid white;margin-left:4px;"></div>
+                </div>
+            </a>`;
+        }
+        // Image URL
+        const imgMatch = trimmed.match(/^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg))(?:\?[^\s]*)?$/i);
+        if (imgMatch) {
+            return `<img src="${imgMatch[1]}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
+        }
+        return line;
+    }).join('\n');
 }
 
-function serializeNotes(html) {
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    temp.querySelectorAll('img').forEach(img => {
-        img.replaceWith(img.src);
-    });
-    temp.querySelectorAll('iframe').forEach(iframe => {
-        const src = iframe.src;
-        if (src.includes('youtube.com/embed/')) {
-            const videoId = src.split('youtube.com/embed/')[1].split('?')[0];
-            iframe.replaceWith(`https://www.youtube.com/watch?v=${videoId}`);
-        } else {
-            iframe.replaceWith(src);
+function serializeNotes(editorEl) {
+    // Get the plain text, converting <img> and <iframe> back to URLs
+    const clone = editorEl.cloneNode(true);
+    clone.querySelectorAll('a').forEach(a => {
+        const href = a.href || '';
+        const m = href.match(/youtube\.com\/watch\?v=([\w-]{11})/);
+        if (m) {
+            a.replaceWith(`https://www.youtube.com/watch?v=${m[1]}\n`);
         }
     });
-    return temp.textContent;
+    clone.querySelectorAll('img').forEach(img => {
+        img.replaceWith(img.src + '\n');
+    });
+    return clone.textContent.trim();
 }
 
 /** Notes popup */
@@ -207,7 +218,7 @@ function openNotesPopup(idx) {
     const overlay = document.getElementById('notes-popup-overlay');
     document.getElementById('notes-popup-stock').textContent = stock.ticker;
     const editor = document.getElementById('notes-editor');
-    editor.innerHTML = parseImages(stock.notes || '');
+    editor.innerHTML = parseMedia(stock.notes || '');
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
 }
@@ -215,7 +226,7 @@ function openNotesPopup(idx) {
 function closeNotesPopup() {
     const editor = document.getElementById('notes-editor');
     if (editor && currentNotesStockIndex !== null) {
-        window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor.innerHTML));
+        window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor));
     }
     const overlay = document.getElementById('notes-popup-overlay');
     overlay.classList.remove('show');
