@@ -122,14 +122,34 @@ function openChart(ticker, name) {
     const container = document.getElementById('tradingview-container');
     if (!popup || !container) { window.open(`https://finance.yahoo.com/quote/${ticker}`, '_blank'); return; }
 
+    const tvSymbol = convertToTradingViewSymbol(ticker);
     document.getElementById('tradingview-title').textContent = `${ticker} - ${name || ''}`;
     container.innerHTML = '';
     popup.style.display = 'flex';
 
     if (typeof TradingView !== 'undefined') {
-        new TradingView.widget({ autosize: true, symbol: ticker, interval: 'D', theme: 'light', style: '1', locale: 'en', container_id: 'tradingview-container', enable_publishing: false });
+        new TradingView.widget({
+            autosize: true,
+            symbol: tvSymbol,
+            interval: 'W',
+            timezone: 'Etc/UTC',
+            theme: 'light',
+            style: '2',
+            locale: 'en',
+            enable_publishing: false,
+            allow_symbol_change: true,
+            container_id: 'tradingview-container',
+            hide_top_toolbar: false,
+            hide_side_toolbar: true,
+            hide_legend: false,
+            range: '12M',
+            show_popup_button: false,
+            studies: [],
+            withdateranges: true,
+            disabled_features: ['header_compare', 'header_undo_redo', 'header_screenshot', 'header_fullscreen_button', 'left_toolbar', 'header_resolutions', 'header_interval_dialog_button']
+        });
     } else {
-        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666"><a href="https://www.tradingview.com/chart/?symbol=${ticker}" target="_blank">Open in TradingView →</a></div>`;
+        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666"><a href="https://www.tradingview.com/chart/?symbol=${tvSymbol}" target="_blank">Open in TradingView →</a></div>`;
     }
 }
 
@@ -140,6 +160,46 @@ function closeChart() {
     if (c) c.innerHTML = '';
 }
 
+function convertToTradingViewSymbol(ticker) {
+    const exchangeMap = {
+        '.MC': 'BME:', '.HK': 'HKEX:', '.L': 'LSE:', '.PA': 'EURONEXT:', '.AS': 'EURONEXT:', '.BR': 'EURONEXT:', '.DE': 'XETR:', '.F': 'FWB:', '.SW': 'SIX:', '.TO': 'TSX:', '.AX': 'ASX:'
+    };
+    for (const [suffix, prefix] of Object.entries(exchangeMap)) {
+        if (ticker.endsWith(suffix)) return prefix + ticker.slice(0, -suffix.length);
+    }
+    return ticker;
+}
+
+function parseImages(text) {
+    if (!text) return '';
+    let html = text;
+    // Images
+    const imageRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg))(?:\?[^\s]*)?/gi;
+    html = html.replace(imageRegex, '<img src="$1" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />');
+    // YouTube
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/gi;
+    html = html.replace(youtubeRegex, '<iframe width="100%" height="315" src="https://www.youtube.com/embed/$1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:8px; margin:8px 0;"></iframe>');
+    return html;
+}
+
+function serializeNotes(html) {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    temp.querySelectorAll('img').forEach(img => {
+        img.replaceWith(img.src);
+    });
+    temp.querySelectorAll('iframe').forEach(iframe => {
+        const src = iframe.src;
+        if (src.includes('youtube.com/embed/')) {
+            const videoId = src.split('youtube.com/embed/')[1].split('?')[0];
+            iframe.replaceWith(`https://www.youtube.com/watch?v=${videoId}`);
+        } else {
+            iframe.replaceWith(src);
+        }
+    });
+    return temp.textContent;
+}
+
 /** Notes popup */
 function openNotesPopup(idx) {
     currentNotesStockIndex = idx;
@@ -147,7 +207,7 @@ function openNotesPopup(idx) {
     const overlay = document.getElementById('notes-popup-overlay');
     document.getElementById('notes-popup-stock').textContent = stock.ticker;
     const editor = document.getElementById('notes-editor');
-    editor.textContent = stock.notes || '';
+    editor.innerHTML = parseImages(stock.notes || '');
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
 }
@@ -155,7 +215,7 @@ function openNotesPopup(idx) {
 function closeNotesPopup() {
     const editor = document.getElementById('notes-editor');
     if (editor && currentNotesStockIndex !== null) {
-        window.Portfolio.updateNotes(currentNotesStockIndex, editor.textContent);
+        window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor.innerHTML));
     }
     const overlay = document.getElementById('notes-popup-overlay');
     overlay.classList.remove('show');
