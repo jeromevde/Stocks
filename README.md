@@ -33,11 +33,18 @@ npx live-server src --port=8080
 
 ## API Features
 
-### Hybrid Yahoo Finance Integration
-The app uses a smart hybrid approach to fetch stock data:
-1. **Direct API access first** - Tries Yahoo Finance API directly (no CORS proxy needed in many browsers)
-2. **CORS proxy fallback** - Falls back to CORS proxies if direct access fails
+### Hybrid Yahoo Finance Integration with Puter.js
+The app uses a smart multi-layered approach to fetch stock data, ensuring maximum reliability:
+1. **Direct API access first** - Tries Yahoo Finance API directly (when the host allows CORS)
+2. **Puter.js pFetch** - Uses Puter's network infrastructure to bypass CORS restrictions (no proxy needed!)
 3. **Batch fetching** - Can fetch multiple stocks in parallel with staggered delays
+
+**Why Puter.js?**
+- 🚀 Fast and reliable CORS bypass using WISP protocol
+- 🔒 Secure network tunneling through Puter's infrastructure
+- 🆓 Free to use with no rate limits
+- 🎯 Works consistently across all browsers
+- ⚡ No need to depend on third-party CORS proxies
 
 ### Batch API Functions
 For improved performance when loading portfolios:

@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Package files
+package-lock.json
+
+# Build artifacts
+dist/
+build/
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store

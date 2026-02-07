@@ -24,34 +24,6 @@
                     <span class="close" id="close-auth-modal" style="color: white;">&times;</span>
                 </div>
                 <div class="modal-body">
-                    <!-- Quick Setup Guide -->
-                    <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; padding: 20px; margin-bottom: 25px; border: 1px solid #bae6fd;">
-                        <h4 style="margin: 0 0 15px 0; color: #0369a1; font-size: 16px;">⚡ Quick Setup (30 seconds)</h4>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                                <span style="background: #0ea5e9; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: bold;">1</span>
-                                <div>
-                                    <a href="https://github.com/settings/tokens/new?description=Stock%20Portfolio%20Tracker&scopes=repo" target="_blank" class="btn-github-oauth" style="display: inline-flex; padding: 8px 16px; font-size: 14px;">
-                                        Open GitHub Token Page →
-                                    </a>
-                                    <div style="font-size: 12px; color: #666; margin-top: 4px;">Opens with settings pre-filled</div>
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                                <span style="background: #0ea5e9; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: bold;">2</span>
-                                <div style="color: #374151; font-size: 14px;">
-                                    Click <strong>"Generate token"</strong> at the bottom and copy it
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                                <span style="background: #0ea5e9; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: bold;">3</span>
-                                <div style="color: #374151; font-size: 14px;">
-                                    Paste the token below and connect!
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <form id="github-auth-form">
                         <div class="form-row">
                             <div class="form-group">
@@ -162,11 +134,15 @@
     <!-- TradingView Widget Script -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     
+    <!-- Puter.js SDK for CORS-free API requests -->
+    <!-- Note: Using latest v2 from CDN. For production, consider pinning to specific version with SRI hash -->
+    <script src="https://js.puter.com/v2/"></script>
+    
     <!-- Load modules in order -->
-    <script src="utils/github.js"></script>
-    <script src="utils/yahoo.js"></script>
-    <script src="utils/portfolio.js"></script>
-    <script src="utils/ui.js"></script>
+    <script src="github.js"></script>
+    <script src="yahoo.js"></script>
+    <script src="portfolio.js"></script>
+    <script src="ui.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
