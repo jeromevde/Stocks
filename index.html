@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Stock Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        
+        <!-- GitHub Authentication Modal -->
+        <div id="github-auth-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #24292e 0%, #40464d 100%); color: white; padding: 20px; margin: -20px -20px 20px -20px; border-radius: 8px 8px 0 0;">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                        <svg height="28" width="28" viewBox="0 0 16 16">
+                            <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                        </svg>
+                        Connect to GitHub
+                    </h3>
+                    <span class="close" id="close-auth-modal" style="color: white;">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="github-auth-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="repo-owner">Repository Owner:</label>
+                                <input type="text" id="repo-owner" value="jeromevde" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="repo-name">Repository Name:</label>
+                                <input type="text" id="repo-name" value="Stocks" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="github-token">GitHub Token:</label>
+                            <input type="password" id="github-token" placeholder="Paste your token here (ghp_...)" style="font-size: 15px; padding: 12px;">
+                        </div>
+                        <div class="modal-buttons">
+                            <button type="submit" class="btn-primary" id="github-login" style="width: 100%; padding: 14px; font-size: 16px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border: none;">
+                                🔗 Connect to GitHub
+                            </button>
+                        </div>
+                        <p style="text-align: center; margin-top: 15px; color: #666; font-size: 13px;">
+                            ✓ Your token is stored locally and never sent to third parties
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- GitHub Status Section (only visible when authenticated) -->
+        <div id="github-status" style="display: none;">
+            <div class="github-connected">
+                <span id="github-info">✅ Connected to GitHub</span>
+                <button id="github-logout" class="btn-secondary">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Autosave Popup -->
+        <div id="autosave-popup" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+            <div style="background:white; border-radius:12px; padding:24px 32px; box-shadow:0 4px 20px rgba(0,0,0,0.3); text-align:center; max-width:400px;">
+                <h3 style="margin:0 0 16px 0; color:#333;">💾 Unsaved Changes</h3>
+                <p style="margin:0 0 20px 0; color:#666;">You have unsaved changes. Auto-saving in <strong id="autosave-countdown">10</strong> seconds...</p>
+                <div style="display:flex; gap:12px; justify-content:center;">
+                    <button id="autosave-confirm" style="padding:10px 24px; background:#4CAF50; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">Save Now</button>
+                    <button id="autosave-cancel" style="padding:10px 24px; background:#f44336; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TradingView Chart Popup -->
+        <div id="tradingview-popup" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;">
+            <div style="background:white; border-radius:12px; width:90%; max-width:900px; height:80%; max-height:600px; position:relative; overflow:hidden;">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#f5f5f5; border-bottom:1px solid #ddd;">
+                    <h3 id="tradingview-title" style="margin:0; color:#333;">Stock Chart</h3>
+                    <button id="tradingview-close" style="background:none; border:none; font-size:24px; cursor:pointer; color:#666;">&times;</button>
+                </div>
+                <div id="tradingview-container" style="height:calc(100% - 50px);"></div>
+            </div>
+        </div>
+
+        <!-- Notes Popup with Markdown & Image Support -->
+        <div id="notes-popup-overlay" class="notes-popup-overlay">
+            <div class="notes-popup-content minimal">
+                <div id="notes-popup-stock" class="notes-popup-stock"></div>
+                <button class="notes-popup-close minimal" id="notes-popup-close" title="Close">×</button>
+                
+                <!-- Rich editor with auto-embed -->
+                <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column;">
+                    <div class="notes-toolbar">
+                        <span class="toolbar-hint">Paste image URLs or YouTube links - they auto-embed!</span>
+                    </div>
+                    <div id="notes-editor" contenteditable="true" style="flex:1; min-height:200px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here... Paste URLs to auto-embed images and YouTube videos"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Actions -->
+        <div id="portfolio-actions" class="actions-section">
+            <button id="save-portfolio" class="btn-primary" disabled>💾 Save to GitHub</button>
+            <button id="refresh-portfolio" class="btn-secondary">🔄 Refresh from GitHub</button>
+            <span id="save-status" class="status-message"></span>
+        </div>
+
+        <table id="portfolio-table">
+            <thead>
+                <tr>
+                    <th>Rating</th>
+                    <th>Ticker</th>
+                    <th>Discovery Date</th>
+                    <th id="label-header" style="cursor:pointer; position:relative;">Label
+                        <div id="label-filter-dropdown" style="display:none; position:fixed; background:#fff; border:1px solid #ccc; z-index:1000; min-width:120px; padding:8px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
+                    </th>
+                    <th>Notes</th>
+                    <th>Current Price</th>
+                    <th id="sort-3m-return" style="cursor:pointer;">3M Return</th>
+                    <th id="sort-cumret" style="cursor:pointer;">Cumulative Return</th>
+                    <th style="width: 30px;"></th>
+                </tr>
+            </thead>
+            <tbody id="portfolio-tbody"></tbody>
+        </table>
+
+        <form id="stock-form" style="margin-top: 20px; width: 100%;">
+            <label for="stock-input" style="display: block; margin-bottom: 8px; font-weight: bold;">Add Stock:</label>
+            <input id="stock-input" name="stock-input" list="ticker-list" placeholder="Search ticker (e.g. TSLA)" autocomplete="off" required style="width: 100%; padding: 12px; font-size: 16px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+            <datalist id="ticker-list"></datalist>
+        </form>
+    </div>
+    <!-- TradingView Widget Script -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    
+    <!-- Puter.js SDK for CORS-free API requests -->
+    <!-- Note: Using latest v2 from CDN. For production, consider pinning to specific version with SRI hash -->
+    <script src="https://js.puter.com/v2/"></script>
+    
+    <!-- Load modules in order -->
+    <script src="github.js"></script>
+    <script src="yahoo.js"></script>
+    <script src="portfolio.js"></script>
+    <script src="ui.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
