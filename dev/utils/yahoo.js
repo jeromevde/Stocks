@@ -1,10 +1,15 @@
 /**
- * Stock Finance API - Yahoo Finance only (via CORS proxy)
+ * Stock Finance API - Yahoo Finance (via Puter.js or CORS proxy)
  * Supports all markets: US, EU, Asia, etc.
  * Provides: search, current prices, historical prices, 3M return
+ * 
+ * Fetch strategy (in order):
+ * 1. Direct API access (no CORS proxy)
+ * 2. Puter.js pFetch (bypasses CORS using Puter's network infrastructure)
+ * 3. CORS proxies (fallback chain)
  */
 
-// CORS proxies for Yahoo Finance (fallback chain with more alternatives)
+// CORS proxies for Yahoo Finance (fallback chain - used after Puter.js)
 const CORS_PROXIES = [
     'https://corsproxy.io/?',
     'https://api.allorigins.win/raw?url=',
@@ -25,6 +30,12 @@ const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
 let lastRequestTime = 0;
 
 /**
+ * Global puter object provided by Puter.js SDK (loaded via CDN in index.html)
+ * @external puter
+ * @see {@link https://js.puter.com/v2/}
+ */
+
+/**
  * Throttle requests to avoid overwhelming proxies
  */
 async function throttleRequest() {
@@ -40,7 +51,7 @@ async function throttleRequest() {
 }
 
 /**
- * Try direct fetch to Yahoo Finance first, fallback to CORS proxy
+ * Try direct fetch to Yahoo Finance first, then Puter.js, then fallback to CORS proxy
  */
 async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price) {
     // Check cache first
@@ -65,14 +76,46 @@ async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price
         if (response.ok) {
             const data = await response.json();
             apiCache.set(cacheKey, { data, timestamp: Date.now() });
+            console.log(`✓ Direct access succeeded for ${cacheKey}`);
             return data;
         }
     } catch (error) {
-        // Direct access failed, fall back to CORS proxy
-        console.log(`Direct access failed for ${cacheKey}, trying CORS proxy...`);
+        // Direct access failed, try Puter.js next
+        console.log(`Direct access failed for ${cacheKey}, trying Puter.js...`);
+    }
+    
+    // Try Puter.js pFetch (bypasses CORS)
+    // Validate that puter is the authentic SDK by checking for expected properties
+    if (typeof puter !== 'undefined' && 
+        puter?.net?.fetch && 
+        typeof puter.net.fetch === 'function' &&
+        puter.APIOrigin) { // Puter.js SDK always has APIOrigin property
+        try {
+            const response = await puter.net.fetch(url, {
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                apiCache.set(cacheKey, { data, timestamp: Date.now() });
+                console.log(`✓ Puter.js fetch succeeded for ${cacheKey}`);
+                return data;
+            }
+        } catch (error) {
+            console.log(`Puter.js fetch failed for ${cacheKey}:`, {
+                url,
+                error: error.message,
+                stack: error.stack
+            });
+        }
+    } else if (typeof puter === 'undefined') {
+        console.log(`Puter.js not loaded (may be blocked by ad blocker), skipping to CORS proxy...`);
+    } else {
+        console.log(`Puter.js loaded but puter.net.fetch not available, skipping to CORS proxy...`);
     }
     
     // Fallback to CORS proxy with existing logic
+    console.log(`Falling back to CORS proxy for ${cacheKey}...`);
     return fetchWithCorsProxy(url, cacheKey, cacheTTL);
 }
 
