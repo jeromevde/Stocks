@@ -1,10 +1,15 @@
 /**
- * Stock Finance API - Yahoo Finance only (via CORS proxy)
+ * Stock Finance API - Yahoo Finance (via Puter.js or CORS proxy)
  * Supports all markets: US, EU, Asia, etc.
  * Provides: search, current prices, historical prices, 3M return
+ * 
+ * Fetch strategy (in order):
+ * 1. Direct API access (no CORS proxy)
+ * 2. Puter.js pFetch (bypasses CORS using Puter's network infrastructure)
+ * 3. CORS proxies (fallback chain)
  */
 
-// CORS proxies for Yahoo Finance (fallback chain with more alternatives)
+// CORS proxies for Yahoo Finance (fallback chain - used after Puter.js)
 const CORS_PROXIES = [
     'https://corsproxy.io/?',
     'https://api.allorigins.win/raw?url=',
@@ -40,7 +45,7 @@ async function throttleRequest() {
 }
 
 /**
- * Try direct fetch to Yahoo Finance first, fallback to CORS proxy
+ * Try direct fetch to Yahoo Finance first, then Puter.js, then fallback to CORS proxy
  */
 async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price) {
     // Check cache first
@@ -65,14 +70,34 @@ async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price
         if (response.ok) {
             const data = await response.json();
             apiCache.set(cacheKey, { data, timestamp: Date.now() });
+            console.log(`✓ Direct access succeeded for ${cacheKey}`);
             return data;
         }
     } catch (error) {
-        // Direct access failed, fall back to CORS proxy
-        console.log(`Direct access failed for ${cacheKey}, trying CORS proxy...`);
+        // Direct access failed, try Puter.js next
+        console.log(`Direct access failed for ${cacheKey}, trying Puter.js...`);
+    }
+    
+    // Try Puter.js pFetch (bypasses CORS)
+    if (typeof puter !== 'undefined' && puter.net && puter.net.fetch) {
+        try {
+            const response = await puter.net.fetch(url, {
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                apiCache.set(cacheKey, { data, timestamp: Date.now() });
+                console.log(`✓ Puter.js fetch succeeded for ${cacheKey}`);
+                return data;
+            }
+        } catch (error) {
+            console.log(`Puter.js fetch failed for ${cacheKey}:`, error.message);
+        }
     }
     
     // Fallback to CORS proxy with existing logic
+    console.log(`Falling back to CORS proxy for ${cacheKey}...`);
     return fetchWithCorsProxy(url, cacheKey, cacheTTL);
 }
 
