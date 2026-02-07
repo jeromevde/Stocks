@@ -85,7 +85,11 @@ async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price
     }
     
     // Try Puter.js pFetch (bypasses CORS)
-    if (typeof puter !== 'undefined' && puter?.net?.fetch) {
+    // Validate that puter is the authentic SDK by checking for expected properties
+    if (typeof puter !== 'undefined' && 
+        puter?.net?.fetch && 
+        typeof puter.net.fetch === 'function' &&
+        puter.APIOrigin) { // Puter.js SDK always has APIOrigin property
         try {
             const response = await puter.net.fetch(url, {
                 headers: { 'Accept': 'application/json' }
@@ -98,7 +102,11 @@ async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price
                 return data;
             }
         } catch (error) {
-            console.log(`Puter.js fetch failed for ${cacheKey}:`, error.message);
+            console.log(`Puter.js fetch failed for ${cacheKey}:`, {
+                url,
+                error: error.message,
+                stack: error.stack
+            });
         }
     } else if (typeof puter === 'undefined') {
         console.log(`Puter.js not loaded (may be blocked by ad blocker), skipping to CORS proxy...`);
