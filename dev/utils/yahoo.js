@@ -1,15 +1,12 @@
 /**
- * Stock Finance API - Yahoo Finance only (via CORS proxy)
+ * Stock Finance API - Yahoo Finance (direct or via Puter.js)
  * Supports all markets: US, EU, Asia, etc.
  * Provides: search, current prices, historical prices, 3M return
+ * 
+ * Fetch strategy (in order):
+ * 1. Direct API access (when host allows CORS)
+ * 2. Puter.js pFetch (bypasses CORS using Puter's network infrastructure)
  */
-
-// CORS proxies for Yahoo Finance (fallback chain with more alternatives)
-const CORS_PROXIES = [
-    'https://corsproxy.io/?',
-    'https://api.allorigins.win/raw?url=',
-    'https://api.codetabs.com/v1/proxy?quest='  // Note: quest is the correct parameter
-];
 
 // Cache for API responses with different TTLs
 const apiCache = new Map();
@@ -20,27 +17,21 @@ const CACHE_TTL = {
     threeMonth: 5 * 60 * 1000     // 5 minutes for 3-month returns
 };
 
-// Request throttling
-const MIN_REQUEST_INTERVAL = 500; // 500ms between requests
-let lastRequestTime = 0;
-
-/**
- * Throttle requests to avoid overwhelming proxies
- */
-async function throttleRequest() {
-    const now = Date.now();
-    const timeSinceLastRequest = now - lastRequestTime;
-    
-    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-        const delay = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
-        await new Promise(resolve => setTimeout(resolve, delay));
-    }
-    
-    lastRequestTime = Date.now();
+// Environments like Codespaces/github.dev always block direct Yahoo fetches; skip to Puter there
+function shouldSkipDirectFetch() {
+    if (typeof window === 'undefined') return false;
+    const host = window.location?.hostname || '';
+    return host.endsWith('.github.dev') || host.endsWith('.githubpreview.dev');
 }
 
 /**
- * Try direct fetch to Yahoo Finance first, fallback to CORS proxy
+ * Global puter object provided by Puter.js SDK (loaded via CDN in index.html)
+ * @external puter
+ * @see {@link https://js.puter.com/v2/}
+ */
+
+/**
+ * Try direct fetch to Yahoo Finance first, then Puter.js
  */
 async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price) {
     // Check cache first
@@ -49,101 +40,80 @@ async function fetchWithHybridApproach(url, cacheKey, cacheTTL = CACHE_TTL.price
         return cached.data;
     }
     
-    // Try direct access first (no CORS proxy)
-    try {
-        // Create abort controller for timeout (better browser compatibility)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        const response = await fetch(url, {
-            headers: { 'Accept': 'application/json' },
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-            const data = await response.json();
-            apiCache.set(cacheKey, { data, timestamp: Date.now() });
-            return data;
+    const skipDirect = shouldSkipDirectFetch();
+    
+    // Try direct access first (no CORS proxy) unless we know it will be blocked (github.dev, etc.)
+    if (!skipDirect) {
+        try {
+            // Create abort controller for timeout (better browser compatibility)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            
+            const response = await fetch(url, {
+                headers: { 'Accept': 'application/json' },
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+                const data = await response.json();
+                apiCache.set(cacheKey, { data, timestamp: Date.now() });
+                console.log(`✓ Direct access succeeded for ${cacheKey}`);
+                return data;
+            } else {
+                console.log(`Direct access returned ${response.status} for ${cacheKey}`);
+            }
+        } catch (error) {
+            // Direct access failed, try Puter.js next
+            console.log(`Direct access failed for ${cacheKey}, trying Puter.js...`);
         }
-    } catch (error) {
-        // Direct access failed, fall back to CORS proxy
-        console.log(`Direct access failed for ${cacheKey}, trying CORS proxy...`);
+    } else {
+        console.log(`Skipping direct Yahoo fetch for ${cacheKey} (host blocks CORS), trying Puter.js...`);
     }
     
-    // Fallback to CORS proxy with existing logic
-    return fetchWithCorsProxy(url, cacheKey, cacheTTL);
-}
-
-/**
- * Fetch data using CORS proxy with fallback and exponential backoff
- */
-async function fetchWithCorsProxy(url, cacheKey, cacheTTL = CACHE_TTL.price) {
-    // Check cache first 
-    const cached = apiCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < cacheTTL) {
-        return cached.data;
-    }
-    
-    // Throttle the request
-    await throttleRequest();
-    
-    let lastError = null;
-    
-    // Try each proxy in order with exponential backoff
-    for (let proxyIndex = 0; proxyIndex < CORS_PROXIES.length; proxyIndex++) {
-        const proxy = CORS_PROXIES[proxyIndex];
-        
-        // Try with exponential backoff (3 attempts per proxy)
-        for (let attempt = 0; attempt < 3; attempt++) {
+    // Try Puter.js pFetch (bypasses CORS)
+    // Only require the fetch function so we don't skip valid SDK versions that lack APIOrigin
+    const hasPuterFetch = typeof puter !== 'undefined' && typeof puter?.net?.fetch === 'function';
+    if (hasPuterFetch) {
+        // Retry more times if Puter websocket is still connecting; this improves first-load reliability
+        for (let attempt = 0; attempt < 10; attempt++) {
             try {
-                const proxyUrl = proxy + encodeURIComponent(url);
-                const response = await fetch(proxyUrl, {
-                    headers: { 'Accept': 'application/json' },
-                    signal: AbortSignal.timeout(10000) // 10 second timeout
+                const response = await puter.net.fetch(url, {
+                    headers: { 'Accept': 'application/json' }
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
-                    // Cache successful response
                     apiCache.set(cacheKey, { data, timestamp: Date.now() });
+                    console.log(`✓ Puter.js fetch succeeded for ${cacheKey}`);
                     return data;
+                } else {
+                    const text = await response.text().catch(() => '<no body>');
+                    console.log(`Puter.js fetch non-OK ${response.status} for ${cacheKey}`, text?.slice(0,200));
                 }
-                
-                // If rate limited (429) or server error (5xx), retry with backoff
-                if (response.status === 429 || response.status >= 500) {
-                    const backoffDelay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
-                    await new Promise(resolve => setTimeout(resolve, backoffDelay));
-                    lastError = new Error(`Proxy returned ${response.status}`);
+            } catch (error) {
+                const connecting = error?.message?.includes('CONNECTING state') || error?.name === 'InvalidStateError';
+                if (connecting && attempt < 9) {
+                    // Give the websocket time to finish connecting (progressively longer)
+                    await new Promise(resolve => setTimeout(resolve, 300 + attempt * 150));
                     continue;
                 }
-                
-                // For other errors, try next proxy immediately
-                lastError = new Error(`Proxy returned ${response.status}`);
+                console.log(`Puter.js fetch failed for ${cacheKey}:`, {
+                    url,
+                    error: error.message,
+                    stack: error.stack
+                });
                 break;
-            } catch (e) {
-                lastError = e;
-                
-                // If timeout or network error, retry with backoff
-                if (attempt < 2) {
-                    const backoffDelay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
-                    await new Promise(resolve => setTimeout(resolve, backoffDelay));
-                } else {
-                    // Move to next proxy after 3 failed attempts
-                    break;
-                }
             }
         }
+    } else if (typeof puter === 'undefined') {
+        console.log(`Puter.js not loaded (may be blocked by ad blocker), direct request likely blocked.`);
+    } else {
+        console.log(`Puter.js loaded but puter.net.fetch not available.`);
     }
     
-    // If we have cached data (even if expired), return it as fallback
-    if (cached) {
-        console.warn(`Using expired cache for ${cacheKey} due to proxy failures`);
-        return cached.data;
-    }
-    
-    throw lastError || new Error('All CORS proxies failed');
+    throw new Error('All Yahoo fetch strategies failed (direct blocked and Puter unavailable)');
 }
 
 /**
@@ -284,7 +254,7 @@ async function fetchCurrentPrice(ticker) {
                 return closes[closes.length - 1];
             }
         }
-        
+        console.warn(`Price parse failed for ${ticker}`, { meta: data?.chart?.result?.[0]?.meta, closes: data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close });
         return null;
     } catch (error) {
         console.warn(`Failed to fetch price for ${ticker}:`, error.message);
@@ -313,6 +283,7 @@ async function fetchHistoricalPrice(ticker, date) {
                 return closes[0]; // Return first available close price
             }
         }
+        console.warn(`Historical price parse failed for ${ticker} on ${date}`, { closes: data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close });
         return null;
     } catch (error) {
         console.warn(`Failed to fetch historical price for ${ticker}:`, error.message);
@@ -345,6 +316,7 @@ async function fetch3MonthReturn(ticker) {
                 return returnPercent.toFixed(2);
             }
         }
+        console.warn(`3M return parse failed for ${ticker}`, { closes: data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close });
         return null;
     } catch (error) {
         console.warn(`Failed to fetch 3M return for ${ticker}:`, error.message);
