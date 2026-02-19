@@ -2,6 +2,10 @@
  * GitHub API client for portfolio persistence
  */
 class GitHubClient {
+    // Chunk size for base64 encoding to avoid "Maximum call stack size exceeded"
+    // when spreading large arrays into String.fromCharCode()
+    static ENCODING_CHUNK_SIZE = 8192;
+
     constructor() {
         this.API_URL = 'https://api.github.com';
         this.token = localStorage.getItem('github_token');
@@ -58,13 +62,12 @@ class GitHubClient {
         const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`;
         // Convert to base64 in chunks to avoid "Maximum call stack size exceeded"
         const bytes = new TextEncoder().encode(content);
-        const chunkSize = 8192;
-        let binary = '';
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-            const chunk = bytes.slice(i, i + chunkSize);
-            binary += String.fromCharCode(...chunk);
+        let binaryString = '';
+        for (let i = 0; i < bytes.length; i += GitHubClient.ENCODING_CHUNK_SIZE) {
+            const chunk = bytes.slice(i, i + GitHubClient.ENCODING_CHUNK_SIZE);
+            binaryString += String.fromCharCode(...chunk);
         }
-        const base64 = btoa(binary);
+        const base64 = btoa(binaryString);
         const body = { message, content: base64 };
         if (current.exists) body.sha = current.sha;
         const res = await this._fetch(url, { method: 'PUT', body: JSON.stringify(body) });
