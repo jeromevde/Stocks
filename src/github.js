@@ -56,7 +56,15 @@ class GitHubClient {
         // Get current SHA
         const current = await this.loadFile();
         const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`;
-        const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(content)));
+        // Convert to base64 in chunks to avoid "Maximum call stack size exceeded"
+        const bytes = new TextEncoder().encode(content);
+        const chunkSize = 8192;
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.slice(i, i + chunkSize);
+            binary += String.fromCharCode(...chunk);
+        }
+        const base64 = btoa(binary);
         const body = { message, content: base64 };
         if (current.exists) body.sha = current.sha;
         const res = await this._fetch(url, { method: 'PUT', body: JSON.stringify(body) });
