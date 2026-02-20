@@ -63,17 +63,80 @@ function extractPrice(data) {
     return closes?.length ? closes[closes.length - 1] : null;
 }
 
-/** Search tickers */
+/** Search tickers (tries query1 then query2 as fallback) */
 async function fetchTickerSuggestions(query) {
     if (!query) return [];
+    const endpoints = [
+        `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`,
+        `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`
+    ];
+    for (let i = 0; i < endpoints.length; i++) {
+        try {
+            const cacheKey = `search_${query}_e${i}`;
+            const data = await puterFetch(endpoints[i], cacheKey, CACHE_TTL.search);
+            const quotes = data?.quotes || [];
+            if (quotes.length > 0) {
+                return quotes.slice(0, 8).map(q => ({
+                    symbol: q.symbol,
+                    name: q.shortname || q.longname || q.symbol
+                }));
+            }
+        } catch {}
+    }
+    return [];
+}
+
+/** Fetch current prices for multiple tickers in one batch request */
+async function fetchBatchCurrentPrices(tickers) {
+    if (!tickers || tickers.length === 0) return {};
+
+    await waitForPuter();
+
+    const now = Date.now();
+    const result = {};
+    // Serve any already-cached prices
+    const toFetch = tickers.filter(t => {
+        const cached = apiCache.get(`price_${t}`);
+        if (cached && now - cached.ts < CACHE_TTL.price) {
+            result[t] = extractPrice(cached.data);
+            return false;
+        }
+        return true;
+    });
+
+    if (toFetch.length === 0) return result;
+
     try {
-        const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
-        const data = await puterFetch(url, `search_${query}`, CACHE_TTL.search);
-        return (data?.quotes || []).slice(0, 8).map(q => ({
-            symbol: q.symbol,
-            name: q.shortname || q.longname || q.symbol
-        }));
-    } catch { return []; }
+        const symbols = toFetch.map(encodeURIComponent).join(',');
+        const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,symbol`;
+
+        if (typeof puter === 'undefined' || typeof puter?.net?.fetch !== 'function') {
+            throw new Error('Puter.js not available');
+        }
+        const res = await puter.net.fetch(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error(`Yahoo returned ${res.status}`);
+        const data = await res.json();
+
+        (data?.quoteResponse?.result || []).forEach(q => {
+            if (q.regularMarketPrice != null) {
+                result[q.symbol] = q.regularMarketPrice;
+                // Store in cache using same format as fetchCurrentPrice
+                apiCache.set(`price_${q.symbol}`, {
+                    data: { chart: { result: [{ meta: { regularMarketPrice: q.regularMarketPrice } }] } },
+                    ts: now
+                });
+            }
+        });
+    } catch (e) {
+        console.warn('Batch price fetch failed, falling back to individual fetches:', e.message);
+        for (const t of toFetch) {
+            try {
+                const price = await fetchCurrentPrice(t);
+                if (price != null) result[t] = price;
+            } catch {}
+        }
+    }
+    return result;
 }
 
 /** Current price */
@@ -125,6 +188,7 @@ function clearCache() { apiCache.clear(); }
 window.YahooFinance = {
     waitForPuter,
     fetchTickerSuggestions,
+    fetchBatchCurrentPrices,
     fetchCurrentPrice,
     fetchHistoricalPrice,
     fetch3MonthReturn,
