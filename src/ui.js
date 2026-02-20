@@ -246,22 +246,13 @@ window.closeTradingViewPopup = closeChart;
 /** Update only the price/return cells for a single stock row (avoids full table rebuild) */
 function updatePriceCells(stock) {
     const tr = document.querySelector(`#portfolio-tbody tr[data-ticker="${CSS.escape(stock.ticker)}"]`);
-    if (!tr) { console.warn(`Row not found for ${stock.ticker}, falling back to full table update`); debouncedUpdateTable(); return; }
-    const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
+    if (!tr) { debouncedUpdateTable(); return; }
+    const price = stock.loading ? '...' : (stock.nowPrice !== 'N/A' ? '$' + stock.nowPrice : 'N/A');
     const priceCell = tr.querySelector('.price-cell');
     const ret3mCell = tr.querySelector('.return3m-cell');
     const cumretCell = tr.querySelector('.cumret-cell');
-    // Update content first, then fade in so the new value is what animates
-    if (priceCell) priceCell.innerHTML = priceDisplay;
+    if (priceCell) priceCell.innerHTML = price;
     if (ret3mCell) ret3mCell.innerHTML = colorReturn(stock.return3m);
     if (cumretCell) cumretCell.innerHTML = colorReturn(stock.cumulativeReturn);
-    [priceCell, ret3mCell, cumretCell].forEach(cell => {
-        if (!cell) return;
-        cell.classList.remove('price-updated');
-        // Force reflow so removing+re-adding the class restarts the animation
-        void cell.offsetWidth;
-        cell.classList.add('price-updated');
-        cell.addEventListener('animationend', () => cell.classList.remove('price-updated'), { once: true });
-    });
 }
 window.updatePriceCells = updatePriceCells;

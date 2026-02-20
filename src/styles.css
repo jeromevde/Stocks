@@ -55,13 +55,8 @@ tr:nth-child(even) { background: #fafbfc; }
 .toolbar-hint { font-size: 11px; color: #999; margin-left: auto; }
 .notes-panel { flex: 1; display: flex; flex-direction: column; min-height: 200px; }
 
-/* Price cell fade-in animation on update */
-@keyframes priceFadeIn {
-    from { opacity: 0.3; }
-    to { opacity: 1; }
-}
+/* Price cell transition on update */
 .price-cell, .return3m-cell, .cumret-cell { transition: color 0.3s; }
-.price-updated { animation: priceFadeIn 0.4s ease; }
 
 /* Mobile */
 @media (max-width: 768px) {

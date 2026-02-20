@@ -86,15 +86,14 @@ async function fetchTickerSuggestions(query) {
     return [];
 }
 
-/** Fetch current prices for multiple tickers in one batch request */
+const BATCH_SIZE = 10; // Yahoo Finance v7/quote API safe chunk size
+
+/** Fetch current prices for multiple tickers, chunked to respect Yahoo API limits */
 async function fetchBatchCurrentPrices(tickers) {
     if (!tickers || tickers.length === 0) return {};
-
     await waitForPuter();
-
     const now = Date.now();
     const result = {};
-    // Serve any already-cached prices
     const toFetch = tickers.filter(t => {
         const cached = apiCache.get(`price_${t}`);
         if (cached && now - cached.ts < CACHE_TTL.price) {
@@ -103,37 +102,29 @@ async function fetchBatchCurrentPrices(tickers) {
         }
         return true;
     });
-
-    if (toFetch.length === 0) return result;
-
-    try {
-        const symbols = toFetch.map(encodeURIComponent).join(',');
-        const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,symbol`;
-
-        if (typeof puter === 'undefined' || typeof puter?.net?.fetch !== 'function') {
-            throw new Error('Puter.js not available');
-        }
-        const res = await puter.net.fetch(url, { headers: { Accept: 'application/json' } });
-        if (!res.ok) throw new Error(`Yahoo returned ${res.status}`);
-        const data = await res.json();
-
-        (data?.quoteResponse?.result || []).forEach(q => {
-            if (q.regularMarketPrice != null) {
-                result[q.symbol] = q.regularMarketPrice;
-                // Store in cache using same format as fetchCurrentPrice
-                apiCache.set(`price_${q.symbol}`, {
-                    data: { chart: { result: [{ meta: { regularMarketPrice: q.regularMarketPrice } }] } },
-                    ts: now
-                });
+    for (let i = 0; i < toFetch.length; i += BATCH_SIZE) {
+        const chunk = toFetch.slice(i, i + BATCH_SIZE);
+        try {
+            const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${chunk.map(encodeURIComponent).join(',')}&fields=regularMarketPrice,symbol`;
+            const res = await puter.net.fetch(url, { headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error(`Yahoo returned ${res.status}`);
+            (await res.json())?.quoteResponse?.result?.forEach(q => {
+                if (q.regularMarketPrice != null) {
+                    result[q.symbol] = q.regularMarketPrice;
+                    apiCache.set(`price_${q.symbol}`, {
+                        data: { chart: { result: [{ meta: { regularMarketPrice: q.regularMarketPrice } }] } },
+                        ts: now
+                    });
+                }
+            });
+        } catch (e) {
+            console.warn('Batch price fetch failed for chunk, falling back:', e.message);
+            for (const t of chunk) {
+                try {
+                    const p = await fetchCurrentPrice(t);
+                    if (p != null) result[t] = p;
+                } catch {}
             }
-        });
-    } catch (e) {
-        console.warn('Batch price fetch failed, falling back to individual fetches:', e.message);
-        for (const t of toFetch) {
-            try {
-                const price = await fetchCurrentPrice(t);
-                if (price != null) result[t] = price;
-            } catch {}
         }
     }
     return result;
