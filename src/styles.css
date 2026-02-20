@@ -55,6 +55,9 @@ tr:nth-child(even) { background: #fafbfc; }
 .toolbar-hint { font-size: 11px; color: #999; margin-left: auto; }
 .notes-panel { flex: 1; display: flex; flex-direction: column; min-height: 200px; }
 
+/* Price cell transition on update */
+.price-cell, .return3m-cell, .cumret-cell { transition: color 0.3s; }
+
 /* Mobile */
 @media (max-width: 768px) {
     .container { width: 95%; padding: 10px; }
