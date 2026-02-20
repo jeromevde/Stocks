@@ -63,17 +63,29 @@ function extractPrice(data) {
     return closes?.length ? closes[closes.length - 1] : null;
 }
 
-/** Search tickers */
+/** Search tickers (tries query1 then query2 as fallback) */
 async function fetchTickerSuggestions(query) {
     if (!query) return [];
-    try {
-        const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
-        const data = await puterFetch(url, `search_${query}`, CACHE_TTL.search);
-        return (data?.quotes || []).slice(0, 8).map(q => ({
-            symbol: q.symbol,
-            name: q.shortname || q.longname || q.symbol
-        }));
-    } catch { return []; }
+    const endpoints = [
+        `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`,
+        `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`
+    ];
+    for (let i = 0; i < endpoints.length; i++) {
+        try {
+            const cacheKey = `search_${query}_e${i}`;
+            const data = await puterFetch(endpoints[i], cacheKey, CACHE_TTL.search);
+            const quotes = data?.quotes || [];
+            if (quotes.length > 0) {
+                return quotes.slice(0, 8).map(q => ({
+                    symbol: q.symbol,
+                    name: q.shortname || q.longname || q.symbol
+                }));
+            }
+        } catch (e) {
+            console.warn(`Search endpoint ${i + 1} failed:`, e.message);
+        }
+    }
+    return [];
 }
 
 /** Current price */

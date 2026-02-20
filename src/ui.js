@@ -45,9 +45,9 @@ function formatDate(dateStr) {
 }
 
 function colorReturn(val) {
-    if (!val || val === 'N/A' || val === 'Error' || val === '...') return `<span style="color:#666">${val}</span>`;
+    if (!val || val === 'N/A' || val === 'Error' || val === '...') return `<span style="color:#666;display:inline-block;min-width:50px">${val}</span>`;
     const n = parseFloat(val);
-    return `<span style="color:${n >= 0 ? '#4caf50' : '#f44336'}">${val}%</span>`;
+    return `<span style="color:${n >= 0 ? '#4caf50' : '#f44336'};display:inline-block;min-width:50px">${val}%</span>`;
 }
 
 /** Main table render */
@@ -77,6 +77,7 @@ function renderRow(tbody, stock) {
     const r = stock.rating || 0;
     const d = formatDate(stock.date);
     const tr = document.createElement('tr');
+    tr.dataset.ticker = stock.ticker;
 
     const stars = [1,2,3,4,5].map(i => `<span class="rating-star" data-r="${i}" style="cursor:pointer;font-size:1.1em;color:${i <= r ? '#f5b301' : '#ddd'}">${i <= r ? '★' : '☆'}</span>`).join('');
     const labels = stock.labels.map(l => `<span style="background:#e3f2fd;color:#1976d2;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;display:inline-block">${l}<span class="rm-label" data-l="${l}" style="margin-left:4px;cursor:pointer;font-weight:bold">×</span></span>`).join('');
@@ -89,9 +90,9 @@ function renderRow(tbody, stock) {
         <td style="text-align:center"><div class="date-disp" style="cursor:pointer"><div style="font-size:12px">${d.formatted}</div><div style="font-size:10px;color:#999">${d.timeAgo}</div></div><input type="date" value="${stock.date}" class="edit-date" style="display:none;width:130px;padding:4px;font-size:12px;border:1px solid #ddd;border-radius:4px"></td>
         <td style="text-align:center"><div class="labels-box" style="min-width:80px;padding:4px">${labels}<span class="add-label-btn" style="background:#f0f0f0;color:#666;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;cursor:pointer;display:inline-block">+</span></div></td>
         <td style="text-align:center"><span class="notes-btn" style="cursor:pointer;padding:8px;background:#f9f9f9;color:#666;border-radius:3px;display:inline-block;min-width:80px">${notesShort}</span></td>
-        <td style="text-align:right">${priceDisplay}</td>
-        <td style="text-align:right">${colorReturn(stock.return3m)}</td>
-        <td style="text-align:right">${colorReturn(stock.cumulativeReturn)}</td>
+        <td class="price-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:80px">${priceDisplay}</td>
+        <td class="return3m-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:60px">${colorReturn(stock.return3m)}</td>
+        <td class="cumret-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:60px">${colorReturn(stock.cumulativeReturn)}</td>
         <td style="text-align:center;width:30px"><button class="rm-stock" style="background:none;color:#ccc;border:none;cursor:pointer;font-size:16px">×</button></td>`;
 
     // Event listeners
@@ -241,3 +242,19 @@ window.updateSaveButtonState = updateSaveButtonState;
 window.updateGitHubUI = updateGitHubUI;
 window.updatePortfolioTable = updatePortfolioTable;
 window.closeTradingViewPopup = closeChart;
+
+/** Update only the price cells for a single stock row (avoids full table rebuild) */
+function updatePriceCells(stock) {
+    const tr = document.querySelector(`#portfolio-tbody tr[data-ticker="${CSS.escape(stock.ticker)}"]`);
+    if (!tr) return;
+
+    const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
+    const priceCell = tr.querySelector('.price-cell');
+    const ret3mCell = tr.querySelector('.return3m-cell');
+    const cumretCell = tr.querySelector('.cumret-cell');
+
+    if (priceCell) priceCell.innerHTML = priceDisplay;
+    if (ret3mCell) ret3mCell.innerHTML = colorReturn(stock.return3m);
+    if (cumretCell) cumretCell.innerHTML = colorReturn(stock.cumulativeReturn);
+}
+window.updatePriceCells = updatePriceCells;
