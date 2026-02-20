@@ -11,6 +11,28 @@
 <body>
     <div class="container">
         
+        <!-- Add Stock Modal -->
+        <div id="add-stock-overlay" class="add-stock-overlay">
+            <div class="add-stock-modal">
+                <button id="add-stock-close" class="add-stock-modal-close">&times;</button>
+                <h3 style="margin:0 0 16px 0;font-size:17px;color:#333;">Add Stock</h3>
+                <input id="add-stock-input" type="text" placeholder="Search ticker or company name…"
+                    autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+                    style="width:100%;padding:11px 12px;font-size:16px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;outline:none;">
+                <div id="add-stock-name" style="min-height:20px;margin:6px 2px;font-size:13px;color:#888;font-style:italic;"></div>
+                <div id="add-stock-suggestions" class="add-stock-suggestions"></div>
+                <div style="margin-top:12px;">
+                    <label style="font-size:13px;color:#555;font-weight:500;">Discovery date</label>
+                    <input id="add-stock-date" type="date"
+                        style="margin-top:4px;width:100%;padding:9px 12px;font-size:15px;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
+                </div>
+                <button id="add-stock-confirm" disabled
+                    style="margin-top:14px;width:100%;padding:13px;font-size:16px;background:#007bff;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:opacity 0.2s;">
+                    Add to Portfolio
+                </button>
+            </div>
+        </div>
+
         <!-- GitHub Authentication Modal -->
         <div id="github-auth-modal" class="modal" style="display: none;">
             <div class="modal-content">
@@ -103,8 +125,9 @@
         <div id="portfolio-actions" class="actions-section">
             <button id="save-portfolio" class="btn-primary" disabled>💾 Save to GitHub</button>
             <button id="refresh-portfolio" class="btn-secondary">🔄 Refresh from GitHub</button>
-            <span id="save-status" class="status-message"></span>
         </div>
+        <!-- Toast status (fixed position – no layout shift) -->
+        <div id="save-status" class="status-message"></div>
 
         <table id="portfolio-table">
             <thead>
@@ -125,11 +148,9 @@
             <tbody id="portfolio-tbody"></tbody>
         </table>
 
-        <form id="stock-form" style="margin-top: 20px; width: 100%;">
-            <label for="stock-input" style="display: block; margin-bottom: 8px; font-weight: bold;">Add Stock:</label>
-            <input id="stock-input" name="stock-input" list="ticker-list" placeholder="Search ticker (e.g. TSLA)" autocomplete="off" required style="width: 100%; padding: 12px; font-size: 16px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box;">
-            <datalist id="ticker-list"></datalist>
-        </form>
+        <div style="margin-top: 16px; text-align: center;">
+            <button id="add-stock-btn" class="btn-add-stock">+ Add Stock</button>
+        </div>
     </div>
     <!-- TradingView Widget Script -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>

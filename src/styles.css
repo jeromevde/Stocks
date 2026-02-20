@@ -12,10 +12,67 @@ button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; 
 
 /* Actions */
 .actions-section { display: flex; align-items: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
-.status-message { font-size: 14px; padding: 8px 12px; border-radius: 4px; display: none; }
-.status-message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; display: inline-block; }
-.status-message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; display: inline-block; }
-.status-message.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; display: inline-block; }
+
+/* Status toast — fixed position so it never shifts layout */
+.status-message {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    background: #333;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+.status-message.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.status-message.success { background: #1a7f37; }
+.status-message.error { background: #c0392b; }
+.status-message.info { background: #0c5460; }
+
+/* Add-stock modal */
+.add-stock-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000;
+    display: flex; justify-content: center; align-items: center;
+    opacity: 0; visibility: hidden; transition: opacity 0.25s, visibility 0.25s;
+}
+.add-stock-overlay.show { opacity: 1; visibility: visible; }
+.add-stock-modal {
+    background: #fff; border-radius: 16px; padding: 24px 24px 28px;
+    width: 90%; max-width: 480px; position: relative;
+    transform: translateY(20px); transition: transform 0.3s;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.add-stock-overlay.show .add-stock-modal { transform: translateY(0); }
+.add-stock-modal-close {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: none; font-size: 22px; color: #aaa; cursor: pointer;
+}
+.add-stock-modal-close:hover { color: #555; }
+.add-stock-suggestions { margin-top: 4px; max-height: 220px; overflow-y: auto; border-radius: 8px; }
+.add-stock-suggestion {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 14px;
+}
+.add-stock-suggestion:last-child { border-bottom: none; }
+.add-stock-suggestion:hover, .add-stock-suggestion:active { background: #f0f7ff; }
+.add-stock-suggestion strong { min-width: 60px; color: #0066cc; }
+.add-stock-suggestion span { color: #666; font-size: 13px; }
+#add-stock-confirm:not(:disabled) { opacity: 1; cursor: pointer; }
+#add-stock-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* On mobile: slide up from bottom */
+@media (max-width: 600px) {
+    .add-stock-overlay { align-items: flex-end; }
+    .add-stock-modal { border-radius: 16px 16px 0 0; width: 100%; max-width: 100%; transform: translateY(40px); }
+}
 
 /* GitHub */
 .github-connected { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724; }
@@ -72,3 +129,11 @@ tr:nth-child(even) { background: #fafbfc; }
     th, td { padding: 6px 4px; font-size: 0.75em; }
     th:nth-child(7), td:nth-child(7) { display: none; }
 }
+
+/* Add stock floating button */
+.btn-add-stock {
+    background: #007bff; color: #fff; border: none; border-radius: 24px;
+    padding: 12px 32px; font-size: 16px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.3); transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-add-stock:hover { background: #0056b3; box-shadow: 0 4px 12px rgba(0,123,255,0.4); }

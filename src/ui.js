@@ -13,9 +13,9 @@ function showStatus(msg, type = 'info') {
     const el = document.getElementById('save-status');
     if (!el) return;
     el.textContent = msg;
-    el.className = `status-message ${type}`;
-    el.style.display = 'block';
-    if (type === 'success' || type === 'info') setTimeout(() => el.style.display = 'none', 5000);
+    el.className = `status-message ${type} show`;
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => el.classList.remove('show'), type === 'error' ? 6000 : 4000);
 }
 
 function updateSaveButtonState() {
@@ -234,8 +234,112 @@ function closeNotesPopup() {
     setTimeout(() => { overlay.style.display = 'none'; currentNotesStockIndex = null; }, 200);
 }
 
-// Make globally available
+/** Add-Stock modal */
+let addStockDebounce = null;
+
+function openAddStockModal() {
+    const overlay = document.getElementById('add-stock-overlay');
+    const input = document.getElementById('add-stock-input');
+    const dateEl = document.getElementById('add-stock-date');
+    const suggestions = document.getElementById('add-stock-suggestions');
+    const confirmBtn = document.getElementById('add-stock-confirm');
+    const nameEl = document.getElementById('add-stock-name');
+
+    if (!overlay) return;
+    // Reset
+    input.value = '';
+    dateEl.value = new Date().toISOString().slice(0, 10);
+    suggestions.innerHTML = '';
+    nameEl.textContent = '';
+    confirmBtn.disabled = true;
+    confirmBtn.dataset.ticker = '';
+    confirmBtn.dataset.name = '';
+
+    overlay.classList.add('show');
+    setTimeout(() => input.focus(), 50);
+}
+
+function closeAddStockModal() {
+    document.getElementById('add-stock-overlay')?.classList.remove('show');
+}
+
+function wireAddStockModal() {
+    const overlay = document.getElementById('add-stock-overlay');
+    if (!overlay) return;
+
+    const input = document.getElementById('add-stock-input');
+    const dateEl = document.getElementById('add-stock-date');
+    const suggestions = document.getElementById('add-stock-suggestions');
+    const confirmBtn = document.getElementById('add-stock-confirm');
+    const nameEl = document.getElementById('add-stock-name');
+
+    function selectTicker(symbol, name) {
+        input.value = symbol;
+        nameEl.textContent = name ? `${name}` : '';
+        confirmBtn.dataset.ticker = symbol;
+        confirmBtn.dataset.name = name || '';
+        confirmBtn.disabled = false;
+        suggestions.innerHTML = '';
+    }
+
+    input.addEventListener('input', () => {
+        clearTimeout(addStockDebounce);
+        const q = input.value.trim();
+        confirmBtn.disabled = true;
+        confirmBtn.dataset.ticker = '';
+        nameEl.textContent = '';
+        if (!q) { suggestions.innerHTML = ''; return; }
+        addStockDebounce = setTimeout(async () => {
+            const results = await window.YahooFinance?.fetchTickerSuggestions(q) || [];
+            suggestions.innerHTML = '';
+            results.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'add-stock-suggestion';
+                div.innerHTML = `<strong>${r.symbol}</strong><span>${r.name}</span>`;
+                div.addEventListener('click', () => selectTicker(r.symbol, r.name));
+                suggestions.appendChild(div);
+            });
+            // If input exactly matches a symbol, auto-select it
+            const exact = results.find(r => r.symbol.toUpperCase() === q.toUpperCase());
+            if (exact) selectTicker(exact.symbol, exact.name);
+        }, 250);
+    });
+
+    confirmBtn.addEventListener('click', async () => {
+        const ticker = confirmBtn.dataset.ticker || input.value.trim().toUpperCase();
+        const name = confirmBtn.dataset.name || '';
+        const date = dateEl.value;
+        if (!ticker) return;
+        closeAddStockModal();
+        await window.Portfolio?.add(ticker, name, date);
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeAddStockModal(); });
+    document.getElementById('add-stock-close')?.addEventListener('click', closeAddStockModal);
+
+    // Enter key in input
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            const first = suggestions.querySelector('.add-stock-suggestion');
+            if (first) first.click();
+            else if (input.value.trim()) {
+                selectTicker(input.value.trim().toUpperCase(), '');
+            }
+        }
+        if (e.key === 'Escape') closeAddStockModal();
+    });
+}
+
+// Wire modal after DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireAddStockModal);
+} else {
+    wireAddStockModal();
+}
+
 window.UI = { closeNotesPopup, confirmAutosave: () => window.Portfolio?.save(), cancelAutosave: () => {} };
+window.openAddStockModal = openAddStockModal;
 window.debouncedUpdateTable = debouncedUpdateTable;
 window.showStatus = showStatus;
 window.updateSaveButtonState = updateSaveButtonState;

@@ -63,27 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
         window.Portfolio?.refresh();
     });
 
-    // Stock input with autocomplete
-    const stockInput = document.getElementById('stock-input');
-    if (stockInput) {
-        let debounce = null;
-        stockInput.addEventListener('input', e => {
-            clearTimeout(debounce);
-            if (e.target.value.length < 1) { document.getElementById('ticker-list').innerHTML = ''; return; }
-            debounce = setTimeout(async () => {
-                const suggestions = await window.YahooFinance?.fetchTickerSuggestions(e.target.value) || [];
-                const dl = document.getElementById('ticker-list');
-                dl.innerHTML = '';
-                suggestions.forEach(s => { const o = document.createElement('option'); o.value = s.symbol; o.label = s.name; dl.appendChild(o); });
-            }, 300);
-        });
-        stockInput.addEventListener('change', async () => {
-            const ticker = stockInput.value.trim().toUpperCase();
-            if (!ticker) return;
-            stockInput.value = '';
-            await window.Portfolio?.add(ticker);
-        });
-    }
+    // Add stock button → open modal
+    document.getElementById('add-stock-btn')?.addEventListener('click', () => window.openAddStockModal?.());
 
     // Label filter dropdown
     const labelHeader = document.getElementById('label-header');
@@ -159,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') {
             const overlay = document.getElementById('notes-popup-overlay');
             if (overlay && overlay.style.display !== 'none') window.UI?.closeNotesPopup();
+            document.getElementById('add-stock-overlay')?.classList.remove('show');
             closeTradingViewPopup();
         }
     });

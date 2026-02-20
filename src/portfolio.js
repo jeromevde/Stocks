@@ -1,6 +1,8 @@
 /**
  * Portfolio data management
  */
+const REQUEST_DELAY_MS = 5; // min delay between per-stock fetches — raise if Yahoo rate-limits
+
 let portfolio = [];
 let hasUnsavedChanges = false;
 let sortByCumulativeReturn = false;
@@ -103,69 +105,67 @@ async function refresh() {
     await load();
 }
 
-/** Update prices for all stocks */
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+/** Update prices one stock at a time, revealing results as each one loads */
 async function updateAllPrices() {
     const Y = window.YahooFinance;
-    if (!Y) return;
+    if (!Y || !portfolio.length) return;
 
-    // Wait for Puter to be ready before any fetches
+    showStatus('Fetching prices...', 'info');
     await Y.waitForPuter();
 
     for (let i = 0; i < portfolio.length; i++) {
         const stock = portfolio[i];
-        try {
-            const [price, histPrice, ret3m] = await Promise.all([
-                Y.fetchCurrentPrice(stock.ticker),
-                Y.fetchHistoricalPrice(stock.ticker, stock.date),
-                Y.fetch3MonthReturn(stock.ticker)
-            ]);
-            stock.nowPrice = price != null ? price.toFixed(2) : 'N/A';
-            stock.cumulativeReturn = (price != null && histPrice != null)
-                ? (((price - histPrice) / histPrice) * 100).toFixed(2) : 'N/A';
-            stock.return3m = ret3m || 'N/A';
-        } catch (e) {
-            console.warn(`Update failed for ${stock.ticker}:`, e.message);
-            stock.nowPrice = 'N/A'; stock.cumulativeReturn = 'N/A'; stock.return3m = 'N/A';
-        }
-        // Update only this stock's cells in-place to avoid choppy full-table rebuilds
+        const [{ price = null, ret3m = null } = {}, hist] = await Promise.all([
+            Y.fetchPriceAndReturn(stock.ticker),
+            Y.fetchHistoricalPrice(stock.ticker, stock.date)
+        ]);
+
+        stock.nowPrice = price != null ? price.toFixed(2) : 'N/A';
+        stock.return3m = ret3m || 'N/A';
+        stock.cumulativeReturn = (price != null && hist != null)
+            ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
         if (window.updatePriceCells) window.updatePriceCells(stock);
-        showStatus(`Updated ${i + 1}/${portfolio.length} stocks...`, 'info');
+        showStatus(`${i + 1} / ${portfolio.length}`, 'info');
+
+        if (i < portfolio.length - 1 && REQUEST_DELAY_MS > 0) await delay(REQUEST_DELAY_MS);
     }
-    showStatus(`All ${portfolio.length} stocks updated!`, 'success');
+
+    showStatus(`${portfolio.length} stocks updated!`, 'success');
 }
 
-/** Add a new stock */
-async function addStock(ticker) {
+/** Add a new stock (called after user confirms in modal) */
+async function addStock(ticker, name, date) {
     const Y = window.YahooFinance;
     if (!Y) return;
     const t = ticker.toUpperCase();
-    if (portfolio.some(s => s.ticker === t)) { alert(`${t} already in portfolio`); return; }
+    if (portfolio.some(s => s.ticker === t)) { showStatus(`${t} is already in your portfolio`, 'error'); return; }
 
-    const suggestions = await Y.fetchTickerSuggestions(ticker);
-    const match = suggestions.find(s => s.symbol.toUpperCase() === t);
-    // Proceed even without an exact match so valid tickers (e.g. international) still load
-    const name = match?.name || '';
-
+    const discoveryDate = date || new Date().toISOString().slice(0, 10);
     const stock = {
-        ticker: t, name, date: new Date().toISOString().slice(0, 10),
+        ticker: t, name: name || t, date: discoveryDate,
         labels: [], notes: '', rating: 0,
         nowPrice: '...', cumulativeReturn: '...', return3m: '...', loading: true
     };
     portfolio.push(stock);
     markChanged();
     updatePortfolioTable();
+    showStatus(`Adding ${t}\u2026`, 'info');
 
     try {
-        const [hist, price, ret3m] = await Promise.all([
-            Y.fetchHistoricalPrice(t, stock.date), Y.fetchCurrentPrice(t), Y.fetch3MonthReturn(t)
+        const [{ price, ret3m }, hist] = await Promise.all([
+            Y.fetchPriceAndReturn(t),
+            Y.fetchHistoricalPrice(t, discoveryDate)
         ]);
         stock.nowPrice = price != null ? price.toFixed(2) : 'N/A';
+        stock.return3m = ret3m || 'N/A';
         stock.cumulativeReturn = (price != null && hist != null)
             ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
-        stock.return3m = ret3m || 'N/A';
     } catch { stock.nowPrice = 'N/A'; stock.cumulativeReturn = 'N/A'; stock.return3m = 'N/A'; }
     stock.loading = false;
     if (window.updatePriceCells) window.updatePriceCells(stock);
+    showStatus(`${t} added!`, 'success');
 }
 
 function removeStock(idx) {
@@ -190,10 +190,13 @@ async function updateDate(idx, date) {
     markChanged();
     const Y = window.YahooFinance;
     try {
-        const [hist, price] = await Promise.all([Y.fetchHistoricalPrice(portfolio[idx].ticker, date), Y.fetchCurrentPrice(portfolio[idx].ticker)]);
+        const [{ price }, hist] = await Promise.all([
+            Y.fetchPriceAndReturn(portfolio[idx].ticker),
+            Y.fetchHistoricalPrice(portfolio[idx].ticker, date)
+        ]);
         portfolio[idx].nowPrice = price ? price.toFixed(2) : 'N/A';
         portfolio[idx].cumulativeReturn = (hist && price) ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
-        updatePortfolioTable();
+        if (window.updatePriceCells) window.updatePriceCells(portfolio[idx]);
     } catch {}
 }
 
