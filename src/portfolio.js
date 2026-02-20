@@ -103,7 +103,7 @@ async function refresh() {
     await load();
 }
 
-/** Update prices for all stocks: batch-fetch current prices, then fetch historical/3m individually */
+/** Update prices for all stocks, one at a time to avoid WS contention */
 async function updateAllPrices() {
     const Y = window.YahooFinance;
     if (!Y) return;
@@ -111,17 +111,11 @@ async function updateAllPrices() {
     // Wait for Puter to be ready before any fetches
     await Y.waitForPuter();
 
-    // Batch fetch all current prices in one request
-    const tickers = portfolio.map(s => s.ticker);
-    const batchPrices = await Y.fetchBatchCurrentPrices(tickers);
-
     for (let i = 0; i < portfolio.length; i++) {
         const stock = portfolio[i];
         try {
-            const price = batchPrices[stock.ticker] != null
-                ? batchPrices[stock.ticker]
-                : await Y.fetchCurrentPrice(stock.ticker);
-            const [histPrice, ret3m] = await Promise.all([
+            const [price, histPrice, ret3m] = await Promise.all([
+                Y.fetchCurrentPrice(stock.ticker),
                 Y.fetchHistoricalPrice(stock.ticker, stock.date),
                 Y.fetch3MonthReturn(stock.ticker)
             ]);
@@ -133,9 +127,7 @@ async function updateAllPrices() {
             console.warn(`Update failed for ${stock.ticker}:`, e.message);
             stock.nowPrice = 'N/A'; stock.cumulativeReturn = 'N/A'; stock.return3m = 'N/A';
         }
-        // Update only this stock's cells in-place to avoid choppy full-table rebuilds
-        if (window.updatePriceCells) window.updatePriceCells(stock);
-        else debouncedUpdateTable();
+        debouncedUpdateTable();
         showStatus(`Updated ${i + 1}/${portfolio.length} stocks...`, 'info');
     }
     showStatus(`All ${portfolio.length} stocks updated!`, 'success');
@@ -150,11 +142,10 @@ async function addStock(ticker) {
 
     const suggestions = await Y.fetchTickerSuggestions(ticker);
     const match = suggestions.find(s => s.symbol.toUpperCase() === t);
-    // Proceed even without an exact match so valid tickers (e.g. international) still load
-    const name = match?.name || '';
+    if (!match) { alert('Ticker not found'); return; }
 
     const stock = {
-        ticker: t, name, date: new Date().toISOString().slice(0, 10),
+        ticker: t, name: match.name, date: new Date().toISOString().slice(0, 10),
         labels: [], notes: '', rating: 0,
         nowPrice: '...', cumulativeReturn: '...', return3m: '...', loading: true
     };
