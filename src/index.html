@@ -157,6 +157,35 @@
     
     <!-- Puter.js SDK for CORS-free API requests -->
     <!-- Note: Using latest v2 from CDN. For production, consider pinning to specific version with SRI hash -->
+    <script>
+        // Some Puter.js versions now probe api.puter.com/whoami during load,
+        // which returns 401 when anonymous. Short-circuit that call to avoid
+        // noisy console errors while keeping other fetches intact.
+        (function () {
+            const originalFetch = window.fetch;
+            const WHOAMI = 'https://api.puter.com/whoami';
+            const makeWhoamiResponse = () => new Response(
+                JSON.stringify({ authenticated: false, user: null, message: 'anonymous bypass' }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            );
+            if (typeof originalFetch === 'function') {
+                window.fetch = function (input, init) {
+                    try {
+                        let rawUrl = '';
+                        if (typeof input === 'string') rawUrl = input;
+                        else if (input instanceof Request) rawUrl = input.url;
+                        else if (input instanceof URL) rawUrl = input.href;
+                        if (!rawUrl) return originalFetch.call(this, input, init);
+                        if (rawUrl === WHOAMI) return Promise.resolve(makeWhoamiResponse());
+                    } catch (err) {
+                        console.debug('Puter whoami shim: intercept failed, falling back to original fetch', { inputType: typeof input }, err);
+                        return originalFetch.call(this, input, init);
+                    }
+                    return originalFetch.call(this, input, init);
+                };
+            }
+        })();
+    </script>
     <script src="https://js.puter.com/v2/"></script>
     
     <!-- Load modules in order -->
