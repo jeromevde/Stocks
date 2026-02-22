@@ -50,9 +50,23 @@ class GitHubClient {
         if (res.status === 404) return { exists: false, content: null };
         if (!res.ok) throw new Error(`GitHub API ${res.status}`);
         const data = await res.json();
-        const content = atob(data.content.replace(/\s/g, ''));
         this.lastKnownSha = data.sha;
         localStorage.setItem('portfolio_sha', data.sha);
+        let content;
+        if (data.content) {
+            // Decode base64 → raw bytes → UTF-8 string
+            const raw = atob(data.content.replace(/\s/g, ''));
+            content = new TextDecoder('utf-8').decode(
+                Uint8Array.from(raw, c => c.charCodeAt(0))
+            );
+        } else if (data.download_url) {
+            // File too large for contents API (>1 MiB) — fetch raw directly
+            const rawRes = await fetch(data.download_url);
+            if (!rawRes.ok) throw new Error(`Download failed: ${rawRes.status}`);
+            content = await rawRes.text();
+        } else {
+            throw new Error('No content available from GitHub API');
+        }
         return { exists: true, content, sha: data.sha };
     }
 
