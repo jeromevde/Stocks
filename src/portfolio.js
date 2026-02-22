@@ -29,12 +29,12 @@ function generateHtml() {
         const notes = (s.notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const name = (s.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const r = s.rating || 0;
-        return `      <tr><td>${s.ticker}</td><td>${name}</td><td>${s.date}</td><td>${s.labels.join(', ')}</td><td style="white-space:pre-wrap">${notes}</td><td><span class="star">${'★'.repeat(r)}${'☆'.repeat(5 - r)}</span> (${r})</td></tr>`;
+        return `      <tr><td>${s.ticker}</td><td>${name}</td><td>${s.date}</td><td>${s.labels.join(', ')}</td><td class="notes-cell">${notes}</td><td><span class="star">${'★'.repeat(r)}${'☆'.repeat(5 - r)}</span> (${r})</td></tr>`;
     }).join('\n');
 
     return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Portfolio</title>
-<style>body{font-family:Arial,sans-serif;margin:2em}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:8px;text-align:left}th{background:#f4f4f4}.star{color:gold;font-size:1.2em}</style>
+<style>body{font-family:Arial,sans-serif;margin:2em}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:8px;text-align:left}th{background:#f4f4f4}.star{color:gold;font-size:1.2em}.notes-cell{white-space:pre-wrap}</style>
 </head><body><h1>Portfolio</h1><p><em>Last updated: ${ts}</em></p>
 <table><thead><tr><th>Ticker</th><th>Name</th><th>Date</th><th>Labels</th><th>Notes</th><th>Rating</th></tr></thead>
 <tbody>\n${rows}\n</tbody></table>
