@@ -29,7 +29,7 @@ function generateHtml() {
         const notes = (s.notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const name = (s.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const r = s.rating || 0;
-        return `      <tr><td>${s.ticker}</td><td>${name}</td><td>${s.date}</td><td>${s.labels.join(', ')}</td><td>${notes}</td><td><span class="star">${'★'.repeat(r)}${'☆'.repeat(5 - r)}</span> (${r})</td></tr>`;
+        return `      <tr><td>${s.ticker}</td><td>${name}</td><td>${s.date}</td><td>${s.labels.join(', ')}</td><td style="white-space:pre-wrap">${notes}</td><td><span class="star">${'★'.repeat(r)}${'☆'.repeat(5 - r)}</span> (${r})</td></tr>`;
     }).join('\n');
 
     return `<!DOCTYPE html>
