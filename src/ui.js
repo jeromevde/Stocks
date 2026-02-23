@@ -3,7 +3,7 @@
  */
 let tableUpdateTimeout = null;
 let currentNotesStockIndex = null;
-const NOTES_PREVIEW_MAX_WORDS = 15;
+const NOTES_PREVIEW_MAX_CHARS = 100;
 const LABEL_TAB_COOKIE = 'labelTab';
 
 function setLabelTabCookie(value) {
@@ -63,11 +63,12 @@ function colorReturn(val) {
 
 function getNotesPreview(notes) {
     if (!notes) return '';
+    // Normalize whitespace but preserve single spaces and newlines
     const text = notes.replace(/\s+/g, ' ').trim();
     if (!text) return '';
-    const words = text.split(' ');
-    const preview = words.slice(0, NOTES_PREVIEW_MAX_WORDS).join(' ');
-    return words.length > NOTES_PREVIEW_MAX_WORDS ? preview + '…' : preview;
+    // Limit to NOTES_PREVIEW_MAX_CHARS characters
+    if (text.length <= NOTES_PREVIEW_MAX_CHARS) return text;
+    return text.slice(0, NOTES_PREVIEW_MAX_CHARS) + '…';
 }
 
 function updateLabelTabs() {
@@ -265,10 +266,13 @@ function serializeNotes(editorEl) {
         img.replaceWith(img.src + '\n');
     });
     let html = clone.innerHTML;
+    // Preserve line breaks - convert divs and brs to newlines
     html = html.replace(/<div><br><\/div>/gi, '\n');
     html = html.replace(/<div>/gi, '\n').replace(/<\/div>/gi, '');
-    html = html.replace(/<br\s*\/?>/gi, '\n').replace(/&nbsp;/g, ' ');
-    html = html.replace(/^\n+/, '');
+    html = html.replace(/<br\s*\/?>/gi, '\n');
+    // Keep spaces but decode HTML entities properly
+    html = html.replace(/&nbsp;/g, ' ');
+    // Don't strip leading newlines - preserve formatting
     const decoder = document.createElement('textarea');
     decoder.innerHTML = html;
     return decoder.value;
