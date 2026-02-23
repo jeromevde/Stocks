@@ -50,10 +50,47 @@ function colorReturn(val) {
     return `<span style="color:${n >= 0 ? '#4caf50' : '#f44336'};display:inline-block;min-width:50px">${val}%</span>`;
 }
 
+function getNotesPreview(notes) {
+    if (!notes) return '';
+    const text = notes.replace(/\s+/g, ' ').trim();
+    if (!text) return '';
+    const sentenceMatch = text.match(/^.*?[.!?](\s|$)/);
+    const preview = (sentenceMatch ? sentenceMatch[0] : text.slice(0, 200)).trim();
+    return text.length > preview.length ? preview + '…' : preview;
+}
+
+function updateLabelTabs() {
+    const container = document.getElementById('label-tabs');
+    if (!container || !window.Portfolio) return;
+    const labels = Array.from(new Set((window.Portfolio.data || []).flatMap(s => s.labels).filter(Boolean))).sort();
+    const filterSet = window.Portfolio.labelFilterSet || new Set();
+    const active = filterSet.size === 0 ? 'All' : (filterSet.size === 1 ? [...filterSet][0] : null);
+    container.innerHTML = '';
+
+    const makeTab = (label) => {
+        const btn = document.createElement('button');
+        const isActive = active === label;
+        btn.className = `label-tab${isActive ? ' active' : ''}`;
+        btn.textContent = label;
+        btn.addEventListener('click', e => {
+            e.preventDefault();
+            filterSet.clear();
+            if (label !== 'All') filterSet.add(label);
+            updatePortfolioTable();
+        });
+        return btn;
+    };
+
+    container.appendChild(makeTab('All'));
+    labels.forEach(l => container.appendChild(makeTab(l)));
+    container.style.display = labels.length === 0 ? 'none' : 'flex';
+}
+
 /** Main table render */
 function updatePortfolioTable() {
     const tbody = document.getElementById('portfolio-tbody');
     if (!tbody || !window.Portfolio) return;
+    updateLabelTabs();
     tbody.innerHTML = '';
     const sorted = window.Portfolio.getSortedFiltered();
     const rated = sorted.filter(s => (s.rating || 0) > 0);
@@ -81,7 +118,7 @@ function renderRow(tbody, stock) {
 
     const stars = [1,2,3,4,5].map(i => `<span class="rating-star" data-r="${i}" style="cursor:pointer;font-size:1.1em;color:${i <= r ? '#f5b301' : '#ddd'}">${i <= r ? '★' : '☆'}</span>`).join('');
     const labels = stock.labels.map(l => `<span style="background:#e3f2fd;color:#1976d2;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;display:inline-block">${l}<span class="rm-label" data-l="${l}" style="margin-left:4px;cursor:pointer;font-weight:bold">×</span></span>`).join('');
-    const notesShort = stock.notes?.length > 20 ? stock.notes.slice(0, 20) + '…' : (stock.notes || '');
+    const notesShort = getNotesPreview(stock.notes);
     const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
 
     tr.innerHTML = `

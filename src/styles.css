@@ -12,6 +12,14 @@ button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; 
 
 /* Actions */
 .actions-section { display: flex; align-items: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
+.label-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }
+.label-tab {
+    background: #f1f5f9; color: #555; border: 1px solid #dfe3e8;
+    border-radius: 18px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.label-tab:hover { background: #e3e8ef; }
+.label-tab.active { background: #007bff; color: #fff; border-color: #007bff; }
 
 /* Status toast — fixed position so it never shifts layout */
 .status-message {
