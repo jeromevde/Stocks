@@ -112,7 +112,7 @@ async function updateAllPrices() {
     const Y = window.YahooFinance;
     if (!Y || !portfolio.length) return;
 
-    showStatus('Fetching prices...', 'info');
+    showStatus('Prices loading…', 'info');
     await Y.waitForPuter();
 
     for (let i = 0; i < portfolio.length; i++) {
@@ -127,7 +127,7 @@ async function updateAllPrices() {
         stock.cumulativeReturn = (price != null && hist != null)
             ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
         if (window.updatePriceCells) window.updatePriceCells(stock);
-        showStatus(`${i + 1} / ${portfolio.length}`, 'info');
+        showStatus(`Prices loading… ${i + 1} / ${portfolio.length}`, 'info');
 
         if (i < portfolio.length - 1 && REQUEST_DELAY_MS > 0) await delay(REQUEST_DELAY_MS);
     }

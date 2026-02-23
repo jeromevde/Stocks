@@ -3,7 +3,17 @@
  */
 let tableUpdateTimeout = null;
 let currentNotesStockIndex = null;
-const NOTES_PREVIEW_MAX_CHARS = 200;
+const NOTES_PREVIEW_MAX_WORDS = 15;
+const LABEL_TAB_COOKIE = 'labelTab';
+
+function setLabelTabCookie(value) {
+    document.cookie = `${LABEL_TAB_COOKIE}=${encodeURIComponent(value || '')}; path=/; max-age=2592000`;
+}
+
+function getLabelTabCookie() {
+    const m = document.cookie.match(new RegExp(`(?:^|; )${LABEL_TAB_COOKIE}=([^;]+)`));
+    return m ? decodeURIComponent(m[1]) : null;
+}
 
 function debouncedUpdateTable() {
     clearTimeout(tableUpdateTimeout);
@@ -55,9 +65,9 @@ function getNotesPreview(notes) {
     if (!notes) return '';
     const text = notes.replace(/\s+/g, ' ').trim();
     if (!text) return '';
-    const sentenceMatch = text.match(/^.*?[.!?](\s|$)/);
-    const preview = (sentenceMatch ? sentenceMatch[0] : text.slice(0, NOTES_PREVIEW_MAX_CHARS)).trim();
-    return text.length > preview.length ? preview + '…' : preview;
+    const words = text.split(' ');
+    const preview = words.slice(0, NOTES_PREVIEW_MAX_WORDS).join(' ');
+    return words.length > NOTES_PREVIEW_MAX_WORDS ? preview + '…' : preview;
 }
 
 function updateLabelTabs() {
@@ -65,6 +75,10 @@ function updateLabelTabs() {
     if (!container || !window.Portfolio) return;
     const labels = Array.from(new Set((window.Portfolio.data || []).flatMap(s => s.labels).filter(Boolean))).sort();
     const filterSet = window.Portfolio.labelFilterSet || new Set();
+    const savedTab = getLabelTabCookie();
+    if (filterSet.size === 0 && savedTab) {
+        if (savedTab !== 'All' && labels.includes(savedTab)) filterSet.add(savedTab);
+    }
     let active = 'All';
     if (filterSet.size === 1) active = [...filterSet][0];
     else if (filterSet.size > 1) active = null;
@@ -79,6 +93,7 @@ function updateLabelTabs() {
             e.preventDefault();
             filterSet.clear();
             if (label !== 'All') filterSet.add(label);
+            setLabelTabCookie(label);
             updatePortfolioTable();
         });
         return btn;
@@ -249,7 +264,14 @@ function serializeNotes(editorEl) {
     clone.querySelectorAll('img').forEach(img => {
         img.replaceWith(img.src + '\n');
     });
-    return clone.textContent;
+    let html = clone.innerHTML;
+    html = html.replace(/<div><br><\/div>/gi, '\n');
+    html = html.replace(/<div>/gi, '\n').replace(/<\/div>/gi, '');
+    html = html.replace(/<br\s*\/?>/gi, '\n').replace(/&nbsp;/g, ' ');
+    html = html.replace(/^\n+/, '');
+    const decoder = document.createElement('textarea');
+    decoder.innerHTML = html;
+    return decoder.value;
 }
 
 /** Notes popup */

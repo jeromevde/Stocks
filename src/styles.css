@@ -24,9 +24,9 @@ button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; 
 /* Status toast — fixed position so it never shifts layout */
 .status-message {
     position: fixed;
-    bottom: 24px;
+    top: 16px;
     left: 50%;
-    transform: translateX(-50%) translateY(16px);
+    transform: translateX(-50%) translateY(-16px);
     font-size: 14px;
     padding: 10px 20px;
     border-radius: 20px;
