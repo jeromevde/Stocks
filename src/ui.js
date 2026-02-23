@@ -209,7 +209,7 @@ function serializeNotes(editorEl) {
     clone.querySelectorAll('img').forEach(img => {
         img.replaceWith(img.src + '\n');
     });
-    return clone.textContent.trim();
+    return clone.textContent;
 }
 
 /** Notes popup */
