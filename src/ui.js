@@ -3,6 +3,7 @@
  */
 let tableUpdateTimeout = null;
 let currentNotesStockIndex = null;
+const NOTES_PREVIEW_MAX_CHARS = 200;
 
 function debouncedUpdateTable() {
     clearTimeout(tableUpdateTimeout);
@@ -55,7 +56,7 @@ function getNotesPreview(notes) {
     const text = notes.replace(/\s+/g, ' ').trim();
     if (!text) return '';
     const sentenceMatch = text.match(/^.*?[.!?](\s|$)/);
-    const preview = (sentenceMatch ? sentenceMatch[0] : text.slice(0, 200)).trim();
+    const preview = (sentenceMatch ? sentenceMatch[0] : text.slice(0, NOTES_PREVIEW_MAX_CHARS)).trim();
     return text.length > preview.length ? preview + '…' : preview;
 }
 
@@ -64,7 +65,9 @@ function updateLabelTabs() {
     if (!container || !window.Portfolio) return;
     const labels = Array.from(new Set((window.Portfolio.data || []).flatMap(s => s.labels).filter(Boolean))).sort();
     const filterSet = window.Portfolio.labelFilterSet || new Set();
-    const active = filterSet.size === 0 ? 'All' : (filterSet.size === 1 ? [...filterSet][0] : null);
+    let active = 'All';
+    if (filterSet.size === 1) active = [...filterSet][0];
+    else if (filterSet.size > 1) active = null;
     container.innerHTML = '';
 
     const makeTab = (label) => {
