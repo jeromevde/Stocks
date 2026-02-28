@@ -49,22 +49,15 @@ function getCache(key, ttl) {
     return entry.data;
 }
 
-function buildBatchUrls(tickers) {
-    const list = encodeURIComponent(tickers.join(','));
-    return [
-        `${EULERPOOL_BASE}/data-api/batch/quote?tickers=${list}`,
-        `${EULERPOOL_BASE}/data-api/batch/quotes?tickers=${list}`,
-        `${EULERPOOL_BASE}/api/quote/batch?tickers=${list}`,
-        `${EULERPOOL_BASE}/api/stock/batch?tickers=${list}`,
-        `${EULERPOOL_BASE}/api/batch/quote?symbols=${list}`
-    ];
+function buildQuoteUrl(ticker) {
+    const t = encodeURIComponent(ticker);
+    return `${EULERPOOL_BASE}/api/1/equity/quotes/${t}`;
 }
 
 function buildSearchUrls(query) {
     const q = encodeURIComponent(query);
     return [
-        `${EULERPOOL_BASE}/data-api/search?q=${q}`,
-        `${EULERPOOL_BASE}/data-api/search?query=${q}`,
+        `${EULERPOOL_BASE}/api/1/equity/search?query=${q}`,
         `${EULERPOOL_BASE}/api/search?q=${q}`,
         `${EULERPOOL_BASE}/search?q=${q}`
     ];
@@ -74,8 +67,7 @@ function buildHistoricalUrls(ticker, date) {
     const t = encodeURIComponent(ticker);
     const d = encodeURIComponent(date);
     return [
-        `${EULERPOOL_BASE}/data-api/historical/${t}?from=${d}&to=${d}`,
-        `${EULERPOOL_BASE}/data-api/stock/${t}/history?from=${d}&to=${d}`,
+        `${EULERPOOL_BASE}/api/1/equity/historical/${t}?from=${d}&to=${d}`,
         `${EULERPOOL_BASE}/api/historical/${t}?from=${d}&to=${d}`,
         `${EULERPOOL_BASE}/api/stock/${t}/history?date=${d}`
     ];
@@ -142,18 +134,30 @@ async function fetchBatchPriceAndReturn(tickers) {
     const cached = getCache(cacheKey, CACHE_TTL.quote);
     if (cached) return cached;
 
-    const data = await fetchJsonWithFallback(buildBatchUrls(tickers), apiKey);
-    const items = extractQuoteItems(data);
+    // Fetch each ticker individually since there's no batch endpoint
     const map = {};
-    items.forEach(item => {
-        const symbol = normalizeSymbol(item);
-        if (!symbol) return;
-        map[symbol] = map[symbol] || {};
-        const price = normalizePrice(item);
-        const ret3m = normalize3mReturn(item);
-        if (price != null) map[symbol].price = price;
-        if (ret3m != null) map[symbol].ret3m = ret3m;
+    const results = await Promise.allSettled(
+        tickers.map(async ticker => {
+            const url = buildQuoteUrl(ticker);
+            const res = await fetch(withApiKey(url, apiKey), { headers: buildHeaders() });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            return { ticker, data };
+        })
+    );
+
+    results.forEach(result => {
+        if (result.status === 'fulfilled') {
+            const { ticker, data } = result.value;
+            const symbol = ticker.toUpperCase();
+            map[symbol] = map[symbol] || {};
+            const price = normalizePrice(data);
+            const ret3m = normalize3mReturn(data);
+            if (price != null) map[symbol].price = price;
+            if (ret3m != null) map[symbol].ret3m = ret3m;
+        }
     });
+
     setCache(cacheKey, map);
     return map;
 }
