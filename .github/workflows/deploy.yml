@@ -3,9 +3,7 @@ name: Deploy All Branches to GitHub Pages
 on:
   push:
     branches:
-      - '*'
-      - '*/*'
-      - '**'
+      - main
 
 jobs:
   deploy:
