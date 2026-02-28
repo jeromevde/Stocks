@@ -4,9 +4,9 @@
 
 function tryAutoLogin() {
     try {
-        const t = localStorage.getItem('github_token');
-        const o = localStorage.getItem('github_owner');
-        const r = localStorage.getItem('github_repo');
+        const t = window.TokenStore?.get('github_token');
+        const o = window.TokenStore?.get('github_repo_owner') || localStorage.getItem('github_owner');
+        const r = window.TokenStore?.get('github_repo_name') || localStorage.getItem('github_repo');
         if (t && o && r && window.githubClient) {
             window.githubClient.authenticate(t, o, r);
             updateGitHubUI();
@@ -38,29 +38,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // GitHub logout
-    document.getElementById('github-logout')?.addEventListener('click', () => {
-        localStorage.removeItem('github_token');
-        localStorage.removeItem('github_owner');
-        localStorage.removeItem('github_repo');
-        window.githubClient.logout();
-        updateGitHubUI();
-        showStatus('Disconnected from GitHub', 'info');
-    });
-
     // Close auth modal
     document.getElementById('close-auth-modal')?.addEventListener('click', () => {
         document.getElementById('github-auth-modal').style.display = 'none';
     });
 
-    // Save & refresh
+    // GitHub disconnect from modal
+    document.getElementById('github-disconnect')?.addEventListener('click', e => {
+        e.preventDefault();
+        window.githubClient?.logout();
+        updateGitHubUI();
+        showStatus('Disconnected from GitHub', 'info');
+        document.getElementById('github-auth-modal').style.display = 'none';
+    });
+
+    // API key tiles
+    document.getElementById('github-key-tile')?.addEventListener('click', () => {
+        document.getElementById('github-auth-modal').style.display = 'flex';
+        const t = window.TokenStore?.get('github_token') || '';
+        const owner = window.githubClient?.repoOwner || 'jeromevde';
+        const repo = window.githubClient?.repoName || 'Stocks';
+        const tokenInput = document.getElementById('github-token');
+        if (tokenInput) tokenInput.value = t || '';
+        const ownerInput = document.getElementById('repo-owner');
+        const repoInput = document.getElementById('repo-name');
+        if (ownerInput) ownerInput.value = owner;
+        if (repoInput) repoInput.value = repo;
+    });
+
+    document.getElementById('eulerpool-key-tile')?.addEventListener('click', () => {
+        document.getElementById('eulerpool-modal').style.display = 'flex';
+        const input = document.getElementById('eulerpool-api-key');
+        if (input) input.value = window.TokenStore?.get('eulerpool_api_key') || '';
+    });
+
+    document.getElementById('close-eulerpool-modal')?.addEventListener('click', () => {
+        document.getElementById('eulerpool-modal').style.display = 'none';
+    });
+
+    document.getElementById('eulerpool-form')?.addEventListener('submit', e => {
+        e.preventDefault();
+        const key = document.getElementById('eulerpool-api-key')?.value.trim();
+        if (!key) { showStatus('Please enter an Eulerpool API key.', 'error'); return; }
+        window.TokenStore?.set('eulerpool_api_key', key);
+        window.MarketData?.clearCache();
+        updateApiKeyTiles();
+        document.getElementById('eulerpool-modal').style.display = 'none';
+        showStatus('Eulerpool API key saved', 'success');
+    });
+
+    document.getElementById('eulerpool-clear')?.addEventListener('click', e => {
+        e.preventDefault();
+        window.TokenStore?.clear('eulerpool_api_key');
+        window.MarketData?.clearCache();
+        updateApiKeyTiles();
+        document.getElementById('eulerpool-modal').style.display = 'none';
+        showStatus('Eulerpool API key removed', 'info');
+    });
+
+    // Save
     document.getElementById('save-portfolio')?.addEventListener('click', e => {
         e.preventDefault();
         window.Portfolio?.save().catch(err => console.error('Save error:', err));
-    });
-    document.getElementById('refresh-portfolio')?.addEventListener('click', e => {
-        e.preventDefault();
-        window.Portfolio?.refresh();
     });
 
     // Add stock button → open modal
@@ -152,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial render & load
     updatePortfolioTable();
+    updateApiKeyTiles();
     setTimeout(() => window.Portfolio?.refresh(), 100);
     console.log('Stock Tracker initialized!');
 });

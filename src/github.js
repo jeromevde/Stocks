@@ -1,6 +1,25 @@
 /**
  * GitHub API client for portfolio persistence
  */
+const TokenStore = {
+    get(name) {
+        const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
+        if (m) return decodeURIComponent(m[1]);
+        return localStorage.getItem(name);
+    },
+    set(name, value, days = 60) {
+        if (!value) return this.clear(name);
+        const maxAge = Math.max(1, Math.floor(days * 24 * 60 * 60));
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
+        localStorage.setItem(name, value);
+    },
+    clear(name) {
+        document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+        localStorage.removeItem(name);
+    }
+};
+window.TokenStore = TokenStore;
+
 class GitHubClient {
     // Chunk size for base64 encoding to avoid "Maximum call stack size exceeded"
     // when spreading large arrays into String.fromCharCode()
@@ -8,9 +27,9 @@ class GitHubClient {
 
     constructor() {
         this.API_URL = 'https://api.github.com';
-        this.token = localStorage.getItem('github_token');
-        this.repoOwner = localStorage.getItem('github_repo_owner') || 'jeromevde';
-        this.repoName = localStorage.getItem('github_repo_name') || 'Stocks';
+        this.token = TokenStore.get('github_token');
+        this.repoOwner = TokenStore.get('github_repo_owner') || localStorage.getItem('github_owner') || 'jeromevde';
+        this.repoName = TokenStore.get('github_repo_name') || localStorage.getItem('github_repo') || 'Stocks';
         this.filePath = 'portfolio.html';
         this.lastKnownSha = localStorage.getItem('portfolio_sha');
     }
@@ -21,14 +40,16 @@ class GitHubClient {
         this.token = token;
         this.repoOwner = owner;
         this.repoName = repo;
-        localStorage.setItem('github_token', token);
-        localStorage.setItem('github_repo_owner', owner);
-        localStorage.setItem('github_repo_name', repo);
+        TokenStore.set('github_token', token);
+        TokenStore.set('github_repo_owner', owner);
+        TokenStore.set('github_repo_name', repo);
+        localStorage.setItem('github_owner', owner);
+        localStorage.setItem('github_repo', repo);
     }
 
     logout() {
         this.token = null;
-        ['github_token', 'github_repo_owner', 'github_repo_name', 'portfolio_sha'].forEach(k => localStorage.removeItem(k));
+        ['github_token', 'github_repo_owner', 'github_repo_name', 'github_owner', 'github_repo', 'portfolio_sha'].forEach(k => TokenStore.clear(k));
     }
 
     clearCache() {

@@ -1,141 +1,223 @@
 /**
- * Yahoo Finance API via Puter.js (with CORS-proxy fallback)
+ * Eulerpool Data API wrapper (replaces Yahoo Finance)
  */
 
 const apiCache = new Map();
-const CACHE_TTL = { search: 600000, price: 120000, historical: 86400000, threeMonth: 300000 };
+const CACHE_TTL = { search: 600000, quote: 180000, historical: 86400000 };
+const EULERPOOL_BASE = 'https://api.eulerpool.com';
 
-let puterReady = null;
+function getApiKey() {
+    return (window.TokenStore?.get('eulerpool_api_key')) || localStorage.getItem('eulerpool_api_key') || '';
+}
 
-/** Wait for Puter.js WebSocket (up to 30s). Resolves true/false. */
-function waitForPuter() {
-    if (puterReady) return puterReady;
-    puterReady = new Promise(async (resolve) => {
-        for (let i = 0; i < 150; i++) { // up to ~30s
-            if (typeof puter !== 'undefined' && typeof puter?.net?.fetch === 'function') {
-                try {
-                    await puter.net.fetch(
-                        'https://query1.finance.yahoo.com/v1/finance/search?q=test&quotesCount=1&newsCount=0',
-                        { headers: { Accept: 'application/json' } }
-                    );
-                    console.log('Puter.js ready');
-                    resolve(true);
-                    return;
-                } catch (e) {
-                    if (e?.message?.includes('CONNECTING') || e?.name === 'InvalidStateError') {
-                        await new Promise(r => setTimeout(r, 200));
-                        continue;
-                    }
-                    // Other errors — puter exists but request failed; still usable
-                    console.log('Puter ready (with initial error):', e.message);
-                    resolve(true);
-                    return;
-                }
+function buildHeaders(apiKey) {
+    const headers = { Accept: 'application/json' };
+    if (apiKey) {
+        headers['X-API-KEY'] = apiKey;
+        headers['x-api-key'] = apiKey;
+        headers.Authorization = `Bearer ${apiKey}`;
+    }
+    return headers;
+}
+
+function withApiKey(url, apiKey) {
+    const u = new URL(url);
+    if (apiKey) {
+        if (!u.searchParams.has('apikey')) u.searchParams.set('apikey', apiKey);
+        if (!u.searchParams.has('apiKey')) u.searchParams.set('apiKey', apiKey);
+        if (!u.searchParams.has('token')) u.searchParams.set('token', apiKey);
+    }
+    return u.toString();
+}
+
+async function fetchJsonWithFallback(urls, apiKey) {
+    let lastErr = null;
+    for (const url of urls) {
+        try {
+            const res = await fetch(withApiKey(url, apiKey), { headers: buildHeaders(apiKey) });
+            if (!res.ok) {
+                lastErr = new Error(`HTTP ${res.status}`);
+                continue;
             }
-            await new Promise(r => setTimeout(r, 200));
-        }
-        console.warn('Puter.js did not become ready in time, will use CORS proxy fallback');
-        resolve(false);
-    });
-    return puterReady;
-}
-
-/** Fetch JSON — tries Puter first, falls back to CORS proxy */
-async function apiFetch(url, cacheKey, ttl) {
-    const cached = apiCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < ttl) return cached.data;
-
-    const ok = await waitForPuter();
-    let data;
-
-    if (ok && typeof puter?.net?.fetch === 'function') {
-        try {
-            const res = await puter.net.fetch(url, { headers: { Accept: 'application/json' } });
-            if (!res.ok) throw new Error(`Yahoo ${res.status}`);
-            data = await res.json();
+            return await res.json();
         } catch (e) {
-            console.warn('Puter fetch failed, trying CORS proxy:', e.message);
-            data = await corsProxyFetch(url);
+            lastErr = e;
         }
-    } else {
-        data = await corsProxyFetch(url);
     }
-
-    apiCache.set(cacheKey, { data, ts: Date.now() });
-    return data;
+    throw lastErr || new Error('Eulerpool request failed');
 }
 
-/** CORS proxy fallback */
-async function corsProxyFetch(url) {
-    const proxy = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-    const res = await fetch(proxy, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`Proxy ${res.status}`);
-    return res.json();
+function setCache(key, data) { apiCache.set(key, { ts: Date.now(), data }); }
+function getCache(key, ttl) {
+    const entry = apiCache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > ttl) return null;
+    return entry.data;
 }
 
-/**
- * Fetch current price AND 3-month return for a ticker in ONE chart request.
- * Yahoo v8/finance/chart with a 3mo range gives us both the latest close (current price)
- * and enough history to compute the 3M return.
- */
-async function fetchPriceAndReturn(ticker) {
-    try {
-        const now = new Date();
-        const ago = new Date(); ago.setMonth(ago.getMonth() - 3);
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${Math.floor(ago / 1000)}&period2=${Math.floor(now / 1000)}&interval=1d`;
-        const data = await apiFetch(url, `par_${ticker}`, CACHE_TTL.threeMonth);
-        const result = data?.chart?.result?.[0];
-        const closes = result?.indicators?.quote?.[0]?.close?.filter(p => p != null) || [];
-        const price = result?.meta?.regularMarketPrice ?? (closes.length ? closes[closes.length - 1] : null);
-        const ret3m = closes.length >= 2
-            ? (((closes[closes.length - 1] - closes[0]) / closes[0]) * 100).toFixed(2)
-            : null;
-        return { price, ret3m };
-    } catch (e) {
-        console.warn(`fetchPriceAndReturn failed for ${ticker}:`, e.message);
-        return { price: null, ret3m: null };
+function buildBatchUrls(tickers) {
+    const list = encodeURIComponent(tickers.join(','));
+    return [
+        `${EULERPOOL_BASE}/data-api/batch/quote?tickers=${list}`,
+        `${EULERPOOL_BASE}/data-api/batch/quotes?tickers=${list}`,
+        `${EULERPOOL_BASE}/api/quote/batch?tickers=${list}`,
+        `${EULERPOOL_BASE}/api/stock/batch?tickers=${list}`,
+        `${EULERPOOL_BASE}/api/batch/quote?symbols=${list}`
+    ];
+}
+
+function buildSearchUrls(query) {
+    const q = encodeURIComponent(query);
+    return [
+        `${EULERPOOL_BASE}/data-api/search?q=${q}`,
+        `${EULERPOOL_BASE}/data-api/search?query=${q}`,
+        `${EULERPOOL_BASE}/api/search?q=${q}`,
+        `${EULERPOOL_BASE}/search?q=${q}`
+    ];
+}
+
+function buildHistoricalUrls(ticker, date) {
+    const t = encodeURIComponent(ticker);
+    const d = encodeURIComponent(date);
+    return [
+        `${EULERPOOL_BASE}/data-api/historical/${t}?from=${d}&to=${d}`,
+        `${EULERPOOL_BASE}/data-api/stock/${t}/history?from=${d}&to=${d}`,
+        `${EULERPOOL_BASE}/api/historical/${t}?from=${d}&to=${d}`,
+        `${EULERPOOL_BASE}/api/stock/${t}/history?date=${d}`
+    ];
+}
+
+function normalizeSymbol(item) {
+    return (item?.symbol || item?.ticker || item?.code || item?.id || '').toUpperCase();
+}
+function normalizePrice(item) {
+    const price = item?.price ?? item?.last ?? item?.lastPrice ?? item?.close ?? item?.latestPrice ?? item?.regularMarketPrice;
+    return typeof price === 'number' ? price : (price != null ? parseFloat(price) : null);
+}
+function normalize3mReturn(item) {
+    const perf = item?.performance || item?.perf || {};
+    const candidate = item?.ret3m ?? item?.return3m ?? item?.threeMonthReturn ?? item?.three_month_return ?? perf?.threeMonth ?? perf?.threeMonths ?? perf?.['3m'] ?? perf?.['3M'] ?? item?.['3m'];
+    if (candidate == null) return null;
+    const n = parseFloat(candidate);
+    return isNaN(n) ? null : n.toFixed(2);
+}
+
+function extractQuoteItems(payload) {
+    if (!payload) return [];
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.results)) return payload.results;
+    if (Array.isArray(payload?.quotes)) return payload.quotes;
+    if (payload?.quotes && typeof payload.quotes === 'object') {
+        return Object.entries(payload.quotes).map(([symbol, rest]) => ({ symbol, ...rest }));
     }
-}
-
-/** Search tickers */
-async function fetchTickerSuggestions(query) {
-    if (!query) return [];
-    for (let host of ['query1', 'query2']) {
-        try {
-            const url = `https://${host}.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
-            const data = await apiFetch(url, `search_${query}_${host}`, CACHE_TTL.search);
-            const quotes = data?.quotes || [];
-            if (quotes.length) return quotes.slice(0, 8).map(q => ({ symbol: q.symbol, name: q.shortname || q.longname || q.symbol }));
-        } catch (e) {
-            console.warn(`Search ${host} failed:`, e.message);
-        }
+    if (payload?.data && typeof payload.data === 'object') {
+        return Object.entries(payload.data).map(([symbol, rest]) => ({ symbol, ...rest }));
     }
     return [];
 }
 
-/** Historical price closest to date (separate call — needed for cumulative return from discovery date) */
-async function fetchHistoricalPrice(ticker, date) {
-    try {
-        const t = Math.floor(new Date(date).getTime() / 1000);
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${t - 604800}&period2=${t + 604800}&interval=1d`;
-        const data = await apiFetch(url, `hist_${ticker}_${date}`, CACHE_TTL.historical);
-        const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter(p => p != null);
-        return closes?.length ? closes[0] : null;
-    } catch (e) { console.warn(`Historical fetch failed for ${ticker}:`, e.message); return null; }
+function extractHistoryPrices(payload) {
+    if (!payload) return [];
+    const candidates = [];
+    const addValue = v => {
+        const num = typeof v === 'number' ? v : parseFloat(v);
+        if (!isNaN(num)) candidates.push(num);
+    };
+    const arrs = [
+        payload?.prices, payload?.data, payload?.results, payload?.candles, payload?.history
+    ].filter(Boolean);
+    arrs.forEach(arr => {
+        if (Array.isArray(arr)) arr.forEach(entry => {
+            if (typeof entry === 'number') addValue(entry);
+            else if (entry && typeof entry === 'object') {
+                addValue(entry.close ?? entry.price ?? entry.adjClose ?? entry.c);
+            }
+        });
+    });
+    if (Array.isArray(payload)) payload.forEach(addValue);
+    return candidates;
 }
 
-/** Convenience: current price only (for single-stock add) */
-async function fetchCurrentPrice(ticker) {
-    return (await fetchPriceAndReturn(ticker)).price;
+async function fetchBatchPriceAndReturn(tickers) {
+    if (!tickers?.length) return {};
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error('Eulerpool API key missing');
+
+    const cacheKey = `batch_${tickers.sort().join(',')}`;
+    const cached = getCache(cacheKey, CACHE_TTL.quote);
+    if (cached) return cached;
+
+    const data = await fetchJsonWithFallback(buildBatchUrls(tickers), apiKey);
+    const items = extractQuoteItems(data);
+    const map = {};
+    items.forEach(item => {
+        const symbol = normalizeSymbol(item);
+        if (!symbol) return;
+        map[symbol] = map[symbol] || {};
+        const price = normalizePrice(item);
+        const ret3m = normalize3mReturn(item);
+        if (price != null) map[symbol].price = price;
+        if (ret3m != null) map[symbol].ret3m = ret3m;
+    });
+    setCache(cacheKey, map);
+    return map;
+}
+
+async function fetchPriceAndReturn(ticker) {
+    const map = await fetchBatchPriceAndReturn([ticker]);
+    return map[ticker.toUpperCase()] || { price: null, ret3m: null };
+}
+
+async function fetchTickerSuggestions(query) {
+    if (!query) return [];
+    const apiKey = getApiKey();
+    if (!apiKey) return [];
+    const cacheKey = `search_${query.toLowerCase()}`;
+    const cached = getCache(cacheKey, CACHE_TTL.search);
+    if (cached) return cached;
+    try {
+        const data = await fetchJsonWithFallback(buildSearchUrls(query), apiKey);
+        const items = extractQuoteItems(data);
+        const results = items.map(i => {
+            const symbol = normalizeSymbol(i);
+            const name = i?.name || i?.companyName || i?.shortName || i?.longName || symbol;
+            return symbol ? { symbol, name } : null;
+        }).filter(Boolean).slice(0, 8);
+        setCache(cacheKey, results);
+        return results;
+    } catch (e) {
+        console.warn('Eulerpool search failed:', e.message);
+        return [];
+    }
+}
+
+async function fetchHistoricalPrice(ticker, date) {
+    const apiKey = getApiKey();
+    if (!apiKey) return null;
+    const cacheKey = `hist_${ticker}_${date}`;
+    const cached = getCache(cacheKey, CACHE_TTL.historical);
+    if (cached != null) return cached;
+    try {
+        const data = await fetchJsonWithFallback(buildHistoricalUrls(ticker, date), apiKey);
+        const prices = extractHistoryPrices(data);
+        const price = prices.length ? prices[0] : null;
+        if (price != null) setCache(cacheKey, price);
+        return price;
+    } catch (e) {
+        console.warn(`Eulerpool historical fetch failed for ${ticker}:`, e.message);
+        return null;
+    }
 }
 
 function clearCache() { apiCache.clear(); }
 
-window.YahooFinance = {
-    waitForPuter,
-    fetchTickerSuggestions,
-    fetchCurrentPrice,
-    fetchHistoricalPrice,
+window.MarketData = {
+    getApiKey,
+    fetchBatchPriceAndReturn,
     fetchPriceAndReturn,
+    fetchHistoricalPrice,
+    fetchTickerSuggestions,
     clearCache
 };
+window.YahooFinance = window.MarketData;

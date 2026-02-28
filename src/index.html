@@ -10,6 +10,16 @@
 </head>
 <body>
     <div class="container">
+        <div class="api-key-bar">
+            <button id="github-key-tile" class="key-tile inactive">
+                <span class="key-label">GitHub</span>
+                <span class="key-status">Set key</span>
+            </button>
+            <button id="eulerpool-key-tile" class="key-tile inactive">
+                <span class="key-label">Eulerpool</span>
+                <span class="key-status">Set key</span>
+            </button>
+        </div>
         
         <!-- Add Stock Modal -->
         <div id="add-stock-overlay" class="add-stock-overlay">
@@ -65,6 +75,7 @@
                             <button type="submit" class="btn-primary" id="github-login" style="width: 100%; padding: 14px; font-size: 16px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border: none;">
                                 🔗 Connect to GitHub
                             </button>
+                            <button type="button" class="btn-secondary" id="github-disconnect" style="padding: 14px; font-size: 16px;">Disconnect</button>
                         </div>
                         <p style="text-align: center; margin-top: 15px; color: #666; font-size: 13px;">
                             ✓ Your token is stored locally and never sent to third parties
@@ -74,11 +85,28 @@
             </div>
         </div>
 
-        <!-- GitHub Status Section (only visible when authenticated) -->
-        <div id="github-status" style="display: none;">
-            <div class="github-connected">
-                <span id="github-info">✅ Connected to GitHub</span>
-                <button id="github-logout" class="btn-secondary">Disconnect</button>
+        <!-- Eulerpool API Modal -->
+        <div id="eulerpool-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 20px; margin: -20px -20px 20px -20px; border-radius: 8px 8px 0 0;">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">Eulerpool API Key</h3>
+                    <span class="close" id="close-eulerpool-modal" style="color: white;">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="eulerpool-form">
+                        <div class="form-group">
+                            <label for="eulerpool-api-key">API Key:</label>
+                            <input type="password" id="eulerpool-api-key" placeholder="Enter your Eulerpool API key" required>
+                        </div>
+                        <div class="modal-buttons">
+                            <button type="submit" class="btn-primary" style="flex:1; padding: 12px;">Save Key</button>
+                            <button type="button" id="eulerpool-clear" class="btn-secondary" style="padding: 12px;">Remove</button>
+                        </div>
+                        <p style="text-align: center; margin-top: 12px; color: #666; font-size: 13px;">
+                            Stored locally in cookies only. Required for price lookups.
+                        </p>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -124,7 +152,6 @@
         <!-- Portfolio Actions -->
         <div id="portfolio-actions" class="actions-section">
             <button id="save-portfolio" class="btn-primary" disabled>💾 Save to GitHub</button>
-            <button id="refresh-portfolio" class="btn-secondary">🔄 Refresh from GitHub</button>
         </div>
         <div id="label-tabs" class="label-tabs" style="display:none;"></div>
         <!-- Toast status (fixed position – no layout shift) -->
@@ -155,10 +182,6 @@
     </div>
     <!-- TradingView Widget Script -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    
-    <!-- Puter.js SDK for CORS-free API requests -->
-    <!-- Note: Using latest v2 from CDN. For production, consider pinning to specific version with SRI hash -->
-    <script src="https://js.puter.com/v2/"></script>
     
     <!-- Load modules in order -->
     <script src="github.js"></script>
