@@ -39,7 +39,7 @@ jobs:
             continue
           fi
 
-          worktree_dir="__worktree_$branch"
+          worktree_dir="__worktree_$(echo "$branch" | tr '/' '-')"
           git worktree add "$worktree_dir" "$ref"
 
           target="deploy"

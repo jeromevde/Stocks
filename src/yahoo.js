@@ -10,14 +10,8 @@ function getApiKey() {
     return (window.TokenStore?.get('eulerpool_api_key')) || localStorage.getItem('eulerpool_api_key') || '';
 }
 
-function buildHeaders(apiKey) {
-    const headers = { Accept: 'application/json' };
-    if (apiKey) {
-        headers['X-API-KEY'] = apiKey;
-        headers['x-api-key'] = apiKey;
-        headers.Authorization = `Bearer ${apiKey}`;
-    }
-    return headers;
+function buildHeaders() {
+    return { Accept: 'application/json' };
 }
 
 function withApiKey(url, apiKey) {
@@ -34,7 +28,7 @@ async function fetchJsonWithFallback(urls, apiKey) {
     let lastErr = null;
     for (const url of urls) {
         try {
-            const res = await fetch(withApiKey(url, apiKey), { headers: buildHeaders(apiKey) });
+            const res = await fetch(withApiKey(url, apiKey), { headers: buildHeaders() });
             if (!res.ok) {
                 lastErr = new Error(`HTTP ${res.status}`);
                 continue;
