@@ -1,22 +1,58 @@
-name: Deploy to GitHub Pages
+name: Deploy All Branches to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - '*'
+      - '*/*'
+      - '**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-        
+
     permissions:
       contents: write
 
     steps:
-    - name: Checkout
+    - name: Checkout all branches
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-    - name: Deploy to GitHub Pages (root)
+    - name: Prepare pages for all branches
+      run: |
+        set -euo pipefail
+        rm -rf deploy
+        mkdir deploy
+        git fetch --all --prune
+
+        for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin); do
+          branch=${ref#origin/}
+          if [ "$branch" = "gh-pages" ]; then
+            continue
+          fi
+
+          worktree_dir="__worktree_$branch"
+          git worktree add "$worktree_dir" "$ref"
+
+          target="deploy"
+          if [ "$branch" != "main" ]; then
+            target="deploy/$branch"
+            mkdir -p "$target"
+          fi
+
+          if [ -d "$worktree_dir/src" ]; then
+            rsync -a --delete "$worktree_dir/src/" "$target/"
+          else
+            echo "Skipping $branch (no src directory)" >&2
+          fi
+
+          git worktree remove "$worktree_dir" --force
+        done
+
+    - name: Deploy to GitHub Pages
       uses: JamesIves/github-pages-deploy-action@v4
       with:
-        folder: src
-        clean: false
+        folder: deploy
+        clean: true

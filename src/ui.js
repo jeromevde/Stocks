@@ -39,11 +39,7 @@ function updateSaveButtonState() {
 }
 
 function updateGitHubUI() {
-    const status = document.getElementById('github-status');
-    const info = document.getElementById('github-info');
-    const auth = window.githubClient?.isAuthenticated();
-    if (status) status.style.display = auth ? 'block' : 'none';
-    if (info && auth) info.textContent = `✅ ${window.githubClient.repoOwner}/${window.githubClient.repoName}`;
+    if (typeof updateApiKeyTiles === 'function') updateApiKeyTiles();
 }
 
 function formatDate(dateStr) {
@@ -302,6 +298,7 @@ function closeNotesPopup() {
 
 /** Add-Stock modal */
 let addStockDebounce = null;
+let warnedMissingEulerKey = false;
 
 function openAddStockModal() {
     const overlay = document.getElementById('add-stock-overlay');
@@ -322,6 +319,7 @@ function openAddStockModal() {
     confirmBtn.dataset.name = '';
 
     overlay.classList.add('show');
+    warnedMissingEulerKey = false;
     setTimeout(() => input.focus(), 50);
 }
 
@@ -355,8 +353,17 @@ function wireAddStockModal() {
         confirmBtn.dataset.ticker = '';
         nameEl.textContent = '';
         if (!q) { suggestions.innerHTML = ''; return; }
+
+        if (!window.MarketData?.getApiKey?.()) {
+            suggestions.innerHTML = '';
+            if (!warnedMissingEulerKey) {
+                showStatus('Add your Eulerpool API key to search tickers.', 'error');
+                warnedMissingEulerKey = true;
+            }
+            return;
+        }
         addStockDebounce = setTimeout(async () => {
-            const results = await window.YahooFinance?.fetchTickerSuggestions(q) || [];
+            const results = await window.MarketData?.fetchTickerSuggestions(q) || [];
             suggestions.innerHTML = '';
             results.forEach(r => {
                 const div = document.createElement('div');
@@ -412,6 +419,7 @@ window.updateSaveButtonState = updateSaveButtonState;
 window.updateGitHubUI = updateGitHubUI;
 window.updatePortfolioTable = updatePortfolioTable;
 window.closeTradingViewPopup = closeChart;
+window.updateApiKeyTiles = updateApiKeyTiles;
 
 /** Update only the price cells for a single stock row (avoids full table rebuild) */
 function updatePriceCells(stock) {
@@ -428,3 +436,22 @@ function updatePriceCells(stock) {
     if (cumretCell) cumretCell.innerHTML = colorReturn(stock.cumulativeReturn);
 }
 window.updatePriceCells = updatePriceCells;
+
+function updateApiKeyTiles() {
+    const ghTile = document.getElementById('github-key-tile');
+    const epTile = document.getElementById('eulerpool-key-tile');
+    const hasGitHub = !!(window.TokenStore?.get('github_token'));
+    const hasEuler = !!(window.TokenStore?.get('eulerpool_api_key'));
+
+    if (ghTile) {
+        ghTile.classList.toggle('inactive', !hasGitHub);
+        const status = ghTile.querySelector('.key-status');
+        const repoLabel = hasGitHub && window.githubClient ? `${window.githubClient.repoOwner}/${window.githubClient.repoName}` : 'Set key';
+        if (status) status.textContent = repoLabel;
+    }
+    if (epTile) {
+        epTile.classList.toggle('inactive', !hasEuler);
+        const status = epTile.querySelector('.key-status');
+        if (status) status.textContent = hasEuler ? 'Ready' : 'Set key';
+    }
+}
