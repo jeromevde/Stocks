@@ -354,14 +354,6 @@ function wireAddStockModal() {
         nameEl.textContent = '';
         if (!q) { suggestions.innerHTML = ''; return; }
 
-        if (!window.MarketData?.hasApiKey?.()) {
-            suggestions.innerHTML = '';
-            if (!warnedMissingMarketKey) {
-                showStatus('Add your Twelve Data API key to search tickers.', 'error');
-                warnedMissingMarketKey = true;
-            }
-            return;
-        }
         addStockDebounce = setTimeout(async () => {
             const results = await window.MarketData?.fetchTickerSuggestions(q) || [];
             suggestions.innerHTML = '';
@@ -439,19 +431,12 @@ window.updatePriceCells = updatePriceCells;
 
 function updateApiKeyTiles() {
     const ghTile = document.getElementById('github-key-tile');
-    const epTile = document.getElementById('twelvedata-key-tile');
     const hasGitHub = !!(window.TokenStore?.get('github_token'));
-    const hasMarket = !!(window.MarketData?.hasApiKey?.());
 
     if (ghTile) {
         ghTile.classList.toggle('inactive', !hasGitHub);
         const status = ghTile.querySelector('.key-status');
         const repoLabel = hasGitHub && window.githubClient ? `${window.githubClient.repoOwner}/${window.githubClient.repoName}` : 'Set key';
         if (status) status.textContent = repoLabel;
-    }
-    if (epTile) {
-        epTile.classList.toggle('inactive', !hasMarket);
-        const status = epTile.querySelector('.key-status');
-        if (status) status.textContent = hasMarket ? 'Ready' : 'Set key';
     }
 }

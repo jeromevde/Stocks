@@ -19,20 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing Stock Tracker...');
     tryAutoLogin();
 
-    const keyCookie = {
-        get(name) {
-            const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
-            return m ? decodeURIComponent(m[1]) : '';
-        },
-        set(name, value, days = 60) {
-            const maxAge = Math.max(1, Math.floor(days * 24 * 60 * 60));
-            document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
-        },
-        clear(name) {
-            document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
-        }
-    };
-
     // GitHub auth form
     document.getElementById('github-auth-form')?.addEventListener('submit', e => {
         e.preventDefault();
@@ -78,40 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const repoInput = document.getElementById('repo-name');
         if (ownerInput) ownerInput.value = owner;
         if (repoInput) repoInput.value = repo;
-    });
-
-    document.getElementById('twelvedata-key-tile')?.addEventListener('click', () => {
-        document.getElementById('twelvedata-modal').style.display = 'flex';
-        const input = document.getElementById('twelvedata-api-key');
-        if (input) input.value = keyCookie.get('twelvedata_api_key') || '';
-    });
-
-    document.getElementById('close-twelvedata-modal')?.addEventListener('click', () => {
-        document.getElementById('twelvedata-modal').style.display = 'none';
-    });
-
-    document.getElementById('twelvedata-form')?.addEventListener('submit', e => {
-        e.preventDefault();
-        const key = document.getElementById('twelvedata-api-key')?.value.trim();
-        if (!key) { showStatus('Please enter a Twelve Data API key.', 'error'); return; }
-        keyCookie.set('twelvedata_api_key', key);
-        // Clear any old keys from previous providers
-        ['massive_api_key', 'polygon_api_key', 'eulerpool_api_key'].forEach(k => {
-            keyCookie.clear(k); localStorage.removeItem(k);
-        });
-        window.MarketData?.clearCache();
-        updateApiKeyTiles();
-        document.getElementById('twelvedata-modal').style.display = 'none';
-        showStatus('Twelve Data API key saved', 'success');
-    });
-
-    document.getElementById('twelvedata-clear')?.addEventListener('click', e => {
-        e.preventDefault();
-        keyCookie.clear('twelvedata_api_key');
-        window.MarketData?.clearCache();
-        updateApiKeyTiles();
-        document.getElementById('twelvedata-modal').style.display = 'none';
-        showStatus('Twelve Data API key removed', 'info');
     });
 
     // Save

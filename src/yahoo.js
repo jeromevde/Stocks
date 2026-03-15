@@ -1,23 +1,13 @@
 /**
  * Market data
  *  - Prices:        Yahoo Finance v8  (free, no API key)
- *  - Ticker search: Twelve Data symbol_search  (needs `twelvedata_api_key` cookie)
+ *  - Ticker search: Yahoo Finance search endpoint (free, no API key)
  */
 
 const apiCache = new Map();
 const CACHE_TTL = { search: 600_000, quote: 180_000, historical: 86_400_000 };
 
 const YF_BASE = 'https://query1.finance.yahoo.com';
-const TD_BASE = 'https://api.twelvedata.com';
-
-// ── Cookie helper (Twelve Data search key only) ───────────────────────────────
-
-function readCookie(name) {
-    const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
-    return m ? decodeURIComponent(m[1]) : '';
-}
-function getApiKey() { return readCookie('twelvedata_api_key'); }
-function hasApiKey() { return !!getApiKey(); }
 
 // ── Cache ─────────────────────────────────────────────────────────────────────
 
@@ -125,24 +115,21 @@ async function fetchHistoricalPrice(ticker, date) {
     }
 }
 
-/** Ticker autocomplete — Twelve Data symbol_search (requires API key cookie). */
+/** Ticker autocomplete — Yahoo Finance search (no API key required). */
 async function fetchTickerSuggestions(query) {
     if (!query?.trim()) return [];
     const ck     = `search:${query.toLowerCase()}`;
     const cached = getCache(ck, CACHE_TTL.search);
     if (cached !== undefined) return cached;
 
-    const key = getApiKey();
-    if (!key) return [];
-
     try {
-        const url = `${TD_BASE}/symbol_search?symbol=${encodeURIComponent(query.trim())}&apikey=${encodeURIComponent(key)}`;
+        const url = `${YF_BASE}/v1/finance/search?q=${encodeURIComponent(query.trim())}&lang=en-US&region=US&quotesCount=10&newsCount=0`;
         const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!res.ok) throw new Error(`TD search ${res.status}`);
+        if (!res.ok) throw new Error(`Yahoo search ${res.status}`);
         const data    = await res.json();
-        const results = (data?.data || [])
-            .filter(r => r.instrument_type === 'Common Stock')
-            .map(r => ({ symbol: r.symbol, name: r.instrument_name }))
+        const results = (data?.quotes || [])
+            .filter(r => (r.quoteType === 'EQUITY' || r.quoteType === 'ETF') && r.symbol)
+            .map(r => ({ symbol: String(r.symbol).toUpperCase(), name: r.shortname || r.longname || r.symbol }))
             .slice(0, 10);
         setCache(ck, results);
         return results;
@@ -155,8 +142,8 @@ async function fetchTickerSuggestions(query) {
 // ── Export ────────────────────────────────────────────────────────────────────
 
 window.MarketData = {
-    getApiKey,
-    hasApiKey,
+    getApiKey: () => '',
+    hasApiKey: () => true,
     fetchBatchPriceAndReturn,
     fetchPriceAndReturn,
     fetchHistoricalPrice,
