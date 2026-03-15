@@ -2,12 +2,14 @@
  * Market data
  *  - Prices:        Yahoo Finance v8  (free, no API key)
  *  - Ticker search: Yahoo Finance search endpoint (free, no API key)
+ * Transport:        Puter `puter.net.fetch` (no custom proxy)
  */
 
 const apiCache = new Map();
 const CACHE_TTL = { search: 600_000, quote: 180_000, historical: 86_400_000 };
 
 const YF_BASE = 'https://query1.finance.yahoo.com';
+const PUTER_MAX_CONCURRENCY = 6;
 
 // Enable with: localStorage.setItem('debug_market_data', '1')
 const DEBUG_MARKET = localStorage.getItem('debug_market_data') === '1';
@@ -16,6 +18,79 @@ function mdLog(...args) {
 }
 function mdWarn(...args) {
     if (DEBUG_MARKET) console.warn('[MarketData]', ...args);
+}
+
+let puterReadyPromise = null;
+let puterInFlight = 0;
+const puterWaiters = [];
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isPuterTransient(err) {
+    const msg = String(err?.message || err || '');
+    return msg.includes('Still in CONNECTING state')
+        || msg.includes('InvalidStateError')
+        || msg.includes('WebSocket')
+        || msg.includes('NetworkError');
+}
+
+async function getPuterFetch() {
+    if (puterReadyPromise) return puterReadyPromise;
+
+    puterReadyPromise = (async () => {
+        const started = Date.now();
+        while (Date.now() - started < 12000) {
+            const fn = globalThis?.puter?.net?.fetch;
+            if (typeof fn === 'function') return fn;
+            await sleep(100);
+        }
+        throw new Error('Puter SDK not ready');
+    })();
+
+    return puterReadyPromise;
+}
+
+async function acquirePuterSlot() {
+    if (puterInFlight < PUTER_MAX_CONCURRENCY) {
+        puterInFlight += 1;
+        return;
+    }
+    await new Promise(resolve => puterWaiters.push(resolve));
+    puterInFlight += 1;
+}
+
+function releasePuterSlot() {
+    puterInFlight = Math.max(0, puterInFlight - 1);
+    const next = puterWaiters.shift();
+    if (next) next();
+}
+
+async function fetchJsonViaPuter(url, label = 'request') {
+    const puterFetch = await getPuterFetch();
+    await acquirePuterSlot();
+    try {
+        for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+                const res = await puterFetch(url, { headers: { Accept: 'application/json' } });
+                mdLog(`${label} puter`, { attempt: attempt + 1, status: res?.status, ok: !!res?.ok, inFlight: puterInFlight });
+                if (!res?.ok) throw new Error(`Puter ${res?.status ?? 'error'}`);
+                return await res.json();
+            } catch (err) {
+                if (isPuterTransient(err) && attempt < 4) {
+                    const delayMs = 250 * (attempt + 1);
+                    mdWarn(`${label} transient puter error, retrying`, { attempt: attempt + 1, delayMs, message: String(err?.message || err) });
+                    await sleep(delayMs);
+                    continue;
+                }
+                throw err;
+            }
+        }
+        throw new Error('Puter retries exhausted');
+    } finally {
+        releasePuterSlot();
+    }
 }
 
 // ── Cache ─────────────────────────────────────────────────────────────────────
@@ -35,13 +110,12 @@ function clearCache() {
 // ── Yahoo Finance ─────────────────────────────────────────────────────────────
 
 async function yfFetch(ticker, period1, period2) {
-    const qs  = new URLSearchParams({ period1, period2, interval: '1d', corsDomain: 'finance.yahoo.com' });
+    const qs  = new URLSearchParams({ period1, period2, interval: '1d' });
     const url = `${YF_BASE}/v8/finance/chart/${encodeURIComponent(ticker)}?${qs}`;
     mdLog('fetch', { ticker, period1, period2, url });
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    mdLog('fetch response', { ticker, status: res.status, ok: res.ok });
-    if (!res.ok) throw new Error(`Yahoo ${res.status} ${ticker}`);
-    return res.json();
+    const data = await fetchJsonViaPuter(url, `chart:${ticker}`);
+    mdLog('fetch response', { ticker, ok: !!data?.chart });
+    return data;
 }
 
 /**
@@ -156,9 +230,7 @@ async function fetchTickerSuggestions(query) {
     try {
         const url = `${YF_BASE}/v1/finance/search?q=${encodeURIComponent(query.trim())}&lang=en-US&region=US&quotesCount=10&newsCount=0`;
         mdLog('search fetch', { query, url });
-        const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!res.ok) throw new Error(`Yahoo search ${res.status}`);
-        const data    = await res.json();
+        const data    = await fetchJsonViaPuter(url, `search:${query}`);
         const results = (data?.quotes || [])
             .filter(r => (r.quoteType === 'EQUITY' || r.quoteType === 'ETF') && r.symbol)
             .map(r => ({ symbol: String(r.symbol).toUpperCase(), name: r.shortname || r.longname || r.symbol }))
