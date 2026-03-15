@@ -18,8 +18,6 @@ function withApiKey(url, apiKey) {
     const u = new URL(url);
     if (apiKey) {
         if (!u.searchParams.has('apikey')) u.searchParams.set('apikey', apiKey);
-        if (!u.searchParams.has('apiKey')) u.searchParams.set('apiKey', apiKey);
-        if (!u.searchParams.has('token')) u.searchParams.set('token', apiKey);
     }
     return u.toString();
 }
@@ -66,11 +64,16 @@ function buildSearchUrls(query) {
 function buildHistoricalUrls(ticker, date) {
     const t = encodeURIComponent(ticker);
     const d = encodeURIComponent(date);
+    const dt = new Date(`${date}T00:00:00Z`);
+    const start = Number.isNaN(dt.getTime()) ? null : new Date(dt.getTime() - (7 * 24 * 60 * 60 * 1000));
+    const end = Number.isNaN(dt.getTime()) ? null : new Date(dt.getTime() + (7 * 24 * 60 * 60 * 1000));
+    const fmt = value => value.toISOString().slice(0, 10);
     return [
-        `${EULERPOOL_BASE}/api/1/equity/historical/${t}?from=${d}&to=${d}`,
+        `${EULERPOOL_BASE}/api/1/equity/candles/${t}?from=${d}&to=${d}`,
+        start && end ? `${EULERPOOL_BASE}/api/1/equity/candles/${t}?from=${encodeURIComponent(fmt(start))}&to=${encodeURIComponent(fmt(end))}` : null,
         `${EULERPOOL_BASE}/api/historical/${t}?from=${d}&to=${d}`,
         `${EULERPOOL_BASE}/api/stock/${t}/history?date=${d}`
-    ];
+    ].filter(Boolean);
 }
 
 function normalizeSymbol(item) {
