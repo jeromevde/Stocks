@@ -354,10 +354,10 @@ function wireAddStockModal() {
         nameEl.textContent = '';
         if (!q) { suggestions.innerHTML = ''; return; }
 
-        if (!window.MarketData?.hasMassiveApiKey?.()) {
+        if (!window.MarketData?.hasApiKey?.()) {
             suggestions.innerHTML = '';
             if (!warnedMissingMarketKey) {
-                showStatus('Add your Massive API key to search tickers.', 'error');
+                showStatus('Add your Twelve Data API key to search tickers.', 'error');
                 warnedMissingMarketKey = true;
             }
             return;
@@ -439,9 +439,9 @@ window.updatePriceCells = updatePriceCells;
 
 function updateApiKeyTiles() {
     const ghTile = document.getElementById('github-key-tile');
-    const epTile = document.getElementById('massive-key-tile');
+    const epTile = document.getElementById('twelvedata-key-tile');
     const hasGitHub = !!(window.TokenStore?.get('github_token'));
-    const hasMarket = !!(window.MarketData?.hasMassiveApiKey?.());
+    const hasMarket = !!(window.MarketData?.hasApiKey?.());
 
     if (ghTile) {
         ghTile.classList.toggle('inactive', !hasGitHub);

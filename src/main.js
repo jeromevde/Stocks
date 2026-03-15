@@ -80,41 +80,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if (repoInput) repoInput.value = repo;
     });
 
-    document.getElementById('massive-key-tile')?.addEventListener('click', () => {
-        document.getElementById('massive-modal').style.display = 'flex';
-        const input = document.getElementById('massive-api-key');
-        if (input) input.value = keyCookie.get('massive_api_key') || '';
+    document.getElementById('twelvedata-key-tile')?.addEventListener('click', () => {
+        document.getElementById('twelvedata-modal').style.display = 'flex';
+        const input = document.getElementById('twelvedata-api-key');
+        if (input) input.value = keyCookie.get('twelvedata_api_key') || '';
     });
 
-    document.getElementById('close-massive-modal')?.addEventListener('click', () => {
-        document.getElementById('massive-modal').style.display = 'none';
+    document.getElementById('close-twelvedata-modal')?.addEventListener('click', () => {
+        document.getElementById('twelvedata-modal').style.display = 'none';
     });
 
-    document.getElementById('massive-form')?.addEventListener('submit', e => {
+    document.getElementById('twelvedata-form')?.addEventListener('submit', e => {
         e.preventDefault();
-        const key = document.getElementById('massive-api-key')?.value.trim();
-        if (!key) { showStatus('Please enter a Massive API key.', 'error'); return; }
-        keyCookie.set('massive_api_key', key);
-        localStorage.removeItem('massive_api_key');
-        localStorage.removeItem('polygon_api_key');
-        keyCookie.clear('eulerpool_api_key');
-        localStorage.removeItem('eulerpool_api_key');
+        const key = document.getElementById('twelvedata-api-key')?.value.trim();
+        if (!key) { showStatus('Please enter a Twelve Data API key.', 'error'); return; }
+        keyCookie.set('twelvedata_api_key', key);
+        // Clear any old keys from previous providers
+        ['massive_api_key', 'polygon_api_key', 'eulerpool_api_key'].forEach(k => {
+            keyCookie.clear(k); localStorage.removeItem(k);
+        });
         window.MarketData?.clearCache();
         updateApiKeyTiles();
-        document.getElementById('massive-modal').style.display = 'none';
-        showStatus('Massive API key saved', 'success');
+        document.getElementById('twelvedata-modal').style.display = 'none';
+        showStatus('Twelve Data API key saved', 'success');
     });
 
-    document.getElementById('massive-clear')?.addEventListener('click', e => {
+    document.getElementById('twelvedata-clear')?.addEventListener('click', e => {
         e.preventDefault();
-        keyCookie.clear('massive_api_key');
-        keyCookie.clear('polygon_api_key');
-        localStorage.removeItem('massive_api_key');
-        localStorage.removeItem('polygon_api_key');
+        keyCookie.clear('twelvedata_api_key');
         window.MarketData?.clearCache();
         updateApiKeyTiles();
-        document.getElementById('massive-modal').style.display = 'none';
-        showStatus('Massive API key removed', 'info');
+        document.getElementById('twelvedata-modal').style.display = 'none';
+        showStatus('Twelve Data API key removed', 'info');
     });
 
     // Save
