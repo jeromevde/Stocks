@@ -1,43 +1,31 @@
 /**
- * Eulerpool Data API wrapper (replaces Yahoo Finance)
+ * Eulerpool Data API wrapper
+ *
+ * Uses the real Eulerpool v1 REST API:
+ *   GET /v1/equities/{ticker}/price          → current quote
+ *   GET /v1/equities/{ticker}/history        → OHLCV bars (params: from, to, interval)
+ *   GET /v1/equities/search?query=…          → symbol search
+ *
+ * Authentication: Authorization: Bearer <key>
  */
 
 const apiCache = new Map();
 const CACHE_TTL = { search: 600000, quote: 180000, historical: 86400000 };
 const EULERPOOL_BASE = 'https://api.eulerpool.com';
 
+// ─── API key ──────────────────────────────────────────────────────────────────
+
 function getApiKey() {
     return (window.TokenStore?.get('eulerpool_api_key')) || localStorage.getItem('eulerpool_api_key') || '';
 }
 
-function buildHeaders() {
-    return { Accept: 'application/json' };
+function buildHeaders(apiKey) {
+    const h = { Accept: 'application/json' };
+    if (apiKey) h['Authorization'] = `Bearer ${apiKey}`;
+    return h;
 }
 
-function withApiKey(url, apiKey) {
-    const u = new URL(url);
-    if (apiKey) {
-        if (!u.searchParams.has('apikey')) u.searchParams.set('apikey', apiKey);
-    }
-    return u.toString();
-}
-
-async function fetchJsonWithFallback(urls, apiKey) {
-    let lastErr = null;
-    for (const url of urls) {
-        try {
-            const res = await fetch(withApiKey(url, apiKey), { headers: buildHeaders() });
-            if (!res.ok) {
-                lastErr = new Error(`HTTP ${res.status}`);
-                continue;
-            }
-            return await res.json();
-        } catch (e) {
-            lastErr = e;
-        }
-    }
-    throw lastErr || new Error('Eulerpool request failed');
-}
+// ─── Cache helpers ────────────────────────────────────────────────────────────
 
 function setCache(key, data) { apiCache.set(key, { ts: Date.now(), data }); }
 function getCache(key, ttl) {
@@ -47,117 +35,84 @@ function getCache(key, ttl) {
     return entry.data;
 }
 
-function buildQuoteUrl(ticker) {
-    const t = encodeURIComponent(ticker);
-    return `${EULERPOOL_BASE}/api/1/equity/quotes/${t}`;
-}
+// ─── Fetch helpers ────────────────────────────────────────────────────────────
 
-function buildSearchUrls(query) {
-    const q = encodeURIComponent(query);
-    return [
-        `${EULERPOOL_BASE}/api/1/equity/search?query=${q}`,
-        `${EULERPOOL_BASE}/api/search?q=${q}`,
-        `${EULERPOOL_BASE}/search?q=${q}`
-    ];
-}
-
-function buildHistoricalUrls(ticker, date) {
-    const t = encodeURIComponent(ticker);
-    const d = encodeURIComponent(date);
-    const dt = new Date(`${date}T00:00:00Z`);
-    const start = Number.isNaN(dt.getTime()) ? null : new Date(dt.getTime() - (7 * 24 * 60 * 60 * 1000));
-    const end = Number.isNaN(dt.getTime()) ? null : new Date(dt.getTime() + (7 * 24 * 60 * 60 * 1000));
-    const fmt = value => value.toISOString().slice(0, 10);
-    return [
-        `${EULERPOOL_BASE}/api/1/equity/candles/${t}?from=${d}&to=${d}`,
-        start && end ? `${EULERPOOL_BASE}/api/1/equity/candles/${t}?from=${encodeURIComponent(fmt(start))}&to=${encodeURIComponent(fmt(end))}` : null,
-        `${EULERPOOL_BASE}/api/historical/${t}?from=${d}&to=${d}`,
-        `${EULERPOOL_BASE}/api/stock/${t}/history?date=${d}`
-    ].filter(Boolean);
-}
-
-function normalizeSymbol(item) {
-    return (item?.symbol || item?.ticker || item?.code || item?.id || '').toUpperCase();
-}
-function normalizePrice(item) {
-    const price = item?.price ?? item?.last ?? item?.lastPrice ?? item?.close ?? item?.latestPrice ?? item?.regularMarketPrice;
-    return typeof price === 'number' ? price : (price != null ? parseFloat(price) : null);
-}
-function normalize3mReturn(item) {
-    const perf = item?.performance || item?.perf || {};
-    const candidate = item?.ret3m ?? item?.return3m ?? item?.threeMonthReturn ?? item?.three_month_return ?? perf?.threeMonth ?? perf?.threeMonths ?? perf?.['3m'] ?? perf?.['3M'] ?? item?.['3m'];
-    if (candidate == null) return null;
-    const n = parseFloat(candidate);
-    return isNaN(n) ? null : n.toFixed(2);
-}
-
-function extractQuoteItems(payload) {
-    if (!payload) return [];
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload?.results)) return payload.results;
-    if (Array.isArray(payload?.quotes)) return payload.quotes;
-    if (payload?.quotes && typeof payload.quotes === 'object') {
-        return Object.entries(payload.quotes).map(([symbol, rest]) => ({ symbol, ...rest }));
+async function epFetch(path, apiKey) {
+    const res = await fetch(`${EULERPOOL_BASE}${path}`, { headers: buildHeaders(apiKey) });
+    if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`Eulerpool ${res.status}: ${body.slice(0, 120)}`);
     }
-    if (payload?.data && typeof payload.data === 'object') {
-        return Object.entries(payload.data).map(([symbol, rest]) => ({ symbol, ...rest }));
-    }
-    return [];
+    return res.json();
 }
 
-function extractHistoryPrices(payload) {
-    if (!payload) return [];
-    const candidates = [];
-    const addValue = v => {
-        const num = typeof v === 'number' ? v : parseFloat(v);
-        if (!isNaN(num)) candidates.push(num);
+// ─── Price response normalisation ─────────────────────────────────────────────
+// Response shape: { ticker, price, change, changePct, volume, timestamp }
+
+function normalisePriceResponse(data, ticker) {
+    const p = typeof data?.price === 'number' ? data.price : parseFloat(data?.price);
+    return {
+        price: Number.isFinite(p) ? p : null,
+        ret3m: null   // Eulerpool price endpoint doesn't include 3-month return
     };
-    const arrs = [
-        payload?.prices, payload?.data, payload?.results, payload?.candles, payload?.history
-    ].filter(Boolean);
-    arrs.forEach(arr => {
-        if (Array.isArray(arr)) arr.forEach(entry => {
-            if (typeof entry === 'number') addValue(entry);
-            else if (entry && typeof entry === 'object') {
-                addValue(entry.close ?? entry.price ?? entry.adjClose ?? entry.c);
-            }
-        });
-    });
-    if (Array.isArray(payload)) payload.forEach(addValue);
-    return candidates;
 }
 
+// ─── History response normalisation ──────────────────────────────────────────
+// Response shape: array of OHLCV bars OR { bars: [...] } OR { data: [...] }
+// Each bar: { open, high, low, close, volume, timestamp }
+
+function extractClosestClose(payload, targetDate) {
+    let bars = null;
+    if (Array.isArray(payload)) bars = payload;
+    else if (Array.isArray(payload?.bars)) bars = payload.bars;
+    else if (Array.isArray(payload?.data)) bars = payload.data;
+    else if (Array.isArray(payload?.history)) bars = payload.history;
+    if (!bars || !bars.length) return null;
+
+    // Look for an exact date match first, then nearest bar before or on the date
+    bars.sort((a, b) => (a.timestamp || a.date || '').localeCompare(b.timestamp || b.date || ''));
+    let best = null;
+    for (const bar of bars) {
+        const barDate = (bar.timestamp || bar.date || '').slice(0, 10);
+        if (barDate <= targetDate) best = bar;
+        else break;
+    }
+    if (!best) best = bars[0];
+    const close = best?.close ?? best?.c ?? best?.price;
+    const num = typeof close === 'number' ? close : parseFloat(close);
+    return Number.isFinite(num) ? num : null;
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Fetch current prices for multiple tickers concurrently (parallel batch).
+ * Returns { TICKER: { price, ret3m }, … }
+ */
 async function fetchBatchPriceAndReturn(tickers) {
     if (!tickers?.length) return {};
     const apiKey = getApiKey();
     if (!apiKey) throw new Error('Eulerpool API key missing');
 
-    const cacheKey = `batch_${tickers.sort().join(',')}`;
+    const uniqueTickers = [...new Set(tickers.map(t => String(t).toUpperCase()))];
+    const cacheKey = `batch_${[...uniqueTickers].sort().join(',')}`;
     const cached = getCache(cacheKey, CACHE_TTL.quote);
     if (cached) return cached;
 
-    // Fetch each ticker individually since there's no batch endpoint
-    const map = {};
     const results = await Promise.allSettled(
-        tickers.map(async ticker => {
-            const url = buildQuoteUrl(ticker);
-            const res = await fetch(withApiKey(url, apiKey), { headers: buildHeaders() });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
+        uniqueTickers.map(async ticker => {
+            const data = await epFetch(`/v1/equities/${encodeURIComponent(ticker)}/price`, apiKey);
             return { ticker, data };
         })
     );
 
-    results.forEach(result => {
-        if (result.status === 'fulfilled') {
-            const { ticker, data } = result.value;
-            const symbol = ticker.toUpperCase();
-            map[symbol] = map[symbol] || {};
-            const price = normalizePrice(data);
-            const ret3m = normalize3mReturn(data);
-            if (price != null) map[symbol].price = price;
-            if (ret3m != null) map[symbol].ret3m = ret3m;
+    const map = {};
+    results.forEach(r => {
+        if (r.status === 'fulfilled') {
+            const { ticker, data } = r.value;
+            map[ticker] = normalisePriceResponse(data, ticker);
+        } else {
+            console.warn(`Eulerpool price fetch failed for ticker:`, r.reason?.message);
         }
     });
 
@@ -170,44 +125,69 @@ async function fetchPriceAndReturn(ticker) {
     return map[ticker.toUpperCase()] || { price: null, ret3m: null };
 }
 
-async function fetchTickerSuggestions(query) {
-    if (!query) return [];
-    const apiKey = getApiKey();
-    if (!apiKey) return [];
-    const cacheKey = `search_${query.toLowerCase()}`;
-    const cached = getCache(cacheKey, CACHE_TTL.search);
-    if (cached) return cached;
-    try {
-        const data = await fetchJsonWithFallback(buildSearchUrls(query), apiKey);
-        const items = extractQuoteItems(data);
-        const results = items.map(i => {
-            const symbol = normalizeSymbol(i);
-            const name = i?.name || i?.companyName || i?.shortName || i?.longName || symbol;
-            return symbol ? { symbol, name } : null;
-        }).filter(Boolean).slice(0, 8);
-        setCache(cacheKey, results);
-        return results;
-    } catch (e) {
-        console.warn('Eulerpool search failed:', e.message);
-        return [];
-    }
-}
-
+/**
+ * Fetch the closing price on or just before `date` (YYYY-MM-DD).
+ * Uses a ±7-day window so weekends/holidays don't return empty bars.
+ */
 async function fetchHistoricalPrice(ticker, date) {
     const apiKey = getApiKey();
     if (!apiKey) return null;
+
     const cacheKey = `hist_${ticker}_${date}`;
     const cached = getCache(cacheKey, CACHE_TTL.historical);
     if (cached != null) return cached;
+
+    // Widen window by 7 days each side to cover non-trading dates
+    const dt = new Date(`${date}T00:00:00Z`);
+    const from = new Date(dt.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+    const to   = new Date(dt.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+
     try {
-        const data = await fetchJsonWithFallback(buildHistoricalUrls(ticker, date), apiKey);
-        const prices = extractHistoryPrices(data);
-        const price = prices.length ? prices[0] : null;
+        const t = encodeURIComponent(ticker);
+        const data = await epFetch(
+            `/v1/equities/${t}/history?from=${from}&to=${to}&interval=1d`,
+            apiKey
+        );
+        const price = extractClosestClose(data, date);
         if (price != null) setCache(cacheKey, price);
         return price;
     } catch (e) {
         console.warn(`Eulerpool historical fetch failed for ${ticker}:`, e.message);
         return null;
+    }
+}
+
+/**
+ * Search for ticker symbols / company names.
+ * Returns [{ symbol, name }, …]
+ */
+async function fetchTickerSuggestions(query) {
+    if (!query) return [];
+    const apiKey = getApiKey();
+    if (!apiKey) return [];
+
+    const cacheKey = `search_${query.toLowerCase()}`;
+    const cached = getCache(cacheKey, CACHE_TTL.search);
+    if (cached) return cached;
+
+    try {
+        const data = await epFetch(`/v1/equities/search?query=${encodeURIComponent(query)}`, apiKey);
+        const rows = Array.isArray(data) ? data
+            : Array.isArray(data?.results) ? data.results
+            : Array.isArray(data?.data) ? data.data
+            : [];
+
+        const results = rows.map(item => {
+            const symbol = (item?.ticker || item?.symbol || item?.code || '').toUpperCase();
+            const name = item?.name || item?.companyName || item?.shortName || symbol;
+            return symbol ? { symbol, name } : null;
+        }).filter(Boolean).slice(0, 8);
+
+        setCache(cacheKey, results);
+        return results;
+    } catch (e) {
+        console.warn('Eulerpool search failed:', e.message);
+        return [];
     }
 }
 
