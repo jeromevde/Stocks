@@ -1,8 +1,7 @@
 name: Deploy to GitHub Pages (branch folders)
 
 on:
-  push:
-    branches: [ '**' ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -27,5 +26,6 @@ jobs:
       uses: JamesIves/github-pages-deploy-action@v4
       with:
         folder: src
+        branch: main
         target-folder: ${{ github.ref_name }}
         clean: false
