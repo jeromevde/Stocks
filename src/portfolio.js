@@ -107,41 +107,41 @@ async function refresh() {
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
-/** Update prices one stock at a time, revealing results as each one loads */
+/** Update prices lazily — each row updates the instant its Yahoo request resolves */
 async function updateAllPrices() {
     const api = window.MarketData;
     if (!api || !portfolio.length) return;
 
-    showStatus('Prices loading…', 'info');
-    let quotes = {};
-    try {
-        const tickers = portfolio.map(s => s.ticker.toUpperCase());
-        quotes = await api.fetchBatchPriceAndReturn(tickers);
-    } catch (e) {
-        showStatus(e.message || 'Price fetch failed', 'error');
-        return;
-    }
+    let done = 0;
+    showStatus(`Fetching prices… 0 / ${portfolio.length}`, 'info');
 
-    const histories = await Promise.all(portfolio.map(s => api.fetchHistoricalPrice(s.ticker, s.date).catch(() => null)));
+    // Kick off all historical price requests in parallel
+    const histPromises = portfolio.map(s =>
+        api.fetchHistoricalPrice(s.ticker, s.date).catch(() => null)
+    );
 
-    for (let i = 0; i < portfolio.length; i++) {
-        const stock = portfolio[i];
-        const key = stock.ticker.toUpperCase();
-        const quote = quotes[key] || {};
-        const price = quote.price ?? null;
-        const ret3m = quote.ret3m ?? null;
-        const hist = histories[i];
+    // Kick off all price+return requests; onEach fires as each resolves
+    await api.fetchBatchPriceAndReturn(
+        portfolio.map(s => s.ticker.toUpperCase()),
+        async (ticker, { price, ret3m }) => {
+            const idx = portfolio.findIndex(s => s.ticker.toUpperCase() === ticker);
+            if (idx === -1) return;
+            const stock = portfolio[idx];
+            const hist  = await histPromises[idx];
 
-        stock.nowPrice = price != null ? Number(price).toFixed(2) : 'N/A';
-        stock.return3m = ret3m != null ? ret3m : 'N/A';
-        stock.cumulativeReturn = (price != null && hist != null)
-            ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
-        if (window.updatePriceCells) window.updatePriceCells(stock);
-        showStatus(`Prices loading… ${i + 1} / ${portfolio.length}`, 'info');
-        if (i < portfolio.length - 1 && REQUEST_DELAY_MS > 0) await delay(REQUEST_DELAY_MS);
-    }
+            stock.nowPrice         = price != null ? Number(price).toFixed(2) : 'N/A';
+            stock.return3m         = ret3m != null ? ret3m : 'N/A';
+            stock.cumulativeReturn = (price != null && hist != null)
+                ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
 
-    showStatus(`${portfolio.length} stocks updated!`, 'success');
+            if (window.updatePriceCells) window.updatePriceCells(stock);
+            done++;
+            if (done === portfolio.length)
+                showStatus(`${portfolio.length} stocks updated!`, 'success');
+            else
+                showStatus(`Fetching prices… ${done} / ${portfolio.length}`, 'info');
+        }
+    );
 }
 
 /** Add a new stock (called after user confirms in modal) */

@@ -1,25 +1,25 @@
 /**
- * Market data — Twelve Data, batched ≤ 120 symbols per call.
- * Cookie: `twelvedata_api_key`
+ * Market data
+ *  - Prices:        Yahoo Finance v8  (free, no API key)
+ *  - Ticker search: Twelve Data symbol_search  (needs `twelvedata_api_key` cookie)
  */
 
 const apiCache = new Map();
 const CACHE_TTL = { search: 600_000, quote: 180_000, historical: 86_400_000 };
 
-const TD_BASE    = 'https://api.twelvedata.com';
-const BATCH_SIZE = 120;  // Twelve Data max symbols per call
+const YF_BASE = 'https://query1.finance.yahoo.com';
+const TD_BASE = 'https://api.twelvedata.com';
 
-// ── Key ───────────────────────────────────────────────────────────────────────
+// ── Cookie helper (Twelve Data search key only) ───────────────────────────────
 
 function readCookie(name) {
     const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
     return m ? decodeURIComponent(m[1]) : '';
 }
+function getApiKey() { return readCookie('twelvedata_api_key'); }
+function hasApiKey() { return !!getApiKey(); }
 
-function getApiKey()  { return readCookie('twelvedata_api_key'); }
-function hasApiKey()  { return !!getApiKey(); }
-
-// ── Cache helpers ─────────────────────────────────────────────────────────────
+// ── Cache ─────────────────────────────────────────────────────────────────────
 
 function setCache(k, v) { apiCache.set(k, { ts: Date.now(), v }); }
 function getCache(k, ttl) {
@@ -28,126 +28,104 @@ function getCache(k, ttl) {
 }
 function clearCache() { apiCache.clear(); }
 
-function toYmd(d) {
-    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString().slice(0, 10);
-}
+// ── Yahoo Finance ─────────────────────────────────────────────────────────────
 
-function addDaysYmd(ymd, days) {
-    const dt = new Date(`${ymd}T00:00:00Z`);
-    dt.setUTCDate(dt.getUTCDate() + days);
-    return toYmd(dt);
+async function yfFetch(ticker, period1, period2) {
+    const qs  = new URLSearchParams({ period1, period2, interval: '1d', corsDomain: 'finance.yahoo.com' });
+    const url = `${YF_BASE}/v8/finance/chart/${encodeURIComponent(ticker)}?${qs}`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`Yahoo ${res.status} ${ticker}`);
+    return res.json();
 }
-
-// ── Twelve Data ───────────────────────────────────────────────────────────────
 
 /**
- * Two cheap calls for up to 120 tickers:
- *  1. /quote          — current price, 1 credit/symbol
- *  2. /time_series    — 1 day window 92 days ago, ~1 credit/symbol
- * Total: ~2 credits/symbol instead of 92.
+ * Single Yahoo call: 94-day chart → current price + 3-month return.
  */
-async function tdBatchChunk(tickers, key) {
-    const symbolParam = tickers.join(',');
+async function yfPriceAndReturn(ticker) {
+    const ck = `quote:${ticker}`;
+    const cached = getCache(ck, CACHE_TTL.quote);
+    if (cached !== undefined) return cached;
 
-    // ── 1. Current quotes ──────────────────────────────────────────────────
-    const quoteUrl = `${TD_BASE}/quote?symbol=${symbolParam}&apikey=${encodeURIComponent(key)}`;
-    const quoteRes = await fetch(quoteUrl, { headers: { Accept: 'application/json' } });
-    const quoteData = await quoteRes.json();
+    const now = Math.floor(Date.now() / 1000);
+    const p1  = now - 94 * 86400;
+    const json   = await yfFetch(ticker, p1, now);
+    const meta   = json?.chart?.result?.[0]?.meta ?? {};
+    const closes = json?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? [];
+    const valid  = closes.filter(c => c != null);
 
-    if (!quoteRes.ok || quoteData?.status === 'error') {
-        throw new Error(`Twelve Data quote ${quoteRes.status}: ${quoteData?.message || ''}`);
+    const price = meta.regularMarketPrice ?? meta.chartPreviousClose ?? (valid.length ? valid[valid.length - 1] : null);
+    let ret3m = null;
+    if (valid.length >= 2) {
+        const first = valid[0], last = valid[valid.length - 1];
+        if (first > 0) ret3m = (((last - first) / first) * 100).toFixed(2);
     }
 
-    // ── 2. Historical close ~92 days ago ───────────────────────────────────
-    const anchor    = addDaysYmd(toYmd(new Date()), -92);
-    const histStart = addDaysYmd(anchor, -4);   // 4-day window to catch weekends/holidays
-    const histEnd   = addDaysYmd(anchor, 1);
-    const histUrl   = `${TD_BASE}/time_series?symbol=${symbolParam}&interval=1day`
-                    + `&start_date=${histStart}&end_date=${histEnd}&apikey=${encodeURIComponent(key)}`;
-    const histRes  = await fetch(histUrl, { headers: { Accept: 'application/json' } });
-    const histData = await histRes.json();
-
-    if (!histRes.ok || histData?.status === 'error') {
-        throw new Error(`Twelve Data history ${histRes.status}: ${histData?.message || ''}`);
-    }
-
-    // ── Parse ──────────────────────────────────────────────────────────────
-    const out = {};
-    for (const ticker of tickers) {
-        // /quote: multi → data[ticker], single → data directly
-        const q     = tickers.length === 1 ? quoteData : quoteData[ticker];
-        const price = q ? parseFloat(q.close ?? q.price) : null;
-
-        // /time_series: multi → data[ticker].values, single → data.values
-        const series  = tickers.length === 1 ? histData : histData[ticker];
-        const values  = series?.values || [];
-        const oldVal  = values.length ? parseFloat(values[0].close) : null;   // newest in window = closest to anchor
-
-        const ret3m = Number.isFinite(price) && Number.isFinite(oldVal) && oldVal > 0
-            ? (((price - oldVal) / oldVal) * 100).toFixed(2)
-            : null;
-
-        out[ticker] = { price: Number.isFinite(price) ? price : null, ret3m };
-    }
-    return out;
+    const entry = { price: typeof price === 'number' ? price : null, ret3m };
+    setCache(ck, entry);
+    return entry;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/** Fetch current price + 3-month return for a list of tickers via Twelve Data (batches of 120). */
-async function fetchBatchPriceAndReturn(tickers) {
+/**
+ * Fire one Yahoo request per ticker in parallel.
+ * `onEach(ticker, {price, ret3m})` is called as each request resolves (lazy row updates).
+ */
+async function fetchBatchPriceAndReturn(tickers, onEach) {
     if (!tickers?.length) return {};
     const unique = [...new Set(tickers.map(t => String(t).trim().toUpperCase()))].filter(Boolean);
     const map    = {};
-    const key    = getApiKey();
-    if (!key) { console.warn('No Twelve Data API key — enter it via the Twelve Data tile.'); return {}; }
 
-    try {
-        for (let i = 0; i < unique.length; i += BATCH_SIZE) {
-            const chunk   = unique.slice(i, i + BATCH_SIZE);
-            const results = await tdBatchChunk(chunk, key);
-            Object.assign(map, results);
+    await Promise.all(unique.map(async ticker => {
+        try {
+            const entry  = await yfPriceAndReturn(ticker);
+            map[ticker]  = entry;
+            onEach?.(ticker, entry);
+        } catch (e) {
+            console.warn('Yahoo price:', ticker, e.message);
+            const entry = { price: null, ret3m: null };
+            map[ticker] = entry;
+            onEach?.(ticker, entry);
         }
-        for (const [ticker, entry] of Object.entries(map)) setCache(`quote:${ticker}`, entry);
-    } catch (e) {
-        console.error('fetchBatchPriceAndReturn failed:', e.message);
-    }
+    }));
+
     return map;
 }
 
-/** Convenience wrapper — single ticker. */
+/** Single-ticker convenience wrapper. */
 async function fetchPriceAndReturn(ticker) {
-    const map = await fetchBatchPriceAndReturn([ticker]);
-    return map[String(ticker).toUpperCase()] || { price: null, ret3m: null };
+    return yfPriceAndReturn(String(ticker).toUpperCase());
 }
 
-/** Closing price on or nearest to date (YYYY-MM-DD). */
+/** Closing price on or nearest to `date` (YYYY-MM-DD). */
 async function fetchHistoricalPrice(ticker, date) {
     const ck     = `hist:${ticker}:${date}`;
     const cached = getCache(ck, CACHE_TTL.historical);
     if (cached !== undefined) return cached;
 
-    const key = getApiKey();
-    if (!key) return null;
-
     try {
-        const url = `${TD_BASE}/time_series?symbol=${encodeURIComponent(ticker)}&interval=1day`
-                  + `&start_date=${addDaysYmd(date, -5)}&end_date=${addDaysYmd(date, 3)}`
-                  + `&apikey=${encodeURIComponent(key)}`;
-        const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!res.ok) throw new Error(`Twelve Data ${res.status}`);
-        const data   = await res.json();
-        const values = data?.values || [];
-        const price  = values.length ? parseFloat(values[0].close) : null;
-        setCache(ck, Number.isFinite(price) ? price : null);
-        return Number.isFinite(price) ? price : null;
+        const targetSec = Date.parse(`${date}T12:00:00Z`) / 1000;
+        const p1 = Math.floor(targetSec - 10 * 86400);
+        const p2 = Math.floor(targetSec +  5 * 86400);
+        const json       = await yfFetch(ticker, p1, p2);
+        const result     = json?.chart?.result?.[0];
+        const timestamps = result?.timestamp ?? [];
+        const closes     = result?.indicators?.quote?.[0]?.close ?? [];
+        let best = null, bestDiff = Infinity;
+        for (let i = 0; i < timestamps.length; i++) {
+            if (closes[i] == null) continue;
+            const diff = Math.abs(timestamps[i] - targetSec);
+            if (diff < bestDiff) { bestDiff = diff; best = closes[i]; }
+        }
+        setCache(ck, best);
+        return best;
     } catch (e) {
         console.warn('fetchHistoricalPrice:', ticker, date, e.message);
         return null;
     }
 }
 
-/** Ticker autocomplete via Twelve Data symbol_search. */
+/** Ticker autocomplete — Twelve Data symbol_search (requires API key cookie). */
 async function fetchTickerSuggestions(query) {
     if (!query?.trim()) return [];
     const ck     = `search:${query.toLowerCase()}`;
@@ -186,4 +164,4 @@ window.MarketData = {
     clearCache,
 };
 
-window.YahooFinance = window.MarketData; // backwards-compat alias kept for any existing callers
+window.YahooFinance = window.MarketData; // backwards-compat alias
