@@ -1,5 +1,5 @@
 /**
- * Market data — Twelve Data (primary, batched ≤ 120 symbols) + Yahoo Finance v8 (fallback)
+ * Market data — Twelve Data, batched ≤ 120 symbols per call.
  * Cookie: `twelvedata_api_key`
  */
 
@@ -7,7 +7,6 @@ const apiCache = new Map();
 const CACHE_TTL = { search: 600_000, quote: 180_000, historical: 86_400_000 };
 
 const TD_BASE    = 'https://api.twelvedata.com';
-const YF_BASE    = 'https://query1.finance.yahoo.com';
 const BATCH_SIZE = 120;  // Twelve Data max symbols per call
 
 // ── Key ───────────────────────────────────────────────────────────────────────
@@ -42,109 +41,77 @@ function addDaysYmd(ymd, days) {
 // ── Twelve Data ───────────────────────────────────────────────────────────────
 
 /**
- * One batch call for up to 120 tickers.
- * Returns { [TICKER]: { price, ret3m } }
+ * Two cheap calls for up to 120 tickers:
+ *  1. /quote          — current price, 1 credit/symbol
+ *  2. /time_series    — 1 day window 92 days ago, ~1 credit/symbol
+ * Total: ~2 credits/symbol instead of 92.
  */
 async function tdBatchChunk(tickers, key) {
-    const endDate   = toYmd(new Date());
-    const startDate = addDaysYmd(endDate, -92);   // ~3 months of daily bars
+    const symbolParam = tickers.join(',');
 
-    const url = `${TD_BASE}/time_series?symbol=${tickers.join(',')}&interval=1day`
-              + `&start_date=${startDate}&end_date=${endDate}&apikey=${encodeURIComponent(key)}`;
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`Twelve Data ${res.status}`);
-    const data = await res.json();
+    // ── 1. Current quotes ──────────────────────────────────────────────────
+    const quoteUrl = `${TD_BASE}/quote?symbol=${symbolParam}&apikey=${encodeURIComponent(key)}`;
+    const quoteRes = await fetch(quoteUrl, { headers: { Accept: 'application/json' } });
+    const quoteData = await quoteRes.json();
 
+    if (!quoteRes.ok || quoteData?.status === 'error') {
+        throw new Error(`Twelve Data quote ${quoteRes.status}: ${quoteData?.message || ''}`);
+    }
+
+    // ── 2. Historical close ~92 days ago ───────────────────────────────────
+    const anchor    = addDaysYmd(toYmd(new Date()), -92);
+    const histStart = addDaysYmd(anchor, -4);   // 4-day window to catch weekends/holidays
+    const histEnd   = addDaysYmd(anchor, 1);
+    const histUrl   = `${TD_BASE}/time_series?symbol=${symbolParam}&interval=1day`
+                    + `&start_date=${histStart}&end_date=${histEnd}&apikey=${encodeURIComponent(key)}`;
+    const histRes  = await fetch(histUrl, { headers: { Accept: 'application/json' } });
+    const histData = await histRes.json();
+
+    if (!histRes.ok || histData?.status === 'error') {
+        throw new Error(`Twelve Data history ${histRes.status}: ${histData?.message || ''}`);
+    }
+
+    // ── Parse ──────────────────────────────────────────────────────────────
     const out = {};
     for (const ticker of tickers) {
-        // Twelve Data returns data[ticker] for multi-symbol, data directly for single-symbol
-        const series = tickers.length === 1 ? data : data[ticker];
-        if (!series?.values?.length) { out[ticker] = { price: null, ret3m: null }; continue; }
+        // /quote: multi → data[ticker], single → data directly
+        const q     = tickers.length === 1 ? quoteData : quoteData[ticker];
+        const price = q ? parseFloat(q.close ?? q.price) : null;
 
-        const values = series.values;         // newest first
-        const latest = parseFloat(values[0].close);
-        const oldest = parseFloat(values[values.length - 1].close);
-        const ret3m  = Number.isFinite(oldest) && oldest > 0
-            ? (((latest - oldest) / oldest) * 100).toFixed(2)
+        // /time_series: multi → data[ticker].values, single → data.values
+        const series  = tickers.length === 1 ? histData : histData[ticker];
+        const values  = series?.values || [];
+        const oldVal  = values.length ? parseFloat(values[0].close) : null;   // newest in window = closest to anchor
+
+        const ret3m = Number.isFinite(price) && Number.isFinite(oldVal) && oldVal > 0
+            ? (((price - oldVal) / oldVal) * 100).toFixed(2)
             : null;
-        out[ticker] = { price: Number.isFinite(latest) ? latest : null, ret3m };
+
+        out[ticker] = { price: Number.isFinite(price) ? price : null, ret3m };
     }
     return out;
 }
 
-// ── Yahoo Finance fallback ────────────────────────────────────────────────────
-
-async function yfChart(ticker, params) {
-    const qs  = new URLSearchParams({ corsDomain: 'finance.yahoo.com', ...params }).toString();
-    const url = `${YF_BASE}/v8/finance/chart/${encodeURIComponent(ticker)}?${qs}`;
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`Yahoo Finance ${res.status} ${ticker}`);
-    return res.json();
-}
-
-function yfCurrentPrice(json) {
-    const meta = json?.chart?.result?.[0]?.meta ?? {};
-    const p = meta.regularMarketPrice ?? meta.chartPreviousClose ?? meta.previousClose;
-    return typeof p === 'number' ? p : null;
-}
-
-async function yfPriceAndReturn(ticker) {
-    const now = Math.floor(Date.now() / 1000);
-    const p1  = now - 92 * 86400;
-    const json   = await yfChart(ticker, { period1: p1, period2: now, interval: '1d' });
-    const price  = yfCurrentPrice(json);
-    const closes = json?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
-    const valid  = closes.filter(c => c != null);
-    let ret3m = null;
-    if (valid.length >= 2) {
-        const first = valid[0], last = valid[valid.length - 1];
-        if (first > 0) ret3m = (((last - first) / first) * 100).toFixed(2);
-    }
-    return { price, ret3m };
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/**
- * Fetch current price + 3-month return for a list of tickers.
- * Primary: Twelve Data in batches of 120. Fallback: Yahoo Finance per-ticker.
- */
+/** Fetch current price + 3-month return for a list of tickers via Twelve Data (batches of 120). */
 async function fetchBatchPriceAndReturn(tickers) {
     if (!tickers?.length) return {};
     const unique = [...new Set(tickers.map(t => String(t).trim().toUpperCase()))].filter(Boolean);
     const map    = {};
     const key    = getApiKey();
+    if (!key) { console.warn('No Twelve Data API key — enter it via the Twelve Data tile.'); return {}; }
 
-    if (key) {
-        try {
-            // Split into chunks of at most BATCH_SIZE (120)
-            for (let i = 0; i < unique.length; i += BATCH_SIZE) {
-                const chunk   = unique.slice(i, i + BATCH_SIZE);
-                const results = await tdBatchChunk(chunk, key);
-                Object.assign(map, results);
-            }
-            for (const [ticker, entry] of Object.entries(map)) setCache(`quote:${ticker}`, entry);
-            if (Object.values(map).some(v => v?.price != null)) return map;
-        } catch (e) {
-            console.warn('Twelve Data batch failed, falling back to Yahoo:', e.message);
+    try {
+        for (let i = 0; i < unique.length; i += BATCH_SIZE) {
+            const chunk   = unique.slice(i, i + BATCH_SIZE);
+            const results = await tdBatchChunk(chunk, key);
+            Object.assign(map, results);
         }
+        for (const [ticker, entry] of Object.entries(map)) setCache(`quote:${ticker}`, entry);
+    } catch (e) {
+        console.error('fetchBatchPriceAndReturn failed:', e.message);
     }
-
-    // Yahoo Finance fallback — parallel per-ticker
-    await Promise.all(unique.map(async ticker => {
-        const ck = `quote:${ticker}`;
-        const cached = getCache(ck, CACHE_TTL.quote);
-        if (cached !== undefined) { map[ticker] = cached; return; }
-        try {
-            const entry = await yfPriceAndReturn(ticker);
-            setCache(ck, entry);
-            map[ticker] = entry;
-        } catch (e) {
-            console.warn('Yahoo fallback:', ticker, e.message);
-            map[ticker] = { price: null, ret3m: null };
-        }
-    }));
-
     return map;
 }
 
@@ -161,44 +128,21 @@ async function fetchHistoricalPrice(ticker, date) {
     if (cached !== undefined) return cached;
 
     const key = getApiKey();
-    if (key) {
-        try {
-            const url = `${TD_BASE}/time_series?symbol=${encodeURIComponent(ticker)}&interval=1day`
-                      + `&start_date=${addDaysYmd(date, -5)}&end_date=${addDaysYmd(date, 3)}`
-                      + `&apikey=${encodeURIComponent(key)}`;
-            const res = await fetch(url, { headers: { Accept: 'application/json' } });
-            if (res.ok) {
-                const data   = await res.json();
-                const values = data?.values || [];
-                if (values.length) {
-                    const price = parseFloat(values[0].close);
-                    if (Number.isFinite(price)) { setCache(ck, price); return price; }
-                }
-            }
-        } catch (e) {
-            console.warn('fetchHistoricalPrice TD:', ticker, date, e.message);
-        }
-    }
+    if (!key) return null;
 
-    // Yahoo fallback
     try {
-        const targetSec  = Date.parse(date + 'T12:00:00Z') / 1000;
-        const p1 = Math.floor(targetSec - 10 * 86400);
-        const p2 = Math.floor(targetSec +  5 * 86400);
-        const json       = await yfChart(ticker, { period1: p1, period2: p2, interval: '1d' });
-        const result     = json?.chart?.result?.[0];
-        const timestamps = result?.timestamp || [];
-        const closes     = result?.indicators?.quote?.[0]?.close || [];
-        let best = null, bestDiff = Infinity;
-        for (let i = 0; i < timestamps.length; i++) {
-            if (closes[i] == null) continue;
-            const diff = Math.abs(timestamps[i] - targetSec);
-            if (diff < bestDiff) { bestDiff = diff; best = closes[i]; }
-        }
-        setCache(ck, best);
-        return best;
+        const url = `${TD_BASE}/time_series?symbol=${encodeURIComponent(ticker)}&interval=1day`
+                  + `&start_date=${addDaysYmd(date, -5)}&end_date=${addDaysYmd(date, 3)}`
+                  + `&apikey=${encodeURIComponent(key)}`;
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error(`Twelve Data ${res.status}`);
+        const data   = await res.json();
+        const values = data?.values || [];
+        const price  = values.length ? parseFloat(values[0].close) : null;
+        setCache(ck, Number.isFinite(price) ? price : null);
+        return Number.isFinite(price) ? price : null;
     } catch (e) {
-        console.warn('fetchHistoricalPrice YF:', ticker, date, e.message);
+        console.warn('fetchHistoricalPrice:', ticker, date, e.message);
         return null;
     }
 }
@@ -242,4 +186,4 @@ window.MarketData = {
     clearCache,
 };
 
-window.YahooFinance = window.MarketData; // backwards-compat alias
+window.YahooFinance = window.MarketData; // backwards-compat alias kept for any existing callers
