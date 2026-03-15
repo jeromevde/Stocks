@@ -19,6 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing Stock Tracker...');
     tryAutoLogin();
 
+    const keyCookie = {
+        get(name) {
+            const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
+            return m ? decodeURIComponent(m[1]) : '';
+        },
+        set(name, value, days = 60) {
+            const maxAge = Math.max(1, Math.floor(days * 24 * 60 * 60));
+            document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
+        },
+        clear(name) {
+            document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+        }
+    };
+
     // GitHub auth form
     document.getElementById('github-auth-form')?.addEventListener('submit', e => {
         e.preventDefault();
@@ -66,34 +80,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (repoInput) repoInput.value = repo;
     });
 
-    document.getElementById('eulerpool-key-tile')?.addEventListener('click', () => {
-        document.getElementById('eulerpool-modal').style.display = 'flex';
-        const input = document.getElementById('eulerpool-api-key');
-        if (input) input.value = window.TokenStore?.get('eulerpool_api_key') || '';
+    document.getElementById('massive-key-tile')?.addEventListener('click', () => {
+        document.getElementById('massive-modal').style.display = 'flex';
+        const input = document.getElementById('massive-api-key');
+        if (input) input.value = keyCookie.get('massive_api_key') || '';
     });
 
-    document.getElementById('close-eulerpool-modal')?.addEventListener('click', () => {
-        document.getElementById('eulerpool-modal').style.display = 'none';
+    document.getElementById('close-massive-modal')?.addEventListener('click', () => {
+        document.getElementById('massive-modal').style.display = 'none';
     });
 
-    document.getElementById('eulerpool-form')?.addEventListener('submit', e => {
+    document.getElementById('massive-form')?.addEventListener('submit', e => {
         e.preventDefault();
-        const key = document.getElementById('eulerpool-api-key')?.value.trim();
-        if (!key) { showStatus('Please enter an Eulerpool API key.', 'error'); return; }
-        window.TokenStore?.set('eulerpool_api_key', key);
+        const key = document.getElementById('massive-api-key')?.value.trim();
+        if (!key) { showStatus('Please enter a Massive API key.', 'error'); return; }
+        keyCookie.set('massive_api_key', key);
+        localStorage.removeItem('massive_api_key');
+        localStorage.removeItem('polygon_api_key');
+        keyCookie.clear('eulerpool_api_key');
+        localStorage.removeItem('eulerpool_api_key');
         window.MarketData?.clearCache();
         updateApiKeyTiles();
-        document.getElementById('eulerpool-modal').style.display = 'none';
-        showStatus('Eulerpool API key saved', 'success');
+        document.getElementById('massive-modal').style.display = 'none';
+        showStatus('Massive API key saved', 'success');
     });
 
-    document.getElementById('eulerpool-clear')?.addEventListener('click', e => {
+    document.getElementById('massive-clear')?.addEventListener('click', e => {
         e.preventDefault();
-        window.TokenStore?.clear('eulerpool_api_key');
+        keyCookie.clear('massive_api_key');
+        keyCookie.clear('polygon_api_key');
+        localStorage.removeItem('massive_api_key');
+        localStorage.removeItem('polygon_api_key');
         window.MarketData?.clearCache();
         updateApiKeyTiles();
-        document.getElementById('eulerpool-modal').style.display = 'none';
-        showStatus('Eulerpool API key removed', 'info');
+        document.getElementById('massive-modal').style.display = 'none';
+        showStatus('Massive API key removed', 'info');
     });
 
     // Save

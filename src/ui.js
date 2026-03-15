@@ -298,7 +298,7 @@ function closeNotesPopup() {
 
 /** Add-Stock modal */
 let addStockDebounce = null;
-let warnedMissingEulerKey = false;
+let warnedMissingMarketKey = false;
 
 function openAddStockModal() {
     const overlay = document.getElementById('add-stock-overlay');
@@ -319,7 +319,7 @@ function openAddStockModal() {
     confirmBtn.dataset.name = '';
 
     overlay.classList.add('show');
-    warnedMissingEulerKey = false;
+    warnedMissingMarketKey = false;
     setTimeout(() => input.focus(), 50);
 }
 
@@ -354,11 +354,11 @@ function wireAddStockModal() {
         nameEl.textContent = '';
         if (!q) { suggestions.innerHTML = ''; return; }
 
-        if (!window.MarketData?.getApiKey?.()) {
+        if (!window.MarketData?.hasMassiveApiKey?.()) {
             suggestions.innerHTML = '';
-            if (!warnedMissingEulerKey) {
-                showStatus('Add your Eulerpool API key to search tickers.', 'error');
-                warnedMissingEulerKey = true;
+            if (!warnedMissingMarketKey) {
+                showStatus('Add your Massive API key to search tickers.', 'error');
+                warnedMissingMarketKey = true;
             }
             return;
         }
@@ -439,9 +439,9 @@ window.updatePriceCells = updatePriceCells;
 
 function updateApiKeyTiles() {
     const ghTile = document.getElementById('github-key-tile');
-    const epTile = document.getElementById('eulerpool-key-tile');
+    const epTile = document.getElementById('massive-key-tile');
     const hasGitHub = !!(window.TokenStore?.get('github_token'));
-    const hasEuler = !!(window.TokenStore?.get('eulerpool_api_key'));
+    const hasMarket = !!(window.MarketData?.hasMassiveApiKey?.());
 
     if (ghTile) {
         ghTile.classList.toggle('inactive', !hasGitHub);
@@ -450,8 +450,8 @@ function updateApiKeyTiles() {
         if (status) status.textContent = repoLabel;
     }
     if (epTile) {
-        epTile.classList.toggle('inactive', !hasEuler);
+        epTile.classList.toggle('inactive', !hasMarket);
         const status = epTile.querySelector('.key-status');
-        if (status) status.textContent = hasEuler ? 'Ready' : 'Set key';
+        if (status) status.textContent = hasMarket ? 'Ready' : 'Set key';
     }
 }

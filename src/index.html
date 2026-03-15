@@ -18,8 +18,8 @@
                 <span class="key-label">GitHub</span>
                 <span class="key-status">Set key</span>
             </button>
-            <button id="eulerpool-key-tile" class="key-tile inactive">
-                <span class="key-label">Eulerpool</span>
+            <button id="massive-key-tile" class="key-tile inactive">
+                <span class="key-label">Massive</span>
                 <span class="key-status">Set key</span>
             </button>
         </div>
@@ -88,25 +88,25 @@
             </div>
         </div>
 
-        <!-- Eulerpool API Modal -->
-        <div id="eulerpool-modal" class="modal" style="display: none;">
+        <!-- Massive API Modal -->
+        <div id="massive-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 20px; margin: -20px -20px 20px -20px; border-radius: 8px 8px 0 0;">
-                    <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">Eulerpool API Key</h3>
-                    <span class="close" id="close-eulerpool-modal" style="color: white;">&times;</span>
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">Massive API Key</h3>
+                    <span class="close" id="close-massive-modal" style="color: white;">&times;</span>
                 </div>
                 <div class="modal-body">
-                    <form id="eulerpool-form">
+                    <form id="massive-form">
                         <div class="form-group">
-                            <label for="eulerpool-api-key">API Key:</label>
-                            <input type="password" id="eulerpool-api-key" placeholder="Enter your Eulerpool API key" required>
+                            <label for="massive-api-key">API Key:</label>
+                            <input type="password" id="massive-api-key" placeholder="Enter your Massive API key" required>
                         </div>
                         <div class="modal-buttons">
                             <button type="submit" class="btn-primary" style="flex:1; padding: 12px;">Save Key</button>
-                            <button type="button" id="eulerpool-clear" class="btn-secondary" style="padding: 12px;">Remove</button>
+                            <button type="button" id="massive-clear" class="btn-secondary" style="padding: 12px;">Remove</button>
                         </div>
                         <p style="text-align: center; margin-top: 12px; color: #666; font-size: 13px;">
-                            Stored locally in cookies only. Required for price lookups.
+                            Stored in cookie only. Used for price snapshots and ticker search.
                         </p>
                     </form>
                 </div>
@@ -187,10 +187,10 @@
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
     <!-- Load modules in order with cache busting -->
-    <script src="github.js?v=4"></script>
-    <script src="yahoo.js?v=4"></script>
-    <script src="portfolio.js?v=4"></script>
-    <script src="ui.js?v=4"></script>
-    <script src="main.js?v=4"></script>
+    <script src="github.js?v=6"></script>
+    <script src="yahoo.js?v=6"></script>
+    <script src="portfolio.js?v=6"></script>
+    <script src="ui.js?v=6"></script>
+    <script src="main.js?v=6"></script>
 </body>
 </html>
