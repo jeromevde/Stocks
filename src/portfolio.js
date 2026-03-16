@@ -14,6 +14,11 @@ function markChanged() {
     hasUnsavedChanges = true;
     updateSaveButtonState();
     if (!document.title.startsWith('*')) document.title = '* Stock Tracker';
+    // Auto-save to localStorage
+    try {
+        localStorage.setItem('stocks', JSON.stringify(portfolio));
+    } catch (e) {}
+}
 }
 
 function markSaved() {

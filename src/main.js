@@ -160,8 +160,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial render & load
+    loadPortfolioFromStorage();
     updatePortfolioTable();
     updateApiKeyTiles();
     // Prices load lazily via Intersection Observer
     console.log('Stock Tracker initialized!');
+});
+
+/** Load portfolio from localStorage on startup */
+function loadPortfolioFromStorage() {
+    try {
+        const saved = localStorage.getItem('stocks');
+        if (saved) {
+            const stocks = JSON.parse(saved);
+            if (stocks && stocks.length > 0) {
+                window.Portfolio.data.length = 0;
+                window.Portfolio.data.push(...stocks);
+                console.log(`Loaded ${stocks.length} stocks from localStorage`);
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to load from localStorage:', e);
 });
