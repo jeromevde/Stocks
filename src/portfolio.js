@@ -82,13 +82,13 @@ async function save() {
     }
 }
 
-/** Load portfolio from GitHub */
+/** Load portfolio from GitHub - stocks only, prices load lazily */
 async function load() {
     try {
-        showStatus('Loading from GitHub...', 'info');
+        showStatus('Loading portfolio from GitHub...', 'info');
         const result = await window.githubClient.loadFile();
         if (!result.exists) {
-            showStatus('No portfolio found. Add some stocks!', 'info');
+            showStatus('No portfolio found on GitHub. Add some stocks!', 'info');
             markSaved();
             return;
         }
@@ -96,8 +96,8 @@ async function load() {
         portfolio.push(...parseHtml(result.content));
         markSaved();
         updatePortfolioTable();
-        showStatus(`Loaded ${portfolio.length} stocks. Prices will load as you scroll...`, 'success');
-        // Prices load lazily via Intersection Observer
+        showStatus(`Loaded ${portfolio.length} stocks. Prices will load as you scroll.`, 'success');
+        // Prices load lazily via Intersection Observer - no need to fetch all at once
     } catch (e) {
         showStatus(`Load failed: ${e.message}`, 'error');
     }

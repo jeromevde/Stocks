@@ -11,13 +11,15 @@ function tryAutoLogin() {
             window.githubClient.authenticate(t, o, r);
             updateGitHubUI();
             showStatus('Auto-logged in to GitHub', 'success');
+            return true;
         }
     } catch (e) { console.warn('Auto-login failed:', e); }
+    return false;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing Stock Tracker...');
-    tryAutoLogin();
+    const isAuthenticated = tryAutoLogin();
 
     // GitHub auth form
     document.getElementById('github-auth-form')?.addEventListener('submit', e => {
@@ -33,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateGitHubUI();
             showStatus('Authenticated with GitHub!', 'success');
             document.getElementById('github-auth-modal').style.display = 'none';
+            // Load portfolio immediately after auth
+            window.Portfolio?.load();
         } else {
             showStatus('Please enter all GitHub credentials.', 'error');
         }
@@ -160,15 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial render & load
-    loadPortfolioFromStorage();
-    updatePortfolioTable();
     updateApiKeyTiles();
-    // Auto-load from GitHub if authenticated
-    setTimeout(() => {
-        if (window.githubClient?.isAuthenticated()) {
-            window.Portfolio?.load();
-        }
-    }, 500);
+    
+    // Load portfolio immediately from GitHub if authenticated, otherwise from localStorage
+    if (isAuthenticated) {
+        console.log('Loading portfolio from GitHub...');
+        window.Portfolio?.load();
+    } else {
+        console.log('Loading portfolio from localStorage...');
+        loadPortfolioFromStorage();
+        updatePortfolioTable();
+    }
+    
     console.log('Stock Tracker initialized!');
 });
 
@@ -186,4 +193,5 @@ function loadPortfolioFromStorage() {
         }
     } catch (e) {
         console.warn('Failed to load from localStorage:', e);
-});
+    }
+}
