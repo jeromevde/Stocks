@@ -37,17 +37,13 @@ jobs:
 
         echo "📦 Processing branches..."
         
-        for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin); do
-          branch=${ref#origin/}
-          if [ "$branch" = "gh-pages" ] || [ "$branch" = "HEAD" ]; then
-            continue
-          fi
-
+        # Get all remote branches (excluding HEAD and gh-pages)
+        git branch -r | grep -v 'HEAD' | grep -v 'gh-pages' | sed 's|origin/||' | while read branch; do
           echo ""
           echo "🔨 Processing branch: $branch"
           
           worktree_dir="__worktree_$(echo "$branch" | tr '/' '-')"
-          git worktree add "$worktree_dir" "$ref" 2>&1 | head -1
+          git worktree add "$worktree_dir" "origin/$branch"
 
           target="deploy"
           if [ "$branch" != "main" ]; then
@@ -67,12 +63,12 @@ jobs:
             echo "   ⚠️  No src directory, skipping"
           fi
 
-          git worktree remove "$worktree_dir" --force 2>&1 | grep -v "^$" || true
+          git worktree remove "$worktree_dir" --force
         done
         
         echo ""
         echo "📊 Final deployment structure:"
-        find deploy -type f | head -30
+        find deploy -type f | sort
         
         echo ""
         echo "📁 Directory tree:"
