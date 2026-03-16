@@ -130,6 +130,7 @@ function renderRow(tbody, stock) {
     const d = formatDate(stock.date);
     const tr = document.createElement('tr');
     tr.dataset.ticker = stock.ticker;
+    tr.dataset.priceLoaded = stock.nowPrice && stock.nowPrice !== 'Loading...' && stock.nowPrice !== '...' ? 'true' : 'false';
 
     const stars = [1,2,3,4,5].map(i => `<span class="rating-star" data-r="${i}" style="cursor:pointer;font-size:1.1em;color:${i <= r ? '#f5b301' : '#ddd'}">${i <= r ? '★' : '☆'}</span>`).join('');
     const labels = stock.labels.map(l => `<span style="background:#e3f2fd;color:#1976d2;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;display:inline-block">${l}<span class="rm-label" data-l="${l}" style="margin-left:4px;cursor:pointer;font-weight:bold">×</span></span>`).join('');
@@ -440,3 +441,126 @@ function updateApiKeyTiles() {
         if (status) status.textContent = repoLabel;
     }
 }
+
+// Lazy loading price observer
+const priceObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const tr = entry.target;
+            const ticker = tr.dataset.ticker;
+            const isLoaded = tr.dataset.priceLoaded === 'true';
+            
+            if (ticker && !isLoaded) {
+                // Load price for this row
+                loadPriceForRow(ticker);
+            }
+        }
+    });
+}, {
+    root: null,
+    rootMargin: '100px', // Start loading 100px before visible
+    threshold: 0.01
+});
+
+async function loadPriceForRow(ticker) {
+    const api = window.MarketData;
+    const portfolio = window.Portfolio;
+    if (!api || !portfolio) return;
+    
+    const stock = portfolio.data.find(s => s.ticker === ticker);
+    if (!stock) return;
+    
+    // Mark as loading
+    stock.loading = true;
+    if (window.updatePriceCells) window.updatePriceCells(stock);
+    
+    try {
+        const [{ price, ret3m }, hist] = await Promise.all([
+            api.fetchPriceAndReturn(ticker),
+            api.fetchHistoricalPrice(ticker, stock.date)
+        ]);
+        
+        stock.nowPrice = price != null ? Number(price).toFixed(2) : 'N/A';
+        stock.return3m = ret3m != null ? ret3m : 'N/A';
+        stock.cumulativeReturn = (price != null && hist != null)
+            ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
+        
+        stock.loading = false;
+        
+        // Update the row's loaded status
+        const tr = document.querySelector(`#portfolio-tbody tr[data-ticker="${CSS.escape(ticker)}"]`);
+        if (tr) {
+            tr.dataset.priceLoaded = 'true';
+        }
+        
+        if (window.updatePriceCells) window.updatePriceCells(stock);
+        
+        // Cache in localStorage for persistence
+        const cacheKey = `price:${ticker}`;
+        const cacheData = {
+            price: stock.nowPrice,
+            ret3m: stock.return3m,
+            cumret: stock.cumulativeReturn,
+            timestamp: Date.now()
+        };
+        try {
+            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+        } catch (e) {}
+        
+    } catch (err) {
+        stock.nowPrice = 'N/A';
+        stock.return3m = 'N/A';
+        stock.cumulativeReturn = 'N/A';
+        stock.loading = false;
+        if (window.updatePriceCells) window.updatePriceCells(stock);
+    }
+}
+
+// Function to restore cached prices on load
+function restoreCachedPrices() {
+    const portfolio = window.Portfolio;
+    if (!portfolio) return;
+    
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+    
+    portfolio.data.forEach(stock => {
+        try {
+            const cached = localStorage.getItem(`price:${stock.ticker}`);
+            if (cached) {
+                const data = JSON.parse(cached);
+                if (Date.now() - data.timestamp < CACHE_TTL) {
+                    stock.nowPrice = data.price;
+                    stock.return3m = data.ret3m;
+                    stock.cumulativeReturn = data.cumret;
+                    stock.loading = false;
+                }
+            }
+        } catch (e) {}
+    });
+}
+
+// Modified table update to observe rows
+const originalUpdatePortfolioTable = updatePortfolioTable;
+window.updatePortfolioTable = function() {
+    originalUpdatePortfolioTable();
+    
+    // Disconnect old observers
+    priceObserver.disconnect();
+    
+    // Observe all rows for lazy loading
+    const rows = document.querySelectorAll('#portfolio-tbody tr[data-ticker]');
+    rows.forEach(row => {
+        const isLoaded = row.dataset.priceLoaded === 'true';
+        if (!isLoaded) {
+            priceObserver.observe(row);
+        }
+    });
+};
+
+// Restore cached prices on initial load
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        restoreCachedPrices();
+        updatePortfolioTable();
+    }, 100);
+});

@@ -162,6 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial render & load
     updatePortfolioTable();
     updateApiKeyTiles();
-    setTimeout(() => window.Portfolio?.refresh(), 100);
+    // Prices load lazily via Intersection Observer
     console.log('Stock Tracker initialized!');
 });
