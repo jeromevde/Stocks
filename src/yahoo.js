@@ -11,7 +11,7 @@ const CACHE_TTL = { search: 600_000, quote: 180_000, historical: 86_400_000 };
 const YF_BASE = 'https://query1.finance.yahoo.com';
 
 // Enable with: localStorage.setItem('debug_market_data', '1')
-const DEBUG_MARKET = localStorage.getItem('debug_market_data') === '1');
+const DEBUG_MARKET = localStorage.getItem('debug_market_data') === '1';
 function mdLog(...args) {
     if (DEBUG_MARKET) console.log('[MarketData]', ...args);
 }
