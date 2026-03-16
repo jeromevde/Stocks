@@ -130,6 +130,7 @@ function renderRow(tbody, stock) {
     const d = formatDate(stock.date);
     const tr = document.createElement('tr');
     tr.dataset.ticker = stock.ticker;
+    tr.dataset.priceLoaded = stock.nowPrice !== 'Loading...' && stock.nowPrice !== 'N/A' ? 'true' : 'false';
 
     const stars = [1,2,3,4,5].map(i => `<span class="rating-star" data-r="${i}" style="cursor:pointer;font-size:1.1em;color:${i <= r ? '#f5b301' : '#ddd'}">${i <= r ? '★' : '☆'}</span>`).join('');
     const labels = stock.labels.map(l => `<span style="background:#e3f2fd;color:#1976d2;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;display:inline-block">${l}<span class="rm-label" data-l="${l}" style="margin-left:4px;cursor:pointer;font-weight:bold">×</span></span>`).join('');
@@ -440,3 +441,68 @@ function updateApiKeyTiles() {
         if (status) status.textContent = repoLabel;
     }
 }
+
+// Lazy loading for prices - only load when row is visible
+const priceObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const tr = entry.target;
+            const ticker = tr.dataset.ticker;
+            const isLoaded = tr.dataset.priceLoaded === 'true';
+            
+            if (ticker && !isLoaded) {
+                loadPriceLazy(ticker);
+            }
+        }
+    });
+}, {
+    root: null,
+    rootMargin: '50px',
+    threshold: 0
+});
+
+async function loadPriceLazy(ticker) {
+    const api = window.MarketData;
+    const portfolio = window.Portfolio;
+    if (!api || !portfolio) return;
+    
+    const stock = portfolio.data.find(s => s.ticker === ticker);
+    if (!stock || stock.nowPrice !== 'Loading...') return;
+    
+    try {
+        const [{ price, ret3m }, hist] = await Promise.all([
+            api.fetchPriceAndReturn(ticker),
+            api.fetchHistoricalPrice(ticker, stock.date)
+        ]);
+        
+        stock.nowPrice = price != null ? Number(price).toFixed(2) : 'N/A';
+        stock.return3m = ret3m != null ? ret3m : 'N/A';
+        stock.cumulativeReturn = (price != null && hist != null)
+            ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
+        
+        const tr = document.querySelector(`#portfolio-tbody tr[data-ticker="${CSS.escape(ticker)}"]`);
+        if (tr) tr.dataset.priceLoaded = 'true';
+        
+        if (window.updatePriceCells) window.updatePriceCells(stock);
+    } catch (err) {
+        stock.nowPrice = 'N/A';
+        stock.return3m = 'N/A';
+        stock.cumulativeReturn = 'N/A';
+        const tr = document.querySelector(`#portfolio-tbody tr[data-ticker="${CSS.escape(ticker)}"]`);
+        if (tr) tr.dataset.priceLoaded = 'true';
+        if (window.updatePriceCells) window.updatePriceCells(stock);
+    }
+}
+
+// Hook into table updates to observe new rows
+const originalUpdatePortfolioTable = updatePortfolioTable;
+window.updatePortfolioTable = function() {
+    originalUpdatePortfolioTable();
+    
+    // Observe all rows for lazy loading
+    document.querySelectorAll('#portfolio-tbody tr[data-ticker]').forEach(row => {
+        if (row.dataset.priceLoaded !== 'true') {
+            priceObserver.observe(row);
+        }
+    });
+};

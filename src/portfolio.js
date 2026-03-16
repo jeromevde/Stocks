@@ -91,8 +91,8 @@ async function load() {
         portfolio.push(...parseHtml(result.content));
         markSaved();
         updatePortfolioTable();
-        showStatus(`Loaded ${portfolio.length} stocks. Fetching prices...`, 'success');
-        await updateAllPrices();
+        showStatus(`Loaded ${portfolio.length} stocks.`, 'success');
+        // Prices load lazily via Intersection Observer
     } catch (e) {
         showStatus(`Load failed: ${e.message}`, 'error');
     }
