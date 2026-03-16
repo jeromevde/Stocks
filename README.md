@@ -1,32 +1,40 @@
+# 📈 Stock Tracker
 
+A clean, fast stock portfolio tracker with lazy loading.
 
-# Stock Tracker
+## Features
 
-![](example.png)
+- ✨ **Super fast** - Lazy loading loads prices only when visible
+- 🚀 **No backend** - Direct Yahoo Finance API calls
+- 💾 **Local storage** - Your data stays on your device
+- 🎯 **Simple** - Just tickers, dates, and returns
 
-A full HTML/JavaScript stock tracker that uses Yahoo Finance for price lookups. Manage your portfolio with date-based cumulative return calculations, customizable labels for filtering, personal notes for each stock, clickable tickers that open TradingView charts, and GitHub integration for portfolio persistence.
+## Setup
 
-## How to use
-1. **Fork** this repo
-2. Activate **GitHub Pages** deployment from GitHub Actions in the repo settings (the workflow deploys every branch: `main` to `/`, other branches to `/{branch}`)
-3. Use the GitHub tile in the top-right of the app to add your GitHub token
+1. **Install a CORS extension** (required for Yahoo Finance API):
+   - Chrome: [Allow CORS](https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf)
+   - Firefox: [CORS Everywhere](https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/)
 
-## Development & Testing
+2. **Open `src/index.html`** in your browser
 
-### DEV Environment
-GitHub Pages now deploys every branch automatically:
-- **Production**: `main` branch publishes to the site root
-- **Previews**: any other branch publishes under `/branch-name`
+3. **Add stocks**:
+   - Enter ticker (e.g., AAPL)
+   - Select discovery date
+   - Click "Add Stock"
 
-### Local testing
+## How It Works
 
-```
-npx live-server src --port=8080 
-```
+- **Lazy Loading**: Stock prices only load when rows scroll into view
+- **Caching**: Prices cached for 3 minutes to reduce API calls
+- **Local Storage**: Click "Save" to persist, "Load" to restore
 
-## API Features
+## Tech
 
-### Yahoo Finance
-- Uses Yahoo Finance chart endpoints for current prices, 3M returns, and historical reference prices
-- Loads prices lazily: each row updates as soon as its request resolves
-- Uses Yahoo Finance search endpoint for ticker autocomplete (no API key required)
+- Pure vanilla JavaScript
+- Yahoo Finance API (free, no key needed)
+- Intersection Observer for lazy loading
+- LocalStorage for persistence
+
+---
+
+**Note**: This requires a CORS-allowing browser extension since Yahoo Finance doesn't allow direct browser calls. The extension is only needed when viewing the page - no server/proxy required.
