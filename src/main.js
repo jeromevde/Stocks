@@ -163,7 +163,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPortfolioFromStorage();
     updatePortfolioTable();
     updateApiKeyTiles();
-    // Prices load lazily via Intersection Observer
+    // Auto-load from GitHub if authenticated
+    setTimeout(() => {
+        if (window.githubClient?.isAuthenticated()) {
+            window.Portfolio?.load();
+        }
+    }, 500);
     console.log('Stock Tracker initialized!');
 });
 
