@@ -76,6 +76,18 @@ document.addEventListener('DOMContentLoaded', () => {
         window.Portfolio?.save().catch(err => console.error('Save error:', err));
     });
 
+    // Load
+    document.getElementById('load-portfolio')?.addEventListener('click', e => {
+        e.preventDefault();
+        if (window.githubClient?.isAuthenticated()) {
+            window.Portfolio?.load();
+        } else {
+            // Show auth modal first
+            document.getElementById('github-auth-modal').style.display = 'flex';
+            showStatus('Please authenticate with GitHub to load your portfolio', 'info');
+        }
+    });
+
     // Add stock button → open modal
     document.getElementById('add-stock-btn')?.addEventListener('click', () => window.openAddStockModal?.());
 
