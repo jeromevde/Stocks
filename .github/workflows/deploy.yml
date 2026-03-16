@@ -37,26 +37,33 @@ jobs:
 
         echo "📦 Processing branches..."
         
-        # Get all remote branches (excluding HEAD and gh-pages)
-        git branch -r | grep -v 'HEAD' | grep -v 'gh-pages' | sed 's|origin/||' | while read branch; do
+        # Process main branch first to root
+        echo ""
+        echo "🔨 Processing branch: main"
+        git worktree add __wt_main origin/main
+        if [ -d "__wt_main/src" ]; then
+          echo "   📁 Copying src/ to root..."
+          rsync -a __wt_main/src/ deploy/
+          file_count=$(find deploy -maxdepth 1 -type f | wc -l)
+          echo "   ✅ Copied $file_count files to root"
+        fi
+        git worktree remove __wt_main --force
+        
+        # Process other branches to subdirectories
+        git branch -r | grep -v 'HEAD' | grep -v 'gh-pages' | grep -v 'main' | sed 's|origin/||' | while read branch; do
           echo ""
           echo "🔨 Processing branch: $branch"
           
           worktree_dir="__worktree_$(echo "$branch" | tr '/' '-')"
           git worktree add "$worktree_dir" "origin/$branch"
 
-          target="deploy"
-          if [ "$branch" != "main" ]; then
-            target="deploy/$branch"
-            mkdir -p "$target"
-            echo "   Target: /$branch/"
-          else
-            echo "   Target: / (root)"
-          fi
+          target="deploy/$branch"
+          mkdir -p "$target"
+          echo "   Target: /$branch/"
 
           if [ -d "$worktree_dir/src" ]; then
             echo "   📁 Copying src/ contents..."
-            rsync -a --delete "$worktree_dir/src/" "$target/"
+            rsync -a "$worktree_dir/src/" "$target/"
             file_count=$(find "$target" -type f | wc -l)
             echo "   ✅ Copied $file_count files"
           else
