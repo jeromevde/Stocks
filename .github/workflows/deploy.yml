@@ -5,9 +5,12 @@ on:
     branches: [ '**' ]
   workflow_dispatch:
 
+# IMPORTANT: Don't cancel in-progress deployments.
+# If main and dev push at the same time, they must run sequentially
+# to avoid one overwriting the other's changes.
 concurrency:
   group: github-pages-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -26,61 +29,63 @@ jobs:
     - name: Checkout all branches
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # Need all history for worktrees
 
-    - name: Prepare pages for all branches
+    - name: Build deploy directory
       run: |
         set -euo pipefail
         rm -rf deploy
         mkdir deploy
         git fetch --all --prune
 
-        echo "📦 Processing branches..."
-        
-        # Process main branch first to root
+        echo "📦 Building complete deployment package..."
+        echo "   Triggered by: ${{ github.ref_name }} push"
         echo ""
-        echo "🔨 Processing branch: main"
-        git worktree add __wt_main origin/main
-        if [ -d "__wt_main/src" ]; then
-          echo "   📁 Copying src/ to root..."
-          rsync -a __wt_main/src/ deploy/
-          file_count=$(find deploy -maxdepth 1 -type f | wc -l)
-          echo "   ✅ Copied $file_count files to root"
-        fi
-        git worktree remove __wt_main --force
-        
-        # Process other branches to subdirectories
-        git branch -r | grep -v 'HEAD' | grep -v 'gh-pages' | grep -v 'main' | sed 's|origin/||' | while read branch; do
-          echo ""
-          echo "🔨 Processing branch: $branch"
-          
-          worktree_dir="__worktree_$(echo "$branch" | tr '/' '-')"
-          git worktree add "$worktree_dir" "origin/$branch"
 
-          target="deploy/$branch"
-          mkdir -p "$target"
-          echo "   Target: /$branch/"
+        # Process main branch first (root)
+        if git show-ref --verify --quiet refs/remotes/origin/main; then
+          echo "🔨 Processing: main -> /"
+          git worktree add __wt_main origin/main
+          if [ -d "__wt_main/src" ]; then
+            rsync -a __wt_main/src/ deploy/
+            echo "   ✅ Copied to root"
+          fi
+          git worktree remove __wt_main --force
+        fi
+
+        # Process all other branches to subdirectories
+        for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin); do
+          branch=${ref#origin/}
+          
+          # Skip main (already done), HEAD, and gh-pages
+          if [ "$branch" = "main" ] || [ "$branch" = "HEAD" ] || [ "$branch" = "gh-pages" ]; then
+            continue
+          fi
+
+          echo "🔨 Processing: $branch -> /$branch/"
+          
+          worktree_dir="__wt_$(echo "$branch" | tr '/' '-')"
+          git worktree add "$worktree_dir" "$ref"
 
           if [ -d "$worktree_dir/src" ]; then
-            echo "   📁 Copying src/ contents..."
-            rsync -a "$worktree_dir/src/" "$target/"
-            file_count=$(find "$target" -type f | wc -l)
-            echo "   ✅ Copied $file_count files"
+            mkdir -p "deploy/$branch"
+            rsync -a "$worktree_dir/src/" "deploy/$branch/"
+            echo "   ✅ Copied to /$branch/"
           else
             echo "   ⚠️  No src directory, skipping"
           fi
 
           git worktree remove "$worktree_dir" --force
         done
-        
+
         echo ""
-        echo "📊 Final deployment structure:"
-        find deploy -type f | sort
-        
+        echo "📊 Deployment summary:"
+        echo "   Directories: $(find deploy -type d | wc -l)"
+        echo "   Files: $(find deploy -type f | wc -l)"
         echo ""
-        echo "📁 Directory tree:"
+        echo "📁 Structure:"
         find deploy -type d | sort
-        
+
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
