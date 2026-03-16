@@ -35,29 +35,49 @@ jobs:
         mkdir deploy
         git fetch --all --prune
 
+        echo "📦 Processing branches..."
+        
         for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin); do
           branch=${ref#origin/}
           if [ "$branch" = "gh-pages" ] || [ "$branch" = "HEAD" ]; then
             continue
           fi
 
+          echo ""
+          echo "🔨 Processing branch: $branch"
+          
           worktree_dir="__worktree_$(echo "$branch" | tr '/' '-')"
-          git worktree add "$worktree_dir" "$ref"
+          git worktree add "$worktree_dir" "$ref" 2>&1 | head -1
 
           target="deploy"
           if [ "$branch" != "main" ]; then
             target="deploy/$branch"
             mkdir -p "$target"
+            echo "   Target: /$branch/"
+          else
+            echo "   Target: / (root)"
           fi
 
           if [ -d "$worktree_dir/src" ]; then
+            echo "   📁 Copying src/ contents..."
             rsync -a --delete "$worktree_dir/src/" "$target/"
+            file_count=$(find "$target" -type f | wc -l)
+            echo "   ✅ Copied $file_count files"
           else
-            echo "Skipping $branch (no src directory)" >&2
+            echo "   ⚠️  No src directory, skipping"
           fi
 
-          git worktree remove "$worktree_dir" --force
+          git worktree remove "$worktree_dir" --force 2>&1 | grep -v "^$" || true
         done
+        
+        echo ""
+        echo "📊 Final deployment structure:"
+        find deploy -type f | head -30
+        
+        echo ""
+        echo "📁 Directory tree:"
+        find deploy -type d | sort
+        
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
