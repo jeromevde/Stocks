@@ -3,6 +3,8 @@ name: Deploy All Branches to GitHub Pages
 on:
   push:
     branches: [ '**' ]
+  delete:
+    branches: [ '**' ]
   workflow_dispatch:
 
 # IMPORTANT: Don't cancel in-progress deployments.
@@ -15,6 +17,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: github.event_name != 'delete' || github.event.ref_type == 'branch'
 
     permissions:
       contents: read
@@ -38,8 +41,16 @@ jobs:
         mkdir deploy
         git fetch --all --prune
 
+        deleted_branch="${{ github.event.ref }}"
+        event_name="${{ github.event_name }}"
+
         echo "📦 Building complete deployment package..."
-        echo "   Triggered by: ${{ github.ref_name }} push"
+        echo "   Triggered by: $event_name"
+        if [ "$event_name" = "delete" ]; then
+          echo "   Deleted branch: $deleted_branch"
+        else
+          echo "   Pushed branch: ${{ github.ref_name }}"
+        fi
         echo ""
 
         # Process main branch first (root)
