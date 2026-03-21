@@ -249,6 +249,11 @@ function renderRow(tbody, stock) {
 
     const stars = [1,2,3,4,5].map(i => `<span class="rating-star" data-r="${i}" style="cursor:pointer;font-size:1.1em;color:${i <= r ? '#f5b301' : '#ddd'}">${i <= r ? '★' : '☆'}</span>`).join('');
     const labels = stock.labels.map(l => `<span style="background:#e3f2fd;color:#1976d2;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;display:inline-block">${l}<span class="rm-label" data-l="${l}" style="margin-left:4px;cursor:pointer;font-weight:bold">×</span></span>`).join('');
+    const orderedLabels = window.Portfolio.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
+    const availableLabels = orderedLabels.filter(l => !stock.labels.includes(l));
+    const addLabelDropdown = availableLabels.length
+        ? `<select class="add-label-select" style="margin-left:4px;padding:2px 4px;font-size:11px;border:1px solid #ddd;border-radius:4px;background:#fff;color:#555;max-width:120px;"><option value="">+ label</option>${availableLabels.map(l => `<option value="${l}">${l}</option>`).join('')}</select>`
+        : '';
     const notesShort = getNotesPreview(stock.notes);
     const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
 
@@ -256,7 +261,7 @@ function renderRow(tbody, stock) {
         <td style="text-align:center">${stars}</td>
         <td style="text-align:center"><div class="ticker-cell" style="cursor:pointer" data-t="${stock.ticker}"><b style="color:#0066cc">${stock.ticker}</b><div style="font-size:11px;color:#888">${stock.name || ''}</div></div></td>
         <td style="text-align:center"><div class="date-disp" style="cursor:pointer"><div style="font-size:12px">${d.formatted}</div><div style="font-size:10px;color:#999">${d.timeAgo}</div></div><input type="date" value="${stock.date}" class="edit-date" style="display:none;width:130px;padding:4px;font-size:12px;border:1px solid #ddd;border-radius:4px"></td>
-        <td style="text-align:center"><div class="labels-box" style="min-width:80px;padding:4px">${labels}<span class="add-label-btn" style="background:#f0f0f0;color:#666;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;cursor:pointer;display:inline-block">+</span></div></td>
+        <td style="text-align:center"><div class="labels-box" style="min-width:80px;padding:4px">${labels}${addLabelDropdown}</div></td>
         <td style="text-align:center"><span class="notes-btn" style="cursor:pointer;padding:8px;background:#f9f9f9;color:#666;border-radius:3px;display:inline-block;min-width:80px">${notesShort}</span></td>
         <td class="price-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:80px">${priceDisplay}</td>
         <td class="return3m-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:60px">${colorReturn(stock.return3m)}</td>
@@ -275,23 +280,15 @@ function renderRow(tbody, stock) {
     dateInput.addEventListener('change', e => window.Portfolio.updateDate(idx, e.target.value));
     dateInput.addEventListener('blur', () => { dateDisp.style.display = 'block'; dateInput.style.display = 'none'; });
 
-    tr.querySelector('.add-label-btn').addEventListener('click', e => {
-        e.stopPropagation();
-        const orderedLabels = window.Portfolio.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
-        const available = orderedLabels.filter(l => !stock.labels.includes(l));
-        if (!available.length) {
-            showStatus('No existing labels available. Create one in label section first.', 'info');
-            return;
-        }
-        const choice = prompt(`Select existing label:\n${available.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nType number or label name:`);
-        if (!choice) return;
-        const indexChoice = Number(choice);
-        const picked = Number.isInteger(indexChoice) && indexChoice >= 1 && indexChoice <= available.length
-            ? available[indexChoice - 1]
-            : choice.trim();
-        if (available.includes(picked)) window.Portfolio.addLabel(idx, picked);
-        else showStatus('Invalid label. Choose one of existing labels.', 'error');
-    });
+    const addLabelSelect = tr.querySelector('.add-label-select');
+    if (addLabelSelect) {
+        addLabelSelect.addEventListener('click', e => e.stopPropagation());
+        addLabelSelect.addEventListener('change', e => {
+            const picked = (e.target.value || '').trim();
+            if (!picked) return;
+            window.Portfolio.addLabel(idx, picked);
+        });
+    }
     tr.querySelectorAll('.rm-label').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); window.Portfolio.removeLabel(idx, b.dataset.l); }));
 
     tbody.appendChild(tr);
