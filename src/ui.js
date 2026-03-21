@@ -57,12 +57,34 @@ function colorReturn(val) {
     return `<span style="color:${n >= 0 ? '#4caf50' : '#f44336'};display:inline-block;min-width:50px">${val}%</span>`;
 }
 
+function extractYouTubeId(text = '') {
+    const t = text.trim();
+    const m = t.match(/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})(?:[?&].*)?$/i);
+    return m ? m[1] : null;
+}
+
+function isImageUrl(text = '') {
+    return /^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg))(?:\?[^\s]*)?$/i.test(text.trim());
+}
+
+function isVideoUrl(text = '') {
+    return /^(https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov|m4v))(?:\?[^\s]*)?$/i.test(text.trim());
+}
+
 function getNotesPreview(notes) {
     if (!notes) return '';
-    // Normalize whitespace but preserve single spaces and newlines
-    const text = notes.replace(/\s+/g, ' ').trim();
+    const lines = notes.split('\n').map(line => {
+        const t = line.trim();
+        if (!t) return '';
+        if (extractYouTubeId(t)) return '[video]';
+        if (isVideoUrl(t)) return '[video]';
+        if (isImageUrl(t)) return '[image]';
+        return line;
+    });
+
+    // Normalize whitespace but keep placeholders
+    const text = lines.join(' ').replace(/\s+/g, ' ').trim();
     if (!text) return '';
-    // Limit to NOTES_PREVIEW_MAX_CHARS characters
     if (text.length <= NOTES_PREVIEW_MAX_CHARS) return text;
     return text.slice(0, NOTES_PREVIEW_MAX_CHARS) + '…';
 }
@@ -299,24 +321,23 @@ function closeChart() {}
 
 function parseMedia(text) {
     if (!text) return '';
-    // Work on plain text - split lines, process each
     const lines = text.split('\n');
     return lines.map(line => {
         const trimmed = line.trim();
-        // YouTube - full URL
-        const ytMatch = trimmed.match(/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
-        if (ytMatch) {
-            return `<a href="https://www.youtube.com/watch?v=${ytMatch[1]}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
-                <img src="https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
+        const ytId = extractYouTubeId(trimmed);
+        if (ytId) {
+            return `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
+                <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
                 <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;">
                     <div style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:24px solid white;margin-left:4px;"></div>
                 </div>
             </a>`;
         }
-        // Image URL
-        const imgMatch = trimmed.match(/^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg))(?:\?[^\s]*)?$/i);
-        if (imgMatch) {
-            return `<img src="${imgMatch[1]}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
+        if (isVideoUrl(trimmed)) {
+            return `<video src="${trimmed}" controls style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+        }
+        if (isImageUrl(trimmed)) {
+            return `<img src="${trimmed}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
         }
         return line;
     }).join('\n');
@@ -334,6 +355,9 @@ function serializeNotes(editorEl) {
     });
     clone.querySelectorAll('img').forEach(img => {
         img.replaceWith(img.src + '\n');
+    });
+    clone.querySelectorAll('video').forEach(video => {
+        video.replaceWith((video.currentSrc || video.src || '') + '\n');
     });
     let html = clone.innerHTML;
     // Preserve line breaks - convert divs and brs to newlines
