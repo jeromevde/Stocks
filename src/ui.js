@@ -73,17 +73,14 @@ function isVideoUrl(text = '') {
 
 function getNotesPreview(notes) {
     if (!notes) return '';
-    const lines = notes.split('\n').map(line => {
-        const t = line.trim();
-        if (!t) return '';
-        if (extractYouTubeId(t)) return '[video]';
-        if (isVideoUrl(t)) return '[video]';
-        if (isImageUrl(t)) return '[image]';
-        return line;
-    });
 
-    // Normalize whitespace but keep placeholders
-    const text = lines.join(' ').replace(/\s+/g, ' ').trim();
+    // Replace media URLs anywhere in the text (not only full-line URLs)
+    let text = String(notes);
+    text = text.replace(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}(?:[?&][^\s]*)?/gi, '[video]');
+    text = text.replace(/https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov|m4v)(?:\?[^\s]*)?/gi, '[video]');
+    text = text.replace(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg)(?:\?[^\s]*)?/gi, '[image]');
+
+    text = text.replace(/\s+/g, ' ').trim();
     if (!text) return '';
     if (text.length <= NOTES_PREVIEW_MAX_CHARS) return text;
     return text.slice(0, NOTES_PREVIEW_MAX_CHARS) + '…';
