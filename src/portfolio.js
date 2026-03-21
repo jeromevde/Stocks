@@ -135,6 +135,9 @@ async function load() {
         }
         portfolio.length = 0;
         portfolio.push(...parseHtml(result.content));
+        // Always reset to default (star sorting) after reload
+        sortByCumulativeReturn = false;
+        sortBy3MonthReturn = false;
         markSaved();
         updatePortfolioTable();
         showStatus(`Loaded ${portfolio.length} stocks.`, 'success');
@@ -284,13 +287,24 @@ function updateNotes(idx, notes) {
     if (portfolio[idx]) { portfolio[idx].notes = notes; markChanged(); }
 }
 
+function metricValue(v) {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : -Infinity;
+}
+
 function getSortedFiltered() {
     let sorted = [...portfolio].sort((a, b) => {
-        const diff = (b.rating || 0) - (a.rating || 0);
-        if (diff !== 0) return diff;
-        if (sortByCumulativeReturn) return (parseFloat(b.cumulativeReturn) || -Infinity) - (parseFloat(a.cumulativeReturn) || -Infinity);
-        if (sortBy3MonthReturn) return (parseFloat(b.return3m) || -Infinity) - (parseFloat(a.return3m) || -Infinity);
-        return 0;
+        if (sortByCumulativeReturn) {
+            const m = metricValue(b.cumulativeReturn) - metricValue(a.cumulativeReturn);
+            if (m !== 0) return m;
+            return (b.rating || 0) - (a.rating || 0);
+        }
+        if (sortBy3MonthReturn) {
+            const m = metricValue(b.return3m) - metricValue(a.return3m);
+            if (m !== 0) return m;
+            return (b.rating || 0) - (a.rating || 0);
+        }
+        return (b.rating || 0) - (a.rating || 0);
     });
     if (labelFilterSet.size > 0) sorted = sorted.filter(s => s.labels.some(l => labelFilterSet.has(l)));
     return sorted;
