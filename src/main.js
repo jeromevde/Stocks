@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (labelHeader && dropdown) {
         labelHeader.addEventListener('click', e => {
             e.stopPropagation();
-            const labels = Array.from(new Set((window.Portfolio?.data || []).flatMap(s => s.labels).filter(Boolean)));
+            const labels = window.Portfolio?.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
             const filterSet = window.Portfolio?.labelFilterSet || new Set();
             const rect = labelHeader.getBoundingClientRect();
             dropdown.style.left = rect.left + 'px';

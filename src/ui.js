@@ -70,7 +70,7 @@ function getNotesPreview(notes) {
 function updateLabelTabs() {
     const container = document.getElementById('label-tabs');
     if (!container || !window.Portfolio) return;
-    const labels = Array.from(new Set((window.Portfolio.data || []).flatMap(s => s.labels).filter(Boolean))).sort();
+    const labels = window.Portfolio.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
     const filterSet = window.Portfolio.labelFilterSet || new Set();
     const savedTab = getLabelTabCookie();
     if (filterSet.size === 0 && savedTab) {
@@ -97,8 +97,62 @@ function updateLabelTabs() {
     };
 
     container.appendChild(makeTab('All'));
-    labels.forEach(l => container.appendChild(makeTab(l)));
-    container.style.display = labels.length === 0 ? 'none' : 'flex';
+
+    labels.forEach((l, index) => {
+        const tab = makeTab(l);
+        tab.draggable = true;
+        tab.dataset.label = l;
+        tab.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', l);
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        tab.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+        tab.addEventListener('drop', e => {
+            e.preventDefault();
+            const dragged = e.dataTransfer.getData('text/plain');
+            if (!dragged || dragged === l) return;
+            window.Portfolio.moveLabel?.(dragged, index);
+            updatePortfolioTable();
+        });
+        container.appendChild(tab);
+    });
+
+    const createWrap = document.createElement('div');
+    createWrap.style.display = 'inline-flex';
+    createWrap.style.alignItems = 'center';
+    createWrap.style.gap = '6px';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'New label';
+    input.style.cssText = 'padding:6px 8px;font-size:12px;border:1px solid #dfe3e8;border-radius:14px;min-width:110px;';
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'label-tab';
+    addBtn.textContent = '+ Add';
+    addBtn.addEventListener('click', () => {
+        const name = (input.value || '').trim();
+        if (!name) return;
+        window.Portfolio.addGlobalLabel?.(name);
+        input.value = '';
+        updatePortfolioTable();
+    });
+
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addBtn.click();
+        }
+    });
+
+    createWrap.appendChild(input);
+    createWrap.appendChild(addBtn);
+    container.appendChild(createWrap);
+
+    container.style.display = 'flex';
 }
 
 /** Main table render */
@@ -162,8 +216,20 @@ function renderRow(tbody, stock) {
 
     tr.querySelector('.add-label-btn').addEventListener('click', e => {
         e.stopPropagation();
-        const label = prompt('Label:');
-        if (label) window.Portfolio.addLabel(idx, label.trim());
+        const orderedLabels = window.Portfolio.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
+        const available = orderedLabels.filter(l => !stock.labels.includes(l));
+        if (!available.length) {
+            showStatus('No existing labels available. Create one in label section first.', 'info');
+            return;
+        }
+        const choice = prompt(`Select existing label:\n${available.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nType number or label name:`);
+        if (!choice) return;
+        const indexChoice = Number(choice);
+        const picked = Number.isInteger(indexChoice) && indexChoice >= 1 && indexChoice <= available.length
+            ? available[indexChoice - 1]
+            : choice.trim();
+        if (available.includes(picked)) window.Portfolio.addLabel(idx, picked);
+        else showStatus('Invalid label. Choose one of existing labels.', 'error');
     });
     tr.querySelectorAll('.rm-label').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); window.Portfolio.removeLabel(idx, b.dataset.l); }));
 
