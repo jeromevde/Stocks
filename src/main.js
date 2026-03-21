@@ -15,6 +15,15 @@ function tryAutoLogin() {
     } catch (e) { console.warn('Auto-login failed:', e); }
 }
 
+async function copyTextToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showStatus('Copied command', 'success');
+    } catch {
+        showStatus('Copy failed. See browser prompt text.', 'error');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing Stock Tracker...');
     tryAutoLogin();
@@ -53,6 +62,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // API key tiles
+    document.getElementById('cors-help-tile')?.addEventListener('click', async () => {
+        const ua = navigator.userAgent || '';
+        const isFirefox = /firefox/i.test(ua);
+
+        if (isFirefox) {
+            window.open('about:config', '_blank');
+            showStatus('Opened about:config. Set content.cors.disable=true', 'info');
+            return;
+        }
+
+        const chromeCmd = 'open -n "/Applications/Google Chrome.app" --args --disable-web-security';
+        const edgeCmd = 'open -n "/Applications/Microsoft Edge.app" --args --disable-web-security';
+
+        const choice = prompt(
+            'CORS setup:\n1 = copy Chrome command\n2 = copy Edge command\n\nPaste in macOS Terminal.',
+            '1'
+        );
+
+        if (choice === '1') await copyTextToClipboard(chromeCmd);
+        if (choice === '2') await copyTextToClipboard(edgeCmd);
+    });
+
     document.getElementById('github-key-tile')?.addEventListener('click', () => {
         document.getElementById('github-auth-modal').style.display = 'flex';
         const t = window.TokenStore?.get('github_token') || '';
