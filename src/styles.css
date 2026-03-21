@@ -175,6 +175,19 @@ th, td { border: 1px solid #e0e0e0; padding: 10px 12px; font-size: 1em; vertical
 th { background: #f7f7f7; text-align: center; font-weight: 600; }
 tr:nth-child(even) { background: #fafbfc; }
 tr.unrated-row { background: #fff5f5 !important; }
+.research-hint-btn {
+    margin-left: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #9ca3af;
+    font-size: 10px;
+    line-height: 14px;
+    padding: 0;
+}
+.research-hint-btn:hover { color: #6b7280; border-color: #9ca3af; }
 .rating-star { transition: transform 0.1s; }
 .rating-star:hover { transform: scale(1.2); }
 

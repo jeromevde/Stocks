@@ -113,6 +113,25 @@
             </div>
         </div>
 
+        <!-- Research Provider Modal -->
+        <div id="research-modal" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width:420px;">
+                <div class="modal-header">
+                    <h3 style="margin:0;">Quick research</h3>
+                    <span class="close" id="research-modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="research-stock-label" style="font-size:13px;color:#666;margin-bottom:10px;"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                        <button class="btn-secondary research-provider-btn" data-provider="chatgpt">ChatGPT</button>
+                        <button class="btn-secondary research-provider-btn" data-provider="grok">Grok</button>
+                        <button class="btn-secondary research-provider-btn" data-provider="gemini">Gemini</button>
+                        <button class="btn-secondary research-provider-btn" data-provider="claude">Claude</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- LLM Instructions Modal -->
         <div id="llm-guide-modal" class="modal" style="display:none;">
             <div class="modal-content" style="max-width:1100px;max-height:90vh;">
@@ -167,10 +186,10 @@
         </div>
     </div>
     <!-- Load modules in order with cache busting -->
-    <script src="github.js?v=55"></script>
-    <script src="yahoo.js?v=55"></script>
-    <script src="portfolio.js?v=55"></script>
-    <script src="ui.js?v=55"></script>
-    <script src="main.js?v=55"></script>
+    <script src="github.js?v=56"></script>
+    <script src="yahoo.js?v=56"></script>
+    <script src="portfolio.js?v=56"></script>
+    <script src="ui.js?v=56"></script>
+    <script src="main.js?v=56"></script>
 </body>
 </html>
