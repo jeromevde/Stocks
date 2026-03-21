@@ -402,7 +402,8 @@ function parseMedia(text) {
             </a>`;
         }
         if (isVideoUrl(trimmed)) {
-            return `<video src="${trimmed}" controls style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+            const escaped = trimmed.replace(/"/g, '&quot;');
+            return `<video src="${escaped}" controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata" onerror="this.outerHTML='\n<a href=&quot;${escaped}&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot; style=&quot;display:inline-block;margin:8px 0;color:#0066cc;&quot;>Open video ↗</a>\n'">Sorry, your browser cannot play this video. <a href="${escaped}" target="_blank" rel="noopener noreferrer">Open video ↗</a></video>`;
         }
         if (isImageUrl(trimmed)) {
             return `<img src="${trimmed}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
