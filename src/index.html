@@ -14,10 +14,6 @@
 <body>
     <div class="container">
         <div class="api-key-bar">
-            <button id="cors-help-tile" class="key-tile inactive" title="CORS setup help">
-                <span class="key-label">CORS</span>
-                <span class="key-status">Setup</span>
-            </button>
             <button id="github-key-tile" class="key-tile inactive">
                 <span class="key-label">GitHub</span>
                 <span class="key-status">Set key</span>
@@ -73,6 +69,9 @@
                         <div class="form-group">
                             <label for="github-token">GitHub Token:</label>
                             <input type="password" id="github-token" placeholder="Paste your token here (ghp_...)" style="font-size: 15px; padding: 12px;">
+                            <p style="margin:8px 0 0 0;font-size:12px;color:#666;">
+                                Create token: <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">github.com/settings/tokens</a>
+                            </p>
                         </div>
                         <div class="modal-buttons">
                             <button type="submit" class="btn-primary" id="github-login" style="width: 100%; padding: 14px; font-size: 16px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border: none;">
@@ -163,10 +162,10 @@
     <!-- TradingView Widget Script -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <!-- Load modules in order with cache busting -->
-    <script src="github.js?v=25"></script>
-    <script src="yahoo.js?v=25"></script>
-    <script src="portfolio.js?v=25"></script>
-    <script src="ui.js?v=25"></script>
-    <script src="main.js?v=25"></script>
+    <script src="github.js?v=26"></script>
+    <script src="yahoo.js?v=26"></script>
+    <script src="portfolio.js?v=26"></script>
+    <script src="ui.js?v=26"></script>
+    <script src="main.js?v=26"></script>
 </body>
 </html>
