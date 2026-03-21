@@ -454,12 +454,16 @@ function getVisibleTableStockIndices() {
 function renderNotesHeader(idx) {
     const stock = window.Portfolio.data[idx];
     const title = stock ? `${stock.ticker} — ${stock.name || ''}` : '';
+    const price = (stock?.nowPrice && stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' && stock.nowPrice !== '...')
+        ? `$${stock.nowPrice}`
+        : (stock?.nowPrice || 'N/A');
     const ret3m = colorReturn(stock?.return3m || 'N/A');
     const total = colorReturn(stock?.cumulativeReturn || 'N/A');
     const hint = '←/→/↑/↓';
     document.getElementById('notes-popup-stock').innerHTML = `
         <span class="notes-popup-stock-main">
             <span>${title}</span>
+            <span class="notes-popup-stock-metric">Price: ${price}</span>
             <span class="notes-popup-stock-metric">3M: ${ret3m}</span>
             <span class="notes-popup-stock-metric">Total: ${total}</span>
         </span>
