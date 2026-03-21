@@ -8,7 +8,7 @@ let hasUnsavedChanges = false;
 let sortByCumulativeReturn = false;
 let sortBy3MonthReturn = false;
 let labelFilterSet = new Set();
-let showZeroStarStocks = false;
+let showZeroStarStocks = true;
 let labelOrder = [];
 
 function markChanged() {

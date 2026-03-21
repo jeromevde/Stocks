@@ -279,6 +279,7 @@ function renderRow(tbody, stock) {
     const tr = document.createElement('tr');
     tr.dataset.ticker = stock.ticker;
     tr.dataset.priceLoaded = stock.nowPrice !== 'Loading...' && stock.nowPrice !== 'N/A' ? 'true' : 'false';
+    if ((stock.rating || 0) === 0) tr.classList.add('unrated-row');
 
     const stars = [1,2,3,4,5].map(i => `<span class="rating-star" data-r="${i}" style="cursor:pointer;font-size:1.1em;color:${i <= r ? '#f5b301' : '#ddd'}">${i <= r ? '★' : '☆'}</span>`).join('');
     const labels = stock.labels.map(l => `<span style="background:#e3f2fd;color:#1976d2;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;display:inline-block">${l}<span class="rm-label" data-l="${l}" style="margin-left:4px;cursor:pointer;font-weight:bold">×</span></span>`).join('');
