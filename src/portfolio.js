@@ -330,6 +330,7 @@ window.Portfolio = {
     get data() { return portfolio; },
     getOrderedLabels, addGlobalLabel, moveLabel,
     get hasUnsavedChanges() { return hasUnsavedChanges; },
+    get sortMode() { return sortMode; },
     get sortByCumulativeReturn() { return sortMode === 'cumulative'; },
     set sortByCumulativeReturn(v) { if (v) sortMode = 'cumulative'; else if (sortMode === 'cumulative') sortMode = 'rating'; },
     get sortBy3MonthReturn() { return sortMode === 'return3m'; },

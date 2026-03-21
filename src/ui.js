@@ -256,6 +256,14 @@ function updatePortfolioTable() {
     updateLabelTabs();
     tbody.innerHTML = '';
     const sorted = window.Portfolio.getSortedFiltered();
+    const sortMode = window.Portfolio.sortMode || 'rating';
+
+    // For return-based sorts, include unrated stocks in the same ordering.
+    if (sortMode !== 'rating') {
+        sorted.forEach(s => renderRow(tbody, s));
+        return;
+    }
+
     const rated = sorted.filter(s => (s.rating || 0) > 0);
     const unrated = sorted.filter(s => (s.rating || 0) === 0);
 
