@@ -37,6 +37,8 @@ function getOrderedLabels() {
 function addGlobalLabel(label) {
     const clean = (label || '').trim();
     if (!clean) return false;
+    // Preserve current visible order, then append new labels at the end.
+    labelOrder = getOrderedLabels();
     if (!labelOrder.includes(clean)) labelOrder.push(clean);
     markChanged();
     return true;
