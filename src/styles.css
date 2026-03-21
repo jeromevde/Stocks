@@ -85,27 +85,27 @@ button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; 
     line-height: 20px;
 }
 
-.add-label-select {
-    margin-left: 4px;
-    padding: 1px 20px 1px 8px;
-    height: 20px;
-    font-size: 11px;
+.add-label-dropdown-wrap { position: relative; display: inline-flex; align-items: center; margin-left: 4px; }
+.add-label-trigger {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    padding: 0;
     border: 1px solid #d8dee8;
-    border-radius: 10px;
     background: #fff;
-    color: #4b5563;
-    max-width: 110px;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    box-shadow: none;
-    background-image: linear-gradient(45deg, transparent 50%, #9aa4b2 50%), linear-gradient(135deg, #9aa4b2 50%, transparent 50%);
-    background-position: calc(100% - 10px) 8px, calc(100% - 6px) 8px;
-    background-size: 4px 4px, 4px 4px;
-    background-repeat: no-repeat;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 16px;
 }
-.add-label-select:hover { border-color: #c2cbd8; }
-.add-label-select:focus { border-color: #94a3b8; }
+.add-label-trigger:hover { border-color: #c2cbd8; color: #374151; }
+.add-label-select {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
 
 /* Status toast — fixed position so it never shifts layout */
 .status-message {

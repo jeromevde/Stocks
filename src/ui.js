@@ -240,7 +240,7 @@ function renderRow(tbody, stock) {
     const orderedLabels = window.Portfolio.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
     const availableLabels = orderedLabels.filter(l => !stock.labels.includes(l));
     const addLabelDropdown = availableLabels.length
-        ? `<select class="add-label-select"><option value="">+ label</option>${availableLabels.map(l => `<option value="${l}">${l}</option>`).join('')}</select>`
+        ? `<span class="add-label-dropdown-wrap"><button type="button" class="add-label-trigger" title="Add label">+</button><select class="add-label-select"><option value="">Select label</option>${availableLabels.map(l => `<option value="${l}">${l}</option>`).join('')}</select></span>`
         : '';
     const notesShort = getNotesPreview(stock.notes);
     const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
@@ -269,12 +269,20 @@ function renderRow(tbody, stock) {
     dateInput.addEventListener('blur', () => { dateDisp.style.display = 'block'; dateInput.style.display = 'none'; });
 
     const addLabelSelect = tr.querySelector('.add-label-select');
+    const addLabelTrigger = tr.querySelector('.add-label-trigger');
     if (addLabelSelect) {
         addLabelSelect.addEventListener('click', e => e.stopPropagation());
         addLabelSelect.addEventListener('change', e => {
             const picked = (e.target.value || '').trim();
             if (!picked) return;
             window.Portfolio.addLabel(idx, picked);
+        });
+    }
+    if (addLabelTrigger && addLabelSelect) {
+        addLabelTrigger.addEventListener('click', e => {
+            e.stopPropagation();
+            if (typeof addLabelSelect.showPicker === 'function') addLabelSelect.showPicker();
+            else addLabelSelect.click();
         });
     }
     tr.querySelectorAll('.rm-label').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); window.Portfolio.removeLabel(idx, b.dataset.l); }));
