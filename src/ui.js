@@ -376,8 +376,12 @@ function wireAddStockModal() {
         const name = confirmBtn.dataset.name || '';
         const date = dateEl.value;
         if (!ticker) return;
+
+        const filterSet = window.Portfolio?.labelFilterSet || new Set();
+        const activeLabel = filterSet.size === 1 ? [...filterSet][0] : '';
+
         closeAddStockModal();
-        await window.Portfolio?.add(ticker, name, date);
+        await window.Portfolio?.add(ticker, name, date, activeLabel);
     });
 
     // Close on overlay click

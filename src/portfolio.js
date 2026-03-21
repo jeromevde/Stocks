@@ -145,16 +145,17 @@ async function updateAllPrices() {
 }
 
 /** Add a new stock (called after user confirms in modal) */
-async function addStock(ticker, name, date) {
+async function addStock(ticker, name, date, initialLabel = '') {
     const api = window.MarketData;
     if (!api) return;
     const t = ticker.toUpperCase();
     if (portfolio.some(s => s.ticker === t)) { showStatus(`${t} is already in your portfolio`, 'error'); return; }
 
     const discoveryDate = date || new Date().toISOString().slice(0, 10);
+    const normalizedInitialLabel = (initialLabel || '').trim();
     const stock = {
         ticker: t, name: name || t, date: discoveryDate,
-        labels: [], notes: '', rating: 0,
+        labels: normalizedInitialLabel ? [normalizedInitialLabel] : [], notes: '', rating: 0,
         nowPrice: '...', cumulativeReturn: '...', return3m: '...', loading: true
     };
     portfolio.push(stock);
