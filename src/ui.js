@@ -409,8 +409,14 @@ function getVisibleTableStockIndices() {
 function renderNotesHeader(idx) {
     const stock = window.Portfolio.data[idx];
     const title = stock ? `${stock.ticker} — ${stock.name || ''}` : '';
+    const ret3m = colorReturn(stock?.return3m || 'N/A');
+    const total = colorReturn(stock?.cumulativeReturn || 'N/A');
     const hint = '←/→/↑/↓';
-    document.getElementById('notes-popup-stock').innerHTML = `<span>${title}</span><span style="margin-left:auto;color:#a0a0a0;font-size:11px;">${hint}</span>`;
+    document.getElementById('notes-popup-stock').innerHTML = `
+        <span>${title}</span>
+        <span style="margin-left:10px;font-size:11px;color:#888;">3M: ${ret3m}</span>
+        <span style="margin-left:8px;font-size:11px;color:#888;">Total: ${total}</span>
+        <span style="margin-left:auto;color:#a0a0a0;font-size:11px;">${hint}</span>`;
 }
 
 function openNotesPopup(idx) {
