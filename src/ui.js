@@ -63,23 +63,49 @@ function extractYouTubeId(text = '') {
     return m ? m[1] : null;
 }
 
+function getUrlExt(text = '') {
+    try {
+        const u = new URL(text.trim());
+        const path = (u.pathname || '').toLowerCase();
+        const m = path.match(/\.([a-z0-9]+)$/i);
+        if (m) return m[1];
+        const format = (u.searchParams.get('format') || u.searchParams.get('fm') || '').toLowerCase();
+        return format || '';
+    } catch {
+        return '';
+    }
+}
+
 function isImageUrl(text = '') {
-    return /^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg))(?:\?[^\s]*)?$/i.test(text.trim());
+    const ext = getUrlExt(text);
+    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'heic', 'heif', 'tiff', 'svg', 'avif'].includes(ext);
 }
 
 function isVideoUrl(text = '') {
-    return /^(https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov|m4v))(?:\?[^\s]*)?$/i.test(text.trim());
+    const ext = getUrlExt(text);
+    return ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'].includes(ext);
 }
 
 function getNotesPreview(notes) {
     if (!notes) return '';
 
-    // Replace media URLs anywhere in the text (not only full-line URLs)
     let text = String(notes);
-    text = text.replace(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}(?:[?&][^\s]*)?/gi, '[video]');
-    text = text.replace(/https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov|m4v)(?:\?[^\s]*)?/gi, '[video]');
-    text = text.replace(/https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg)(?:\?[^\s]*)?/gi, '[image]');
 
+    // Replace embedded HTML media first
+    text = text.replace(/<img\b[^>]*>/gi, '[image]');
+    text = text.replace(/<video\b[^>]*>[\s\S]*?<\/video>/gi, '[video]');
+    text = text.replace(/<iframe\b[^>]*youtube[^>]*>[\s\S]*?<\/iframe>/gi, '[video]');
+
+    // Replace URLs robustly (including markdown/link contexts)
+    text = text.replace(/https?:\/\/[^\s<>")']+/gi, (url) => {
+        if (extractYouTubeId(url)) return '[video]';
+        if (isVideoUrl(url)) return '[video]';
+        if (isImageUrl(url)) return '[image]';
+        return url;
+    });
+
+    // Strip any remaining tags from rich editor leftovers
+    text = text.replace(/<[^>]+>/g, ' ');
     text = text.replace(/\s+/g, ' ').trim();
     if (!text) return '';
     if (text.length <= NOTES_PREVIEW_MAX_CHARS) return text;

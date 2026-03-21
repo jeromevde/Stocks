@@ -116,9 +116,28 @@
             </div>
         </div>
 
+        <!-- LLM Instructions Modal -->
+        <div id="llm-guide-modal" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width:1100px;max-height:90vh;">
+                <div class="modal-header">
+                    <h3 style="margin:0;">LLM / Agent Instructions</h3>
+                    <span class="close" id="llm-guide-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-top:0;color:#666;font-size:13px;">Use this as the stock-analysis instruction block for OpenClaw/LLMs.</p>
+                    <textarea id="llm-guide-text" style="width:100%;height:62vh;resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.45;padding:12px;border:1px solid #ddd;border-radius:8px;"></textarea>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
+                        <button id="llm-guide-copy" class="btn-secondary">Copy</button>
+                        <button id="llm-guide-save" class="btn-primary">Save locally</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Portfolio Actions -->
         <div id="portfolio-actions" class="actions-section">
             <button id="save-portfolio" class="btn-primary" disabled>💾 Save to GitHub</button>
+            <button id="llm-guide-btn" class="btn-secondary">🤖 LLM Instructions</button>
             <a href="https://github.com/jeromevde/Stocks" target="_blank" rel="noopener noreferrer" class="repo-title-link">Stock Tracker ↗</a>
         </div>
         <div id="label-tabs" class="label-tabs" style="display:none;"></div>
@@ -151,10 +170,10 @@
         </div>
     </div>
     <!-- Load modules in order with cache busting -->
-    <script src="github.js?v=41"></script>
-    <script src="yahoo.js?v=41"></script>
-    <script src="portfolio.js?v=41"></script>
-    <script src="ui.js?v=41"></script>
-    <script src="main.js?v=41"></script>
+    <script src="github.js?v=42"></script>
+    <script src="yahoo.js?v=42"></script>
+    <script src="portfolio.js?v=42"></script>
+    <script src="ui.js?v=42"></script>
+    <script src="main.js?v=42"></script>
 </body>
 </html>
