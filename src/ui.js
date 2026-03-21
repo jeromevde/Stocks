@@ -282,59 +282,20 @@ function renderRow(tbody, stock) {
     tbody.appendChild(tr);
 }
 
-/** TradingView chart popup */
-function openChart(ticker, name) {
-    const popup = document.getElementById('tradingview-popup');
-    const container = document.getElementById('tradingview-container');
-    if (!popup || !container) { window.open(`https://finance.yahoo.com/quote/${ticker}`, '_blank'); return; }
-
-    const tvSymbol = convertToTradingViewSymbol(ticker);
-    document.getElementById('tradingview-title').textContent = `${ticker} - ${name || ''}`;
-    container.innerHTML = '';
-    popup.style.display = 'flex';
-
-    if (typeof TradingView !== 'undefined') {
-        new TradingView.widget({
-            autosize: true,
-            symbol: tvSymbol,
-            interval: 'W',
-            timezone: 'Etc/UTC',
-            theme: 'light',
-            style: '2',
-            locale: 'en',
-            enable_publishing: false,
-            allow_symbol_change: true,
-            container_id: 'tradingview-container',
-            hide_top_toolbar: false,
-            hide_side_toolbar: true,
-            hide_legend: false,
-            range: '12M',
-            show_popup_button: false,
-            studies: [],
-            withdateranges: true,
-            disabled_features: ['header_compare', 'header_undo_redo', 'header_screenshot', 'header_fullscreen_button', 'left_toolbar', 'header_resolutions', 'header_interval_dialog_button']
-        });
-    } else {
-        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666"><a href="https://www.tradingview.com/chart/?symbol=${tvSymbol}" target="_blank">Open in TradingView →</a></div>`;
-    }
+/** Open stock in a small Yahoo Finance window */
+function openChart(ticker) {
+    const url = `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}`;
+    const width = 1100;
+    const height = 760;
+    const left = Math.max(0, Math.round((window.screen.width - width) / 2));
+    const top = Math.max(0, Math.round((window.screen.height - height) / 2));
+    const features = `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+    const w = window.open(url, `yf_${ticker}`, features);
+    if (!w) window.open(url, '_blank');
 }
 
-function closeChart() {
-    const p = document.getElementById('tradingview-popup');
-    const c = document.getElementById('tradingview-container');
-    if (p) p.style.display = 'none';
-    if (c) c.innerHTML = '';
-}
+function closeChart() {}
 
-function convertToTradingViewSymbol(ticker) {
-    const exchangeMap = {
-        '.MC': 'BME:', '.HK': 'HKEX:', '.L': 'LSE:', '.PA': 'EURONEXT:', '.AS': 'EURONEXT:', '.BR': 'EURONEXT:', '.DE': 'XETR:', '.F': 'FWB:', '.SW': 'SIX:', '.TO': 'TSX:', '.AX': 'ASX:'
-    };
-    for (const [suffix, prefix] of Object.entries(exchangeMap)) {
-        if (ticker.endsWith(suffix)) return prefix + ticker.slice(0, -suffix.length);
-    }
-    return ticker;
-}
 
 function parseMedia(text) {
     if (!text) return '';
