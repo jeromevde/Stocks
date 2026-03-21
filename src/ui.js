@@ -240,7 +240,7 @@ function renderRow(tbody, stock) {
     const orderedLabels = window.Portfolio.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
     const availableLabels = orderedLabels.filter(l => !stock.labels.includes(l));
     const addLabelDropdown = availableLabels.length
-        ? `<span class="add-label-dropdown-wrap"><button type="button" class="add-label-trigger" title="Add label">+</button><select class="add-label-select"><option value="">Select label</option>${availableLabels.map(l => `<option value="${l}">${l}</option>`).join('')}</select></span>`
+        ? `<span class="add-label-dropdown-wrap"><button type="button" class="add-label-trigger" title="Add label">+</button><select class="add-label-select"><option value="" selected disabled hidden></option>${availableLabels.map(l => `<option value="${l}">${l}</option>`).join('')}</select></span>`
         : '';
     const notesShort = getNotesPreview(stock.notes);
     const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
