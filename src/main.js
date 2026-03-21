@@ -264,6 +264,17 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('add-stock-overlay')?.classList.remove('show');
             closeTradingViewPopup();
         }
+
+        const notesOverlay = document.getElementById('notes-popup-overlay');
+        const notesOpen = notesOverlay && notesOverlay.style.display !== 'none';
+        if (notesOpen && (e.key === 'ArrowLeft' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            window.UI?.navigateNotesPopup?.(-1);
+        }
+        if (notesOpen && (e.key === 'ArrowRight' || e.key === 'ArrowDown')) {
+            e.preventDefault();
+            window.UI?.navigateNotesPopup?.(1);
+        }
     });
 
     // Warn before leaving with unsaved changes

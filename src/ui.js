@@ -396,15 +396,52 @@ function serializeNotes(editorEl) {
 }
 
 /** Notes popup */
+function getVisibleTableStockIndices() {
+    const p = window.Portfolio;
+    if (!p) return [];
+    const sorted = p.getSortedFiltered();
+    const rated = sorted.filter(s => (s.rating || 0) > 0);
+    const unrated = sorted.filter(s => (s.rating || 0) === 0);
+    const visible = p.showZeroStarStocks ? [...rated, ...unrated] : rated;
+    return visible.map(s => p.data.indexOf(s)).filter(i => i >= 0);
+}
+
+function renderNotesHeader(idx) {
+    const stock = window.Portfolio.data[idx];
+    const title = stock ? `${stock.ticker} — ${stock.name || ''}` : '';
+    const hint = '←/→/↑/↓';
+    document.getElementById('notes-popup-stock').innerHTML = `<span>${title}</span><span style="margin-left:auto;color:#a0a0a0;font-size:11px;">${hint}</span>`;
+}
+
 function openNotesPopup(idx) {
     currentNotesStockIndex = idx;
     const stock = window.Portfolio.data[idx];
     const overlay = document.getElementById('notes-popup-overlay');
-    document.getElementById('notes-popup-stock').textContent = stock.ticker;
+    renderNotesHeader(idx);
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
+}
+
+function navigateNotesPopup(step) {
+    if (currentNotesStockIndex === null) return;
+    const editor = document.getElementById('notes-editor');
+    if (editor) window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor));
+
+    const visible = getVisibleTableStockIndices();
+    if (!visible.length) return;
+    let pos = visible.indexOf(currentNotesStockIndex);
+    if (pos < 0) pos = 0;
+    const nextPos = (pos + step + visible.length) % visible.length;
+    currentNotesStockIndex = visible[nextPos];
+
+    const stock = window.Portfolio.data[currentNotesStockIndex];
+    renderNotesHeader(currentNotesStockIndex);
+    if (editor) {
+        editor.innerHTML = parseMedia(stock.notes || '');
+        editor.focus();
+    }
 }
 
 function closeNotesPopup() {
@@ -528,7 +565,7 @@ if (document.readyState === 'loading') {
     wireAddStockModal();
 }
 
-window.UI = { closeNotesPopup, confirmAutosave: () => window.Portfolio?.save(), cancelAutosave: () => {} };
+window.UI = { closeNotesPopup, navigateNotesPopup, confirmAutosave: () => window.Portfolio?.save(), cancelAutosave: () => {} };
 window.openAddStockModal = openAddStockModal;
 window.debouncedUpdateTable = debouncedUpdateTable;
 window.showStatus = showStatus;
