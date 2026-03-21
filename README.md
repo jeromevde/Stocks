@@ -1,39 +1,26 @@
 # Stock Tracker
 
-Track your stock portfolio with ratings, notes, and labels.
+**Live app:** https://jeromevde.github.io/Stocks/
 
-**Live:** https://jeromevde.github.io/Stocks/
+## Quick start
 
-## Features
+1. Open: https://jeromevde.github.io/Stocks/
+2. Enable CORS (choose one):
 
-- 📊 Stock tracking with discovery dates
-- ⭐ 5-star rating system
-- 🏷️ Custom labels (ai, robotics, energy, etc.)
-- 📝 Rich notes with markdown & image support
-- 📈 TradingView charts
-- 💾 GitHub backup
-- 🚀 Direct Yahoo Finance API (fast!)
+### Firefox
 
-## Setup
+1. Open [about:config](about:config)
+2. Search `content.cors.disable`
+3. Set to `true`
+4. When done, set it back to `false`
 
-1. **Install a CORS extension** (required for Yahoo Finance API):
-   - Chrome: [Allow CORS](https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf)
-   - Firefox: [CORS Everywhere](https://addons.mozilla.org/en-US/firefox/addon/cors-everywhere/)
+### Chromium / Edge (separate instance)
 
-2. **Open the page:** https://jeromevde.github.io/Stocks/
+```bash
+open -n "/Applications/Google Chrome.app" --args --disable-web-security
+open -n "/Applications/Microsoft Edge.app" --args --disable-web-security
+```
 
-3. **Connect GitHub** (optional):
-   - Click "GitHub" tile
-   - Enter your GitHub token
-   - Save/load portfolio to your repo
+## GitHub token
 
-## Tech
-
-- Vanilla JavaScript
-- Yahoo Finance API (free, no key)
-- GitHub API for backup
-- TradingView charts
-
----
-
-**Note**: Requires CORS extension since Yahoo Finance doesn't allow direct browser calls.
+Create token: https://github.com/settings/tokens

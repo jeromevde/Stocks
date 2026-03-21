@@ -15,6 +15,89 @@ function tryAutoLogin() {
     } catch (e) { console.warn('Auto-login failed:', e); }
 }
 
+const DEFAULT_LLM_GUIDE = `# STOCK NOTES COPILOT (BRUTALLY HONEST)
+
+## Mission
+Populate each stock note with decision-grade analysis, not vibes.
+If evidence is weak, say it clearly.
+If thesis is broken, say SELL / AVOID clearly.
+No cheerleading.
+
+## Output format (compact)
+1. Thesis in 1-2 lines
+2. What market is pricing in
+3. Latest catalysts (last 90 days)
+4. Moat + risks (most likely failure modes)
+5. Financial quality snapshot (5Y where possible)
+6. Valuation sanity check
+7. Red flags checklist
+8. What must happen next (3 measurable checkpoints)
+9. Verdict: Buy / Watch / Avoid + confidence (0-100)
+
+## Data discipline
+- Use primary sources first: latest 10-K/20-F, 10-Q, earnings transcript, investor deck.
+- If source is older than 120 days, flag STALE.
+- Distinguish facts vs assumptions.
+- No ratio without formula context.
+
+## Conventions for AI-readable site docs
+- Prefer publishing /llms.txt and optional /llms-full.txt (emerging convention, not universal yet).
+- Also keep this markdown in-app and in repo for agent grounding.
+- Keep sections stable and machine-parseable.
+
+## Fundamental checklist (definitions included)
+### Profitability
+- Gross margin = (Revenue-COGS)/Revenue: pricing power + unit economics.
+- Operating margin (EBIT margin): operating efficiency.
+- FCF margin = FCF/Revenue: cash conversion quality.
+- ROIC = NOPAT/Invested Capital: value creation vs cost of capital.
+
+### Growth quality
+- Revenue growth: organic vs M&A split.
+- EPS growth: check if real or buyback-driven.
+- SBC % revenue: dilution risk.
+
+### Balance sheet & solvency
+- Net debt = Debt - Cash.
+- Net debt / EBITDA: leverage stress.
+- Interest coverage = EBIT/Interest.
+- Current ratio = Current assets / Current liabilities.
+
+### Cash flow quality
+- CFO vs Net income: earnings quality.
+- Capex intensity = Capex/Revenue.
+- FCF trend and cyclicality.
+
+### Working capital
+- DSO / DIO / DPO and trend.
+- Inventory growth vs revenue growth divergence.
+
+### Valuation
+- EV/Sales (early growth), EV/EBIT, P/E, FCF yield.
+- Compare vs own 5Y range + peers.
+- State implied growth the multiple assumes.
+
+## Annual report / filing red flags
+- Frequent KPI definition changes.
+- “Adjusted” earnings widening from GAAP repeatedly.
+- Large unexplained goodwill/intangibles growth.
+- Related-party transactions growth.
+- Customer concentration >20%.
+- Rising receivables while revenue accelerates.
+- Insider selling clusters without clear reason.
+
+## 2025-2026 macro context to include in notes
+- AI capex boom can inflate near-term narratives: test ROI, not buzzwords.
+- Higher-for-longer rate risk still matters for long-duration multiples.
+- Earnings quality > headline growth in expensive names.
+- Energy/power constraints for AI infra are non-trivial for some themes.
+
+## Writing style
+- Short bullets, hard claims, clear uncertainty tags.
+- Use: FACT / INFERENCE / RISK labels where useful.
+- End with: “What would make this thesis wrong?”
+`;
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing Stock Tracker...');
     tryAutoLogin();
@@ -72,6 +155,32 @@ document.addEventListener('DOMContentLoaded', () => {
         window.Portfolio?.save().catch(err => console.error('Save error:', err));
     });
 
+    // LLM guide modal
+    const llmModal = document.getElementById('llm-guide-modal');
+    const llmText = document.getElementById('llm-guide-text');
+    const storedGuide = localStorage.getItem('llm_guide_markdown') || DEFAULT_LLM_GUIDE;
+    if (llmText) llmText.value = storedGuide;
+
+    document.getElementById('llm-guide-btn')?.addEventListener('click', () => {
+        if (!llmModal) return;
+        llmModal.style.display = 'flex';
+    });
+    document.getElementById('llm-guide-close')?.addEventListener('click', () => {
+        if (llmModal) llmModal.style.display = 'none';
+    });
+    document.getElementById('llm-guide-copy')?.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(llmText?.value || '');
+            showStatus('LLM instructions copied', 'success');
+        } catch {
+            showStatus('Copy failed', 'error');
+        }
+    });
+    document.getElementById('llm-guide-save')?.addEventListener('click', () => {
+        localStorage.setItem('llm_guide_markdown', llmText?.value || '');
+        showStatus('LLM instructions saved locally', 'success');
+    });
+
     // Add stock button → open modal
     document.getElementById('add-stock-btn')?.addEventListener('click', () => window.openAddStockModal?.());
 
@@ -81,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (labelHeader && dropdown) {
         labelHeader.addEventListener('click', e => {
             e.stopPropagation();
-            const labels = Array.from(new Set((window.Portfolio?.data || []).flatMap(s => s.labels).filter(Boolean)));
+            const labels = window.Portfolio?.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
             const filterSet = window.Portfolio?.labelFilterSet || new Set();
             const rect = labelHeader.getBoundingClientRect();
             dropdown.style.left = rect.left + 'px';
@@ -118,12 +227,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Sort headers
-    document.getElementById('sort-cumret')?.addEventListener('click', () => {
-        if (window.Portfolio) window.Portfolio.sortByCumulativeReturn = !window.Portfolio.sortByCumulativeReturn;
+    document.getElementById('sort-rating')?.addEventListener('click', () => {
+        window.Portfolio?.setSortMode?.('rating');
         updatePortfolioTable();
     });
+    document.getElementById('sort-rating')?.addEventListener('dblclick', () => {
+        window.Portfolio?.setSortMode?.('rating');
+        window.Portfolio?.invertSort?.('rating');
+        updatePortfolioTable();
+    });
+
+    document.getElementById('sort-cumret')?.addEventListener('click', () => {
+        window.Portfolio?.setSortMode?.('cumulative');
+        updatePortfolioTable();
+    });
+    document.getElementById('sort-cumret')?.addEventListener('dblclick', () => {
+        window.Portfolio?.setSortMode?.('cumulative');
+        window.Portfolio?.invertSort?.('cumulative');
+        updatePortfolioTable();
+    });
+
     document.getElementById('sort-3m-return')?.addEventListener('click', () => {
-        if (window.Portfolio) window.Portfolio.sortBy3MonthReturn = !window.Portfolio.sortBy3MonthReturn;
+        window.Portfolio?.setSortMode?.('return3m');
+        updatePortfolioTable();
+    });
+    document.getElementById('sort-3m-return')?.addEventListener('dblclick', () => {
+        window.Portfolio?.setSortMode?.('return3m');
+        window.Portfolio?.invertSort?.('return3m');
         updatePortfolioTable();
     });
 
@@ -132,6 +262,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.id === 'notes-popup-overlay') window.UI?.closeNotesPopup();
     });
     document.getElementById('notes-popup-close')?.addEventListener('click', () => window.UI?.closeNotesPopup());
+    document.getElementById('llm-guide-modal')?.addEventListener('click', e => {
+        if (e.target?.id === 'llm-guide-modal') e.currentTarget.style.display = 'none';
+    });
 
     // Autosave
     document.getElementById('autosave-confirm')?.addEventListener('click', () => window.UI?.confirmAutosave());
@@ -151,6 +284,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (overlay && overlay.style.display !== 'none') window.UI?.closeNotesPopup();
             document.getElementById('add-stock-overlay')?.classList.remove('show');
             closeTradingViewPopup();
+        }
+
+        const notesOverlay = document.getElementById('notes-popup-overlay');
+        const notesOpen = notesOverlay && notesOverlay.style.display !== 'none';
+        if (notesOpen && (e.key === 'ArrowLeft' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            window.UI?.navigateNotesPopup?.(-1);
+        }
+        if (notesOpen && (e.key === 'ArrowRight' || e.key === 'ArrowDown')) {
+            e.preventDefault();
+            window.UI?.navigateNotesPopup?.(1);
         }
     });
 

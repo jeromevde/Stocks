@@ -69,6 +69,9 @@
                         <div class="form-group">
                             <label for="github-token">GitHub Token:</label>
                             <input type="password" id="github-token" placeholder="Paste your token here (ghp_...)" style="font-size: 15px; padding: 12px;">
+                            <p style="margin:8px 0 0 0;font-size:12px;color:#666;">
+                                Create token: <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">github.com/settings/tokens</a>
+                            </p>
                         </div>
                         <div class="modal-buttons">
                             <button type="submit" class="btn-primary" id="github-login" style="width: 100%; padding: 14px; font-size: 16px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border: none;">
@@ -96,16 +99,6 @@
             </div>
         </div>
 
-        <!-- TradingView Chart Popup -->
-        <div id="tradingview-popup" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;">
-            <div style="background:white; border-radius:12px; width:90%; max-width:1000px; height:85%; max-height:700px; position:relative; overflow:hidden;">
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#f5f5f5; border-bottom:1px solid #ddd;">
-                    <h3 id="tradingview-title" style="margin:0; color:#333;">Stock Chart</h3>
-                    <button id="tradingview-close" style="background:none; border:none; font-size:24px; cursor:pointer; color:#666;">&times;</button>
-                </div>
-                <div id="tradingview-container" style="height:calc(100% - 50px);"></div>
-            </div>
-        </div>
 
         <!-- Notes Popup with Markdown & Image Support -->
         <div id="notes-popup-overlay" class="notes-popup-overlay">
@@ -115,10 +108,25 @@
                 
                 <!-- Rich editor with auto-embed -->
                 <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column;">
-                    <div class="notes-toolbar">
-                        <span class="toolbar-hint">Paste image URLs or YouTube links - they auto-embed!</span>
+                    <div id="notes-editor" contenteditable="true" style="flex:1; min-height:200px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here..."></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LLM Instructions Modal -->
+        <div id="llm-guide-modal" class="modal" style="display:none;">
+            <div class="modal-content" style="max-width:1100px;max-height:90vh;">
+                <div class="modal-header">
+                    <h3 style="margin:0;">LLM / Agent Instructions</h3>
+                    <span class="close" id="llm-guide-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p style="margin-top:0;color:#666;font-size:13px;">Use this as the stock-analysis instruction block for OpenClaw/LLMs.</p>
+                    <textarea id="llm-guide-text" style="width:100%;height:62vh;resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.45;padding:12px;border:1px solid #ddd;border-radius:8px;"></textarea>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
+                        <button id="llm-guide-copy" class="btn-secondary">Copy</button>
+                        <button id="llm-guide-save" class="btn-primary">Save locally</button>
                     </div>
-                    <div id="notes-editor" contenteditable="true" style="flex:1; min-height:200px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here... Paste URLs to auto-embed images and YouTube videos"></div>
                 </div>
             </div>
         </div>
@@ -126,6 +134,8 @@
         <!-- Portfolio Actions -->
         <div id="portfolio-actions" class="actions-section">
             <button id="save-portfolio" class="btn-primary" disabled>💾 Save to GitHub</button>
+            <button id="llm-guide-btn" class="btn-secondary">🤖 LLM Instructions</button>
+            <a href="https://github.com/jeromevde/Stocks" target="_blank" rel="noopener noreferrer" class="repo-title-link">Stock Tracker ↗</a>
         </div>
         <div id="label-tabs" class="label-tabs" style="display:none;"></div>
         <!-- Toast status (fixed position – no layout shift) -->
@@ -135,7 +145,7 @@
         <table id="portfolio-table">
             <thead>
                 <tr>
-                    <th>Rating</th>
+                    <th id="sort-rating" style="cursor:pointer;">Rating</th>
                     <th>Ticker</th>
                     <th>Discovery Date</th>
                     <th id="label-header" style="cursor:pointer; position:relative;">Label
@@ -156,13 +166,11 @@
             <button id="add-stock-btn" class="btn-add-stock">+ Add Stock</button>
         </div>
     </div>
-    <!-- TradingView Widget Script -->
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <!-- Load modules in order with cache busting -->
-    <script src="github.js?v=23"></script>
-    <script src="yahoo.js?v=23"></script>
-    <script src="portfolio.js?v=23"></script>
-    <script src="ui.js?v=23"></script>
-    <script src="main.js?v=23"></script>
+    <script src="github.js?v=58"></script>
+    <script src="yahoo.js?v=58"></script>
+    <script src="portfolio.js?v=58"></script>
+    <script src="ui.js?v=58"></script>
+    <script src="main.js?v=58"></script>
 </body>
 </html>

@@ -57,20 +57,86 @@ function colorReturn(val) {
     return `<span style="color:${n >= 0 ? '#4caf50' : '#f44336'};display:inline-block;min-width:50px">${val}%</span>`;
 }
 
+function extractYouTubeId(text = '') {
+    const t = text.trim();
+    const m = t.match(/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})(?:[?&].*)?$/i);
+    return m ? m[1] : null;
+}
+
+function getUrlExt(text = '') {
+    try {
+        const u = new URL(text.trim());
+        const path = (u.pathname || '').toLowerCase();
+        const m = path.match(/\.([a-z0-9]+)$/i);
+        if (m) return m[1];
+        const format = (u.searchParams.get('format') || u.searchParams.get('fm') || '').toLowerCase();
+        return format || '';
+    } catch {
+        return '';
+    }
+}
+
+function isImageUrl(text = '') {
+    const ext = getUrlExt(text);
+    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'heic', 'heif', 'tiff', 'svg', 'avif'].includes(ext);
+}
+
+function isVideoUrl(text = '') {
+    const ext = getUrlExt(text);
+    return ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'].includes(ext);
+}
+
 function getNotesPreview(notes) {
     if (!notes) return '';
-    // Normalize whitespace but preserve single spaces and newlines
-    const text = notes.replace(/\s+/g, ' ').trim();
+
+    let text = String(notes);
+
+    // Replace embedded HTML media first
+    text = text.replace(/<img\b[^>]*>/gi, '[image]');
+    text = text.replace(/<video\b[^>]*>[\s\S]*?<\/video>/gi, '[video]');
+    text = text.replace(/<iframe\b[^>]*youtube[^>]*>[\s\S]*?<\/iframe>/gi, '[video]');
+
+    // Replace URLs robustly (including markdown/link contexts)
+    text = text.replace(/https?:\/\/[^\s<>")']+/gi, (url) => {
+        if (extractYouTubeId(url)) return '[video]';
+        if (isVideoUrl(url)) return '[video]';
+        if (isImageUrl(url)) return '[image]';
+        return url;
+    });
+
+    // Strip any remaining tags from rich editor leftovers
+    text = text.replace(/<[^>]+>/g, ' ');
+    text = text.replace(/\s+/g, ' ').trim();
     if (!text) return '';
-    // Limit to NOTES_PREVIEW_MAX_CHARS characters
     if (text.length <= NOTES_PREVIEW_MAX_CHARS) return text;
     return text.slice(0, NOTES_PREVIEW_MAX_CHARS) + '…';
+}
+
+function animateLabelReflow(container, mutateDom) {
+    const tabs = [...container.querySelectorAll('.label-tab-draggable')];
+    const first = new Map(tabs.map(el => [el.dataset.label, el.getBoundingClientRect()]));
+    mutateDom();
+    const secondTabs = [...container.querySelectorAll('.label-tab-draggable')];
+    secondTabs.forEach(el => {
+        const prev = first.get(el.dataset.label);
+        if (!prev) return;
+        const next = el.getBoundingClientRect();
+        const dx = prev.left - next.left;
+        const dy = prev.top - next.top;
+        if (!dx && !dy) return;
+        el.style.transition = 'none';
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+        requestAnimationFrame(() => {
+            el.style.transition = 'transform 180ms ease';
+            el.style.transform = '';
+        });
+    });
 }
 
 function updateLabelTabs() {
     const container = document.getElementById('label-tabs');
     if (!container || !window.Portfolio) return;
-    const labels = Array.from(new Set((window.Portfolio.data || []).flatMap(s => s.labels).filter(Boolean))).sort();
+    const labels = window.Portfolio.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
     const filterSet = window.Portfolio.labelFilterSet || new Set();
     const savedTab = getLabelTabCookie();
     if (filterSet.size === 0 && savedTab) {
@@ -97,8 +163,90 @@ function updateLabelTabs() {
     };
 
     container.appendChild(makeTab('All'));
-    labels.forEach(l => container.appendChild(makeTab(l)));
-    container.style.display = labels.length === 0 ? 'none' : 'flex';
+
+    let draggedLabel = null;
+    let draggedEl = null;
+
+    labels.forEach((l) => {
+        const tab = makeTab(l);
+        tab.draggable = true;
+        tab.dataset.label = l;
+        tab.classList.add('label-tab-draggable');
+        tab.addEventListener('dragstart', e => {
+            draggedLabel = l;
+            draggedEl = tab;
+            e.dataTransfer.setData('text/plain', l);
+            e.dataTransfer.effectAllowed = 'move';
+            tab.classList.add('dragging');
+            container.classList.add('drag-active');
+        });
+        tab.addEventListener('dragend', () => {
+            const finalTabs = [...container.querySelectorAll('.label-tab-draggable')];
+            finalTabs.forEach((el, idx) => window.Portfolio.moveLabel?.(el.dataset.label, idx));
+            draggedLabel = null;
+            draggedEl = null;
+            tab.classList.remove('dragging');
+            container.classList.remove('drag-active');
+            container.querySelectorAll('.label-tab').forEach(el => el.classList.remove('drop-target-left', 'drop-target-right'));
+            updatePortfolioTable();
+        });
+        tab.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (!draggedLabel || draggedLabel === l || !draggedEl) return;
+            const rect = tab.getBoundingClientRect();
+            const before = (e.clientX - rect.left) < rect.width / 2;
+            tab.classList.toggle('drop-target-left', before);
+            tab.classList.toggle('drop-target-right', !before);
+
+            animateLabelReflow(container, () => {
+                if (before) container.insertBefore(draggedEl, tab);
+                else container.insertBefore(draggedEl, tab.nextSibling);
+            });
+        });
+        tab.addEventListener('dragleave', () => {
+            tab.classList.remove('drop-target-left', 'drop-target-right');
+        });
+        tab.addEventListener('drop', e => {
+            e.preventDefault();
+            tab.classList.remove('drop-target-left', 'drop-target-right');
+        });
+        container.appendChild(tab);
+    });
+
+    const createWrap = document.createElement('div');
+    createWrap.className = 'label-create-wrap';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'New label';
+    input.className = 'label-create-input';
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'label-create-btn';
+    addBtn.type = 'button';
+    addBtn.textContent = '+';
+    addBtn.title = 'Add label';
+    addBtn.addEventListener('click', () => {
+        const name = (input.value || '').trim();
+        if (!name) return;
+        window.Portfolio.addGlobalLabel?.(name);
+        input.value = '';
+        updatePortfolioTable();
+    });
+
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addBtn.click();
+        }
+    });
+
+    createWrap.appendChild(input);
+    createWrap.appendChild(addBtn);
+    container.appendChild(createWrap);
+
+    container.style.display = 'flex';
 }
 
 /** Main table render */
@@ -108,6 +256,14 @@ function updatePortfolioTable() {
     updateLabelTabs();
     tbody.innerHTML = '';
     const sorted = window.Portfolio.getSortedFiltered();
+    const sortMode = window.Portfolio.sortMode || 'rating';
+
+    // For return-based sorts, include unrated stocks in the same ordering.
+    if (sortMode !== 'rating') {
+        sorted.forEach(s => renderRow(tbody, s));
+        return;
+    }
+
     const rated = sorted.filter(s => (s.rating || 0) > 0);
     const unrated = sorted.filter(s => (s.rating || 0) === 0);
 
@@ -123,6 +279,32 @@ function updatePortfolioTable() {
     }
 }
 
+function buildResearchPrompt(stock) {
+    const name = stock?.name || stock?.ticker || '';
+    const ticker = stock?.ticker || '';
+    return `What does ${name} (${ticker}) sell?\n\nGive a concise breakdown of main revenue sources by segment and geography (latest fiscal year), with percentages when available.\n\nAlso include:\n- Business model summary\n- Top 3 growth drivers\n- Top 3 key risks\n- Competitors\n- What to verify in latest annual report/10-K`;
+}
+
+function openProviderChat(provider, stock) {
+    const prompt = buildResearchPrompt(stock);
+    const q = encodeURIComponent(prompt);
+    const map = {
+        chatgpt: `https://chatgpt.com/?q=${q}`,
+        grok: `https://grok.com/?q=${q}`,
+        gemini: `https://gemini.google.com/app?q=${q}`,
+        claude: `https://claude.ai/new?q=${q}`
+    };
+    const url = map[provider];
+    if (!url) return;
+    const width = 900;
+    const height = 760;
+    const left = Math.max(0, Math.round((window.screen.width - width) / 2));
+    const top = Math.max(0, Math.round((window.screen.height - height) / 2));
+    const features = `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+    const w = window.open(url, `research_${provider}_${stock?.ticker || 'stock'}`, features);
+    if (!w) window.open(url, '_blank');
+}
+
 function renderRow(tbody, stock) {
     const data = window.Portfolio.data;
     const idx = data.indexOf(stock);
@@ -131,17 +313,23 @@ function renderRow(tbody, stock) {
     const tr = document.createElement('tr');
     tr.dataset.ticker = stock.ticker;
     tr.dataset.priceLoaded = stock.nowPrice !== 'Loading...' && stock.nowPrice !== 'N/A' ? 'true' : 'false';
+    if ((stock.rating || 0) === 0) tr.classList.add('unrated-row');
 
     const stars = [1,2,3,4,5].map(i => `<span class="rating-star" data-r="${i}" style="cursor:pointer;font-size:1.1em;color:${i <= r ? '#f5b301' : '#ddd'}">${i <= r ? '★' : '☆'}</span>`).join('');
     const labels = stock.labels.map(l => `<span style="background:#e3f2fd;color:#1976d2;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;display:inline-block">${l}<span class="rm-label" data-l="${l}" style="margin-left:4px;cursor:pointer;font-weight:bold">×</span></span>`).join('');
+    const orderedLabels = window.Portfolio.getOrderedLabels ? window.Portfolio.getOrderedLabels() : [];
+    const availableLabels = orderedLabels.filter(l => !stock.labels.includes(l));
+    const addLabelDropdown = availableLabels.length
+        ? `<select class="add-label-select" title="Add label"><option value="" selected>+</option>${availableLabels.map(l => `<option value="${l}">${l}</option>`).join('')}</select>`
+        : '';
     const notesShort = getNotesPreview(stock.notes);
     const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
 
     tr.innerHTML = `
         <td style="text-align:center">${stars}</td>
-        <td style="text-align:center"><div class="ticker-cell" style="cursor:pointer" data-t="${stock.ticker}"><b style="color:#0066cc">${stock.ticker}</b><div style="font-size:11px;color:#888">${stock.name || ''}</div></div></td>
+        <td style="text-align:center"><div class="ticker-cell" style="cursor:pointer;position:relative;padding-right:16px;" data-t="${stock.ticker}"><b style="color:#0066cc">${stock.ticker}</b><select class="research-provider-select" title="Quick research"><option value="">?</option><option value="chatgpt">ChatGPT</option><option value="grok">Grok</option><option value="gemini">Gemini</option><option value="claude">Claude</option></select><div style="font-size:11px;color:#888">${stock.name || ''}</div></div></td>
         <td style="text-align:center"><div class="date-disp" style="cursor:pointer"><div style="font-size:12px">${d.formatted}</div><div style="font-size:10px;color:#999">${d.timeAgo}</div></div><input type="date" value="${stock.date}" class="edit-date" style="display:none;width:130px;padding:4px;font-size:12px;border:1px solid #ddd;border-radius:4px"></td>
-        <td style="text-align:center"><div class="labels-box" style="min-width:80px;padding:4px">${labels}<span class="add-label-btn" style="background:#f0f0f0;color:#666;padding:2px 6px;margin:1px;border-radius:3px;font-size:11px;cursor:pointer;display:inline-block">+</span></div></td>
+        <td style="text-align:center"><div class="labels-box" style="min-width:80px;padding:4px">${labels}${addLabelDropdown}</div></td>
         <td style="text-align:center"><span class="notes-btn" style="cursor:pointer;padding:8px;background:#f9f9f9;color:#666;border-radius:3px;display:inline-block;min-width:80px">${notesShort}</span></td>
         <td class="price-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:80px">${priceDisplay}</td>
         <td class="return3m-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:60px">${colorReturn(stock.return3m)}</td>
@@ -152,6 +340,16 @@ function renderRow(tbody, stock) {
     tr.querySelectorAll('.rating-star').forEach(s => s.addEventListener('click', e => { e.stopPropagation(); window.Portfolio.updateRating(idx, parseInt(s.dataset.r)); }));
     tr.querySelector('.rm-stock').addEventListener('click', () => window.Portfolio.remove(idx));
     tr.querySelector('.ticker-cell').addEventListener('click', () => openChart(stock.ticker, stock.name));
+    const researchSelect = tr.querySelector('.research-provider-select');
+    if (researchSelect) {
+        researchSelect.addEventListener('click', e => e.stopPropagation());
+        researchSelect.addEventListener('change', e => {
+            const provider = (e.target.value || '').trim();
+            if (!provider) return;
+            openProviderChat(provider, stock);
+            e.target.value = '';
+        });
+    }
     tr.querySelector('.notes-btn').addEventListener('click', () => openNotesPopup(idx));
 
     const dateDisp = tr.querySelector('.date-disp');
@@ -160,90 +358,54 @@ function renderRow(tbody, stock) {
     dateInput.addEventListener('change', e => window.Portfolio.updateDate(idx, e.target.value));
     dateInput.addEventListener('blur', () => { dateDisp.style.display = 'block'; dateInput.style.display = 'none'; });
 
-    tr.querySelector('.add-label-btn').addEventListener('click', e => {
-        e.stopPropagation();
-        const label = prompt('Label:');
-        if (label) window.Portfolio.addLabel(idx, label.trim());
-    });
+    const addLabelSelect = tr.querySelector('.add-label-select');
+    if (addLabelSelect) {
+        addLabelSelect.addEventListener('click', e => e.stopPropagation());
+        addLabelSelect.addEventListener('change', e => {
+            const picked = (e.target.value || '').trim();
+            if (!picked || picked === '+') return;
+            window.Portfolio.addLabel(idx, picked);
+        });
+    }
     tr.querySelectorAll('.rm-label').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); window.Portfolio.removeLabel(idx, b.dataset.l); }));
 
     tbody.appendChild(tr);
 }
 
-/** TradingView chart popup */
-function openChart(ticker, name) {
-    const popup = document.getElementById('tradingview-popup');
-    const container = document.getElementById('tradingview-container');
-    if (!popup || !container) { window.open(`https://finance.yahoo.com/quote/${ticker}`, '_blank'); return; }
-
-    const tvSymbol = convertToTradingViewSymbol(ticker);
-    document.getElementById('tradingview-title').textContent = `${ticker} - ${name || ''}`;
-    container.innerHTML = '';
-    popup.style.display = 'flex';
-
-    if (typeof TradingView !== 'undefined') {
-        new TradingView.widget({
-            autosize: true,
-            symbol: tvSymbol,
-            interval: 'W',
-            timezone: 'Etc/UTC',
-            theme: 'light',
-            style: '2',
-            locale: 'en',
-            enable_publishing: false,
-            allow_symbol_change: true,
-            container_id: 'tradingview-container',
-            hide_top_toolbar: false,
-            hide_side_toolbar: true,
-            hide_legend: false,
-            range: '12M',
-            show_popup_button: false,
-            studies: [],
-            withdateranges: true,
-            disabled_features: ['header_compare', 'header_undo_redo', 'header_screenshot', 'header_fullscreen_button', 'left_toolbar', 'header_resolutions', 'header_interval_dialog_button']
-        });
-    } else {
-        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666"><a href="https://www.tradingview.com/chart/?symbol=${tvSymbol}" target="_blank">Open in TradingView →</a></div>`;
-    }
+/** Open stock in a small Yahoo Finance window */
+function openChart(ticker) {
+    const url = `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}`;
+    const width = 1100;
+    const height = 760;
+    const left = Math.max(0, Math.round((window.screen.width - width) / 2));
+    const top = Math.max(0, Math.round((window.screen.height - height) / 2));
+    const features = `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+    const w = window.open(url, `yf_${ticker}`, features);
+    if (!w) window.open(url, '_blank');
 }
 
-function closeChart() {
-    const p = document.getElementById('tradingview-popup');
-    const c = document.getElementById('tradingview-container');
-    if (p) p.style.display = 'none';
-    if (c) c.innerHTML = '';
-}
+function closeChart() {}
 
-function convertToTradingViewSymbol(ticker) {
-    const exchangeMap = {
-        '.MC': 'BME:', '.HK': 'HKEX:', '.L': 'LSE:', '.PA': 'EURONEXT:', '.AS': 'EURONEXT:', '.BR': 'EURONEXT:', '.DE': 'XETR:', '.F': 'FWB:', '.SW': 'SIX:', '.TO': 'TSX:', '.AX': 'ASX:'
-    };
-    for (const [suffix, prefix] of Object.entries(exchangeMap)) {
-        if (ticker.endsWith(suffix)) return prefix + ticker.slice(0, -suffix.length);
-    }
-    return ticker;
-}
 
 function parseMedia(text) {
     if (!text) return '';
-    // Work on plain text - split lines, process each
     const lines = text.split('\n');
     return lines.map(line => {
         const trimmed = line.trim();
-        // YouTube - full URL
-        const ytMatch = trimmed.match(/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
-        if (ytMatch) {
-            return `<a href="https://www.youtube.com/watch?v=${ytMatch[1]}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
-                <img src="https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
+        const ytId = extractYouTubeId(trimmed);
+        if (ytId) {
+            return `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
+                <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
                 <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;">
                     <div style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:24px solid white;margin-left:4px;"></div>
                 </div>
             </a>`;
         }
-        // Image URL
-        const imgMatch = trimmed.match(/^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|bmp|webp|heic|heif|tiff|svg))(?:\?[^\s]*)?$/i);
-        if (imgMatch) {
-            return `<img src="${imgMatch[1]}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
+        if (isVideoUrl(trimmed)) {
+            return `<video src="${trimmed}" controls style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+        }
+        if (isImageUrl(trimmed)) {
+            return `<img src="${trimmed}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
         }
         return line;
     }).join('\n');
@@ -262,6 +424,9 @@ function serializeNotes(editorEl) {
     clone.querySelectorAll('img').forEach(img => {
         img.replaceWith(img.src + '\n');
     });
+    clone.querySelectorAll('video').forEach(video => {
+        video.replaceWith((video.currentSrc || video.src || '') + '\n');
+    });
     let html = clone.innerHTML;
     // Preserve line breaks - convert divs and brs to newlines
     html = html.replace(/<div><br><\/div>/gi, '\n');
@@ -276,15 +441,60 @@ function serializeNotes(editorEl) {
 }
 
 /** Notes popup */
+function getVisibleTableStockIndices() {
+    const p = window.Portfolio;
+    if (!p) return [];
+    const sorted = p.getSortedFiltered();
+    const rated = sorted.filter(s => (s.rating || 0) > 0);
+    const unrated = sorted.filter(s => (s.rating || 0) === 0);
+    const visible = p.showZeroStarStocks ? [...rated, ...unrated] : rated;
+    return visible.map(s => p.data.indexOf(s)).filter(i => i >= 0);
+}
+
+function renderNotesHeader(idx) {
+    const stock = window.Portfolio.data[idx];
+    const title = stock ? `${stock.ticker} — ${stock.name || ''}` : '';
+    const ret3m = colorReturn(stock?.return3m || 'N/A');
+    const total = colorReturn(stock?.cumulativeReturn || 'N/A');
+    const hint = '←/→/↑/↓';
+    document.getElementById('notes-popup-stock').innerHTML = `
+        <span class="notes-popup-stock-main">
+            <span>${title}</span>
+            <span class="notes-popup-stock-metric">3M: ${ret3m}</span>
+            <span class="notes-popup-stock-metric">Total: ${total}</span>
+        </span>
+        <span class="notes-popup-arrows-hint">${hint}</span>`;
+}
+
 function openNotesPopup(idx) {
     currentNotesStockIndex = idx;
     const stock = window.Portfolio.data[idx];
     const overlay = document.getElementById('notes-popup-overlay');
-    document.getElementById('notes-popup-stock').textContent = stock.ticker;
+    renderNotesHeader(idx);
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
+}
+
+function navigateNotesPopup(step) {
+    if (currentNotesStockIndex === null) return;
+    const editor = document.getElementById('notes-editor');
+    if (editor) window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor));
+
+    const visible = getVisibleTableStockIndices();
+    if (!visible.length) return;
+    let pos = visible.indexOf(currentNotesStockIndex);
+    if (pos < 0) pos = 0;
+    const nextPos = (pos + step + visible.length) % visible.length;
+    currentNotesStockIndex = visible[nextPos];
+
+    const stock = window.Portfolio.data[currentNotesStockIndex];
+    renderNotesHeader(currentNotesStockIndex);
+    if (editor) {
+        editor.innerHTML = parseMedia(stock.notes || '');
+        editor.focus();
+    }
 }
 
 function closeNotesPopup() {
@@ -376,8 +586,12 @@ function wireAddStockModal() {
         const name = confirmBtn.dataset.name || '';
         const date = dateEl.value;
         if (!ticker) return;
+
+        const filterSet = window.Portfolio?.labelFilterSet || new Set();
+        const activeLabel = filterSet.size === 1 ? [...filterSet][0] : '';
+
         closeAddStockModal();
-        await window.Portfolio?.add(ticker, name, date);
+        await window.Portfolio?.add(ticker, name, date, activeLabel);
     });
 
     // Close on overlay click
@@ -399,12 +613,12 @@ function wireAddStockModal() {
 
 // Wire modal after DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', wireAddStockModal);
+    document.addEventListener('DOMContentLoaded', () => { wireAddStockModal(); });
 } else {
     wireAddStockModal();
 }
 
-window.UI = { closeNotesPopup, confirmAutosave: () => window.Portfolio?.save(), cancelAutosave: () => {} };
+window.UI = { closeNotesPopup, navigateNotesPopup, confirmAutosave: () => window.Portfolio?.save(), cancelAutosave: () => {} };
 window.openAddStockModal = openAddStockModal;
 window.debouncedUpdateTable = debouncedUpdateTable;
 window.showStatus = showStatus;
