@@ -56,19 +56,6 @@ function moveLabel(label, targetIndex) {
     markChanged();
 }
 
-function setLabelOrder(nextOrder = []) {
-    const normalized = Array.from(new Set((nextOrder || []).map(v => String(v).trim()).filter(Boolean)));
-    const existing = getOrderedLabels();
-    const existingSet = new Set(existing);
-    const kept = normalized.filter(l => existingSet.has(l));
-    const missing = existing.filter(l => !kept.includes(l));
-    const merged = [...kept, ...missing];
-
-    if (JSON.stringify(merged) === JSON.stringify(getOrderedLabels())) return;
-    labelOrder = merged;
-    markChanged();
-}
-
 function generateHtml() {
     const ts = new Date().toISOString();
     const rows = portfolio.map(s => {
@@ -311,7 +298,7 @@ function getSortedFiltered() {
 
 window.Portfolio = {
     get data() { return portfolio; },
-    getOrderedLabels, addGlobalLabel, moveLabel, setLabelOrder,
+    getOrderedLabels, addGlobalLabel, moveLabel,
     get hasUnsavedChanges() { return hasUnsavedChanges; },
     get sortByCumulativeReturn() { return sortByCumulativeReturn; },
     set sortByCumulativeReturn(v) { sortByCumulativeReturn = v; sortBy3MonthReturn = false; },

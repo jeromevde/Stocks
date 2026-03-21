@@ -67,13 +67,12 @@ function getNotesPreview(notes) {
     return text.slice(0, NOTES_PREVIEW_MAX_CHARS) + '…';
 }
 
-function animateLabelReflow(container, mutateDom, draggedEl = null) {
+function animateLabelReflow(container, mutateDom) {
     const tabs = [...container.querySelectorAll('.label-tab-draggable')];
     const first = new Map(tabs.map(el => [el.dataset.label, el.getBoundingClientRect()]));
     mutateDom();
     const secondTabs = [...container.querySelectorAll('.label-tab-draggable')];
     secondTabs.forEach(el => {
-        if (draggedEl && el === draggedEl) return;
         const prev = first.get(el.dataset.label);
         if (!prev) return;
         const next = el.getBoundingClientRect();
@@ -122,7 +121,6 @@ function updateLabelTabs() {
 
     let draggedLabel = null;
     let draggedEl = null;
-    let lastHoverKey = null;
 
     labels.forEach((l) => {
         const tab = makeTab(l);
@@ -132,7 +130,6 @@ function updateLabelTabs() {
         tab.addEventListener('dragstart', e => {
             draggedLabel = l;
             draggedEl = tab;
-            lastHoverKey = null;
             e.dataTransfer.setData('text/plain', l);
             e.dataTransfer.effectAllowed = 'move';
             tab.classList.add('dragging');
@@ -140,11 +137,9 @@ function updateLabelTabs() {
         });
         tab.addEventListener('dragend', () => {
             const finalTabs = [...container.querySelectorAll('.label-tab-draggable')];
-            const finalOrder = finalTabs.map(el => el.dataset.label);
-            window.Portfolio.setLabelOrder?.(finalOrder);
+            finalTabs.forEach((el, idx) => window.Portfolio.moveLabel?.(el.dataset.label, idx));
             draggedLabel = null;
             draggedEl = null;
-            lastHoverKey = null;
             tab.classList.remove('dragging');
             container.classList.remove('drag-active');
             container.querySelectorAll('.label-tab').forEach(el => el.classList.remove('drop-target-left', 'drop-target-right'));
@@ -159,17 +154,10 @@ function updateLabelTabs() {
             tab.classList.toggle('drop-target-left', before);
             tab.classList.toggle('drop-target-right', !before);
 
-            const hoverKey = `${l}:${before ? 'before' : 'after'}`;
-            if (hoverKey === lastHoverKey) return;
-            lastHoverKey = hoverKey;
-
-            if (before && draggedEl.nextSibling === tab) return;
-            if (!before && tab.nextSibling === draggedEl) return;
-
             animateLabelReflow(container, () => {
                 if (before) container.insertBefore(draggedEl, tab);
                 else container.insertBefore(draggedEl, tab.nextSibling);
-            }, draggedEl);
+            });
         });
         tab.addEventListener('dragleave', () => {
             tab.classList.remove('drop-target-left', 'drop-target-right');
