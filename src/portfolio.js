@@ -5,8 +5,10 @@ const REQUEST_DELAY_MS = 0;
 
 let portfolio = [];
 let hasUnsavedChanges = false;
-let sortByCumulativeReturn = false;
-let sortBy3MonthReturn = false;
+let sortMode = 'rating'; // rating | cumulative | return3m
+let ratingDirection = -1;     // -1 desc, 1 asc
+let cumulativeDirection = -1; // -1 desc, 1 asc
+let return3mDirection = -1;   // -1 desc, 1 asc
 let labelFilterSet = new Set();
 let showZeroStarStocks = true;
 let labelOrder = [];
@@ -136,8 +138,8 @@ async function load() {
         portfolio.length = 0;
         portfolio.push(...parseHtml(result.content));
         // Always reset to default (star sorting) after reload
-        sortByCumulativeReturn = false;
-        sortBy3MonthReturn = false;
+        sortMode = 'rating';
+        ratingDirection = -1;
         markSaved();
         updatePortfolioTable();
         showStatus(`Loaded ${portfolio.length} stocks.`, 'success');
@@ -292,19 +294,33 @@ function metricValue(v) {
     return Number.isFinite(n) ? n : -Infinity;
 }
 
+function cmpByDirection(aVal, bVal, direction) {
+    return direction * (aVal - bVal);
+}
+
+function setSortMode(mode) {
+    if (['rating', 'cumulative', 'return3m'].includes(mode)) sortMode = mode;
+}
+
+function invertSort(mode = sortMode) {
+    if (mode === 'rating') ratingDirection *= -1;
+    if (mode === 'cumulative') cumulativeDirection *= -1;
+    if (mode === 'return3m') return3mDirection *= -1;
+}
+
 function getSortedFiltered() {
     let sorted = [...portfolio].sort((a, b) => {
-        if (sortByCumulativeReturn) {
-            const m = metricValue(b.cumulativeReturn) - metricValue(a.cumulativeReturn);
+        if (sortMode === 'cumulative') {
+            const m = cmpByDirection(metricValue(a.cumulativeReturn), metricValue(b.cumulativeReturn), cumulativeDirection);
             if (m !== 0) return m;
-            return (b.rating || 0) - (a.rating || 0);
+            return cmpByDirection((a.rating || 0), (b.rating || 0), ratingDirection);
         }
-        if (sortBy3MonthReturn) {
-            const m = metricValue(b.return3m) - metricValue(a.return3m);
+        if (sortMode === 'return3m') {
+            const m = cmpByDirection(metricValue(a.return3m), metricValue(b.return3m), return3mDirection);
             if (m !== 0) return m;
-            return (b.rating || 0) - (a.rating || 0);
+            return cmpByDirection((a.rating || 0), (b.rating || 0), ratingDirection);
         }
-        return (b.rating || 0) - (a.rating || 0);
+        return cmpByDirection((a.rating || 0), (b.rating || 0), ratingDirection);
     });
     if (labelFilterSet.size > 0) sorted = sorted.filter(s => s.labels.some(l => labelFilterSet.has(l)));
     return sorted;
@@ -314,14 +330,14 @@ window.Portfolio = {
     get data() { return portfolio; },
     getOrderedLabels, addGlobalLabel, moveLabel,
     get hasUnsavedChanges() { return hasUnsavedChanges; },
-    get sortByCumulativeReturn() { return sortByCumulativeReturn; },
-    set sortByCumulativeReturn(v) { sortByCumulativeReturn = v; sortBy3MonthReturn = false; },
-    get sortBy3MonthReturn() { return sortBy3MonthReturn; },
-    set sortBy3MonthReturn(v) { sortBy3MonthReturn = v; sortByCumulativeReturn = false; },
+    get sortByCumulativeReturn() { return sortMode === 'cumulative'; },
+    set sortByCumulativeReturn(v) { if (v) sortMode = 'cumulative'; else if (sortMode === 'cumulative') sortMode = 'rating'; },
+    get sortBy3MonthReturn() { return sortMode === 'return3m'; },
+    set sortBy3MonthReturn(v) { if (v) sortMode = 'return3m'; else if (sortMode === 'return3m') sortMode = 'rating'; },
     get labelFilterSet() { return labelFilterSet; },
     get showZeroStarStocks() { return showZeroStarStocks; },
     set showZeroStarStocks(v) { showZeroStarStocks = v; },
     save, load, refresh, add: addStock, remove: removeStock,
     updateRating, updateDate, addLabel, removeLabel, updateNotes,
-    getSortedFiltered, markChanged, markSaved, generateHtml
+    getSortedFiltered, setSortMode, invertSort, markChanged, markSaved, generateHtml
 };

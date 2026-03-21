@@ -227,12 +227,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Sort headers
-    document.getElementById('sort-cumret')?.addEventListener('click', () => {
-        if (window.Portfolio) window.Portfolio.sortByCumulativeReturn = !window.Portfolio.sortByCumulativeReturn;
+    document.getElementById('sort-rating')?.addEventListener('click', () => {
+        window.Portfolio?.setSortMode?.('rating');
         updatePortfolioTable();
     });
+    document.getElementById('sort-rating')?.addEventListener('dblclick', () => {
+        window.Portfolio?.setSortMode?.('rating');
+        window.Portfolio?.invertSort?.('rating');
+        updatePortfolioTable();
+    });
+
+    document.getElementById('sort-cumret')?.addEventListener('click', () => {
+        window.Portfolio?.setSortMode?.('cumulative');
+        updatePortfolioTable();
+    });
+    document.getElementById('sort-cumret')?.addEventListener('dblclick', () => {
+        window.Portfolio?.setSortMode?.('cumulative');
+        window.Portfolio?.invertSort?.('cumulative');
+        updatePortfolioTable();
+    });
+
     document.getElementById('sort-3m-return')?.addEventListener('click', () => {
-        if (window.Portfolio) window.Portfolio.sortBy3MonthReturn = !window.Portfolio.sortBy3MonthReturn;
+        window.Portfolio?.setSortMode?.('return3m');
+        updatePortfolioTable();
+    });
+    document.getElementById('sort-3m-return')?.addEventListener('dblclick', () => {
+        window.Portfolio?.setSortMode?.('return3m');
+        window.Portfolio?.invertSort?.('return3m');
         updatePortfolioTable();
     });
 
