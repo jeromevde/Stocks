@@ -53,6 +53,37 @@ button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; 
 }
 .label-tab:hover { background: #e3e8ef; }
 .label-tab.active { background: #007bff; color: #fff; border-color: #007bff; }
+.label-tab-draggable { transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease; }
+.label-tab.dragging { opacity: 0.45; transform: scale(0.96); }
+.label-tabs.drag-active .label-tab:not(.dragging) { transform: translateY(-2px); }
+.label-tab.drop-target-left { box-shadow: inset 3px 0 0 #007bff; }
+.label-tab.drop-target-right { box-shadow: inset -3px 0 0 #007bff; }
+
+.label-create-wrap { position: relative; display: inline-flex; align-items: center; }
+.label-create-input {
+    padding: 6px 28px 6px 10px;
+    font-size: 12px;
+    border: 1px solid #dfe3e8;
+    border-radius: 14px;
+    min-width: 130px;
+    outline: none;
+}
+.label-create-input:focus { border-color: #007bff; }
+.label-create-btn {
+    position: absolute;
+    right: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    padding: 0;
+    border: none;
+    background: #007bff;
+    color: #fff;
+    font-size: 14px;
+    line-height: 20px;
+}
 
 /* Status toast — fixed position so it never shifts layout */
 .status-message {

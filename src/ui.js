@@ -98,41 +98,63 @@ function updateLabelTabs() {
 
     container.appendChild(makeTab('All'));
 
+    let draggedLabel = null;
     labels.forEach((l, index) => {
         const tab = makeTab(l);
         tab.draggable = true;
         tab.dataset.label = l;
+        tab.classList.add('label-tab-draggable');
         tab.addEventListener('dragstart', e => {
+            draggedLabel = l;
             e.dataTransfer.setData('text/plain', l);
             e.dataTransfer.effectAllowed = 'move';
+            tab.classList.add('dragging');
+            container.classList.add('drag-active');
+        });
+        tab.addEventListener('dragend', () => {
+            draggedLabel = null;
+            tab.classList.remove('dragging');
+            container.classList.remove('drag-active');
+            container.querySelectorAll('.label-tab').forEach(el => el.classList.remove('drop-target-left', 'drop-target-right'));
         });
         tab.addEventListener('dragover', e => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
+            if (!draggedLabel || draggedLabel === l) return;
+            const rect = tab.getBoundingClientRect();
+            const before = (e.clientX - rect.left) < rect.width / 2;
+            tab.classList.toggle('drop-target-left', before);
+            tab.classList.toggle('drop-target-right', !before);
+        });
+        tab.addEventListener('dragleave', () => {
+            tab.classList.remove('drop-target-left', 'drop-target-right');
         });
         tab.addEventListener('drop', e => {
             e.preventDefault();
+            tab.classList.remove('drop-target-left', 'drop-target-right');
             const dragged = e.dataTransfer.getData('text/plain');
             if (!dragged || dragged === l) return;
-            window.Portfolio.moveLabel?.(dragged, index);
+            const rect = tab.getBoundingClientRect();
+            const before = (e.clientX - rect.left) < rect.width / 2;
+            window.Portfolio.moveLabel?.(dragged, before ? index : index + 1);
             updatePortfolioTable();
         });
         container.appendChild(tab);
     });
 
     const createWrap = document.createElement('div');
-    createWrap.style.display = 'inline-flex';
-    createWrap.style.alignItems = 'center';
-    createWrap.style.gap = '6px';
+    createWrap.className = 'label-create-wrap';
 
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'New label';
-    input.style.cssText = 'padding:6px 8px;font-size:12px;border:1px solid #dfe3e8;border-radius:14px;min-width:110px;';
+    input.className = 'label-create-input';
 
     const addBtn = document.createElement('button');
-    addBtn.className = 'label-tab';
-    addBtn.textContent = '+ Add';
+    addBtn.className = 'label-create-btn';
+    addBtn.type = 'button';
+    addBtn.textContent = '+';
+    addBtn.title = 'Add label';
     addBtn.addEventListener('click', () => {
         const name = (input.value || '').trim();
         if (!name) return;
