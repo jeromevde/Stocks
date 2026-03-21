@@ -3,7 +3,6 @@
  */
 let tableUpdateTimeout = null;
 let currentNotesStockIndex = null;
-let currentResearchStock = null;
 const NOTES_PREVIEW_MAX_CHARS = 100;
 const LABEL_TAB_COOKIE = 'labelTab';
 
@@ -306,19 +305,6 @@ function openProviderChat(provider, stock) {
     if (!w) window.open(url, '_blank');
 }
 
-function openResearchModal(stock) {
-    currentResearchStock = stock;
-    const modal = document.getElementById('research-modal');
-    const label = document.getElementById('research-stock-label');
-    if (label) label.textContent = `${stock.ticker} — ${stock.name || ''}`;
-    if (modal) modal.style.display = 'flex';
-}
-
-function closeResearchModal() {
-    const modal = document.getElementById('research-modal');
-    if (modal) modal.style.display = 'none';
-}
-
 function renderRow(tbody, stock) {
     const data = window.Portfolio.data;
     const idx = data.indexOf(stock);
@@ -341,7 +327,7 @@ function renderRow(tbody, stock) {
 
     tr.innerHTML = `
         <td style="text-align:center">${stars}</td>
-        <td style="text-align:center"><div class="ticker-cell" style="cursor:pointer" data-t="${stock.ticker}"><b style="color:#0066cc">${stock.ticker}</b><button class="research-hint-btn" title="Research prompts">?</button><div style="font-size:11px;color:#888">${stock.name || ''}</div></div></td>
+        <td style="text-align:center"><div class="ticker-cell" style="cursor:pointer" data-t="${stock.ticker}"><b style="color:#0066cc">${stock.ticker}</b><select class="research-provider-select" title="Quick research"><option value="">?</option><option value="chatgpt">ChatGPT</option><option value="grok">Grok</option><option value="gemini">Gemini</option><option value="claude">Claude</option></select><div style="font-size:11px;color:#888">${stock.name || ''}</div></div></td>
         <td style="text-align:center"><div class="date-disp" style="cursor:pointer"><div style="font-size:12px">${d.formatted}</div><div style="font-size:10px;color:#999">${d.timeAgo}</div></div><input type="date" value="${stock.date}" class="edit-date" style="display:none;width:130px;padding:4px;font-size:12px;border:1px solid #ddd;border-radius:4px"></td>
         <td style="text-align:center"><div class="labels-box" style="min-width:80px;padding:4px">${labels}${addLabelDropdown}</div></td>
         <td style="text-align:center"><span class="notes-btn" style="cursor:pointer;padding:8px;background:#f9f9f9;color:#666;border-radius:3px;display:inline-block;min-width:80px">${notesShort}</span></td>
@@ -354,10 +340,16 @@ function renderRow(tbody, stock) {
     tr.querySelectorAll('.rating-star').forEach(s => s.addEventListener('click', e => { e.stopPropagation(); window.Portfolio.updateRating(idx, parseInt(s.dataset.r)); }));
     tr.querySelector('.rm-stock').addEventListener('click', () => window.Portfolio.remove(idx));
     tr.querySelector('.ticker-cell').addEventListener('click', () => openChart(stock.ticker, stock.name));
-    tr.querySelector('.research-hint-btn')?.addEventListener('click', e => {
-        e.stopPropagation();
-        openResearchModal(stock);
-    });
+    const researchSelect = tr.querySelector('.research-provider-select');
+    if (researchSelect) {
+        researchSelect.addEventListener('click', e => e.stopPropagation());
+        researchSelect.addEventListener('change', e => {
+            const provider = (e.target.value || '').trim();
+            if (!provider) return;
+            openProviderChat(provider, stock);
+            e.target.value = '';
+        });
+    }
     tr.querySelector('.notes-btn').addEventListener('click', () => openNotesPopup(idx));
 
     const dateDisp = tr.querySelector('.date-disp');
@@ -619,26 +611,11 @@ function wireAddStockModal() {
     });
 }
 
-function wireResearchModal() {
-    document.getElementById('research-modal-close')?.addEventListener('click', closeResearchModal);
-    document.getElementById('research-modal')?.addEventListener('click', e => {
-        if (e.target?.id === 'research-modal') closeResearchModal();
-    });
-    document.querySelectorAll('.research-provider-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (!currentResearchStock) return;
-            openProviderChat(btn.dataset.provider, currentResearchStock);
-            closeResearchModal();
-        });
-    });
-}
-
 // Wire modal after DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { wireAddStockModal(); wireResearchModal(); });
+    document.addEventListener('DOMContentLoaded', () => { wireAddStockModal(); });
 } else {
     wireAddStockModal();
-    wireResearchModal();
 }
 
 window.UI = { closeNotesPopup, navigateNotesPopup, confirmAutosave: () => window.Portfolio?.save(), cancelAutosave: () => {} };
