@@ -87,24 +87,25 @@ button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; 
 
 .add-label-select {
     margin-left: 4px;
-    padding: 2px 24px 2px 8px;
-    height: 22px;
+    padding: 1px 20px 1px 8px;
+    height: 20px;
     font-size: 11px;
-    border: 1px solid #cfd8e3;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-    color: #3f4d63;
-    max-width: 130px;
+    border: 1px solid #d8dee8;
+    border-radius: 10px;
+    background: #fff;
+    color: #4b5563;
+    max-width: 110px;
     outline: none;
     appearance: none;
     -webkit-appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, #6b7a90 50%), linear-gradient(135deg, #6b7a90 50%, transparent 50%);
-    background-position: calc(100% - 11px) 9px, calc(100% - 6px) 9px;
-    background-size: 5px 5px, 5px 5px;
+    box-shadow: none;
+    background-image: linear-gradient(45deg, transparent 50%, #9aa4b2 50%), linear-gradient(135deg, #9aa4b2 50%, transparent 50%);
+    background-position: calc(100% - 10px) 8px, calc(100% - 6px) 8px;
+    background-size: 4px 4px, 4px 4px;
     background-repeat: no-repeat;
 }
-.add-label-select:hover { border-color: #9eb3cf; }
-.add-label-select:focus { border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,0.12); }
+.add-label-select:hover { border-color: #c2cbd8; }
+.add-label-select:focus { border-color: #94a3b8; }
 
 /* Status toast — fixed position so it never shifts layout */
 .status-message {
