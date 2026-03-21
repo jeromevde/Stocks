@@ -13,11 +13,6 @@
 </head>
 <body>
     <div class="container">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 10px;">
-            <a href="https://github.com/jeromevde/Stocks" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:#1f2937;font-weight:700;font-size:18px;">
-                Stock Tracker ↗
-            </a>
-        </div>
         <div class="api-key-bar">
             <button id="github-key-tile" class="key-tile inactive">
                 <span class="key-label">GitHub</span>
@@ -124,6 +119,7 @@
         <!-- Portfolio Actions -->
         <div id="portfolio-actions" class="actions-section">
             <button id="save-portfolio" class="btn-primary" disabled>💾 Save to GitHub</button>
+            <a href="https://github.com/jeromevde/Stocks" target="_blank" rel="noopener noreferrer" class="repo-title-link">Stock Tracker ↗</a>
         </div>
         <div id="label-tabs" class="label-tabs" style="display:none;"></div>
         <!-- Toast status (fixed position – no layout shift) -->
@@ -155,10 +151,10 @@
         </div>
     </div>
     <!-- Load modules in order with cache busting -->
-    <script src="github.js?v=36"></script>
-    <script src="yahoo.js?v=36"></script>
-    <script src="portfolio.js?v=36"></script>
-    <script src="ui.js?v=36"></script>
-    <script src="main.js?v=36"></script>
+    <script src="github.js?v=37"></script>
+    <script src="yahoo.js?v=37"></script>
+    <script src="portfolio.js?v=37"></script>
+    <script src="ui.js?v=37"></script>
+    <script src="main.js?v=37"></script>
 </body>
 </html>
