@@ -86,6 +86,19 @@ function isVideoUrl(text = '') {
     return ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'].includes(ext);
 }
 
+function extractMediaUrlFromLine(line = '') {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+
+    // Markdown link: [label](url)
+    const md = trimmed.match(/\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
+    if (md) return md[1];
+
+    // Plain URL inside line
+    const raw = trimmed.match(/https?:\/\/[^\s<>")']+/i);
+    return raw ? raw[0] : '';
+}
+
 function getNotesPreview(notes) {
     if (!notes) return '';
 
@@ -391,8 +404,8 @@ function parseMedia(text) {
     if (!text) return '';
     const lines = text.split('\n');
     return lines.map(line => {
-        const trimmed = line.trim();
-        const ytId = extractYouTubeId(trimmed);
+        const url = extractMediaUrlFromLine(line);
+        const ytId = extractYouTubeId(url);
         if (ytId) {
             return `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
                 <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
@@ -401,11 +414,11 @@ function parseMedia(text) {
                 </div>
             </a>`;
         }
-        if (isVideoUrl(trimmed)) {
-            return `<video src="${trimmed}" controls style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+        if (isVideoUrl(url)) {
+            return `<video src="${url}" controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
         }
-        if (isImageUrl(trimmed)) {
-            return `<img src="${trimmed}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
+        if (isImageUrl(url)) {
+            return `<img src="${url}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
         }
         return line;
     }).join('\n');
