@@ -407,6 +407,13 @@ function escapeHtml(text = '') {
         .replace(/>/g, '&gt;');
 }
 
+function lockRichMediaNodes(editor) {
+    if (!editor) return;
+    editor.querySelectorAll('iframe, video, img, a').forEach(el => {
+        el.setAttribute('contenteditable', 'false');
+    });
+}
+
 function parseMedia(text) {
     if (!text) return '';
     const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
@@ -415,7 +422,7 @@ function parseMedia(text) {
         const ytId = extractYouTubeId(mediaUrl);
         if (ytId) {
             const embedUrl = `https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`;
-            return `<div style="position:relative;width:100%;padding-top:56.25%;margin:8px 0;border-radius:8px;overflow:hidden;">
+            return `<div contenteditable="false" style="position:relative;width:100%;padding-top:56.25%;margin:8px 0;border-radius:8px;overflow:hidden;">
                 <iframe
                     src="${embedUrl}"
                     title="YouTube video"
@@ -423,18 +430,18 @@ function parseMedia(text) {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerpolicy="strict-origin-when-cross-origin"
                     allowfullscreen
-                    style="position:absolute;inset:0;width:100%;height:100%;border:0;">
+                    style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:auto;">
                 </iframe>
             </div>`;
         }
         if (isVideoUrl(mediaUrl)) {
-            return `<video controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata">
+            return `<video contenteditable="false" controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;pointer-events:auto;" preload="metadata">
                 <source src="${mediaUrl}">
                 <a href="${mediaUrl}" target="_blank" rel="noopener noreferrer">Open video</a>
             </video>`;
         }
         if (isImageUrl(mediaUrl)) {
-            return `<img src="${mediaUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
+            return `<img contenteditable="false" src="${mediaUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;pointer-events:auto;" loading="lazy" />`;
         }
         if (!line.length) return '<div><br></div>';
         return `<div>${escapeHtml(line)}</div>`;
@@ -513,6 +520,7 @@ function openNotesPopup(idx) {
     renderNotesHeader(idx);
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
+    lockRichMediaNodes(editor);
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
 }
@@ -533,6 +541,7 @@ function navigateNotesPopup(step) {
     renderNotesHeader(currentNotesStockIndex);
     if (editor) {
         editor.innerHTML = parseMedia(stock.notes || '');
+        lockRichMediaNodes(editor);
         editor.focus();
     }
 }
