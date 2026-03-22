@@ -86,6 +86,26 @@ function isVideoUrl(text = '') {
     return ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'].includes(ext);
 }
 
+function extractMediaUrlFromLine(line = '') {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+
+    // Markdown link: [label](url)
+    const md = trimmed.match(/\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
+    if (md) return md[1];
+
+    // Plain URL inside line
+    const raw = trimmed.match(/https?:\/\/[^\s<>")']+/i);
+    return raw ? raw[0] : '';
+}
+
+function classifyMediaToken(url = '') {
+    if (!url) return '';
+    if (extractYouTubeId(url) || isVideoUrl(url)) return '[video]';
+    if (isImageUrl(url)) return '[image]';
+    return '';
+}
+
 function getNotesPreview(notes) {
     if (!notes) return '';
 
@@ -96,12 +116,14 @@ function getNotesPreview(notes) {
     text = text.replace(/<video\b[^>]*>[\s\S]*?<\/video>/gi, '[video]');
     text = text.replace(/<iframe\b[^>]*youtube[^>]*>[\s\S]*?<\/iframe>/gi, '[video]');
 
-    // Replace URLs robustly (including markdown/link contexts)
+    // Replace markdown links first, then plain URLs.
+    text = text.replace(/\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/gi, (_m, url) => {
+        const token = classifyMediaToken(url);
+        return token || _m;
+    });
     text = text.replace(/https?:\/\/[^\s<>")']+/gi, (url) => {
-        if (extractYouTubeId(url)) return '[video]';
-        if (isVideoUrl(url)) return '[video]';
-        if (isImageUrl(url)) return '[image]';
-        return url;
+        const token = classifyMediaToken(url);
+        return token || url;
     });
 
     // Strip any remaining tags from rich editor leftovers
@@ -391,8 +413,8 @@ function parseMedia(text) {
     if (!text) return '';
     const lines = text.split('\n');
     return lines.map(line => {
-        const trimmed = line.trim();
-        const ytId = extractYouTubeId(trimmed);
+        const mediaUrl = extractMediaUrlFromLine(line);
+        const ytId = extractYouTubeId(mediaUrl);
         if (ytId) {
             return `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
                 <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
@@ -401,11 +423,14 @@ function parseMedia(text) {
                 </div>
             </a>`;
         }
-        if (isVideoUrl(trimmed)) {
-            return `<video src="${trimmed}" controls style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+        if (isVideoUrl(mediaUrl)) {
+            return `<video controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata">
+                <source src="${mediaUrl}">
+                <a href="${mediaUrl}" target="_blank" rel="noopener noreferrer">Open video</a>
+            </video>`;
         }
-        if (isImageUrl(trimmed)) {
-            return `<img src="${trimmed}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
+        if (isImageUrl(mediaUrl)) {
+            return `<img src="${mediaUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
         }
         return line;
     }).join('\n');
