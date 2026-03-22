@@ -24,6 +24,7 @@ function sleep(ms) {
 }
 
 let corsWarningShown = false;
+const SHOW_CORS_TOAST = localStorage.getItem('show_cors_warning_toast') === '1';
 
 function isLikelyCorsOrNetworkError(err) {
     const msg = String(err?.message || '').toLowerCase();
@@ -33,6 +34,15 @@ function isLikelyCorsOrNetworkError(err) {
 function showCorsWarningOnce() {
     if (corsWarningShown) return;
     corsWarningShown = true;
+
+    // Default behavior is silent to avoid noisy toasts during normal browsing.
+    // Power users can re-enable the toast with:
+    // localStorage.setItem('show_cors_warning_toast', '1')
+    if (!SHOW_CORS_TOAST) {
+        mdWarn('Market data blocked (likely CORS). Enable CORS for query1.finance.yahoo.com and refresh.');
+        return;
+    }
+
     if (typeof window.showStatus === 'function') {
         window.showStatus('Market data blocked (likely CORS). Enable CORS for query1.finance.yahoo.com and refresh.', 'error');
     }
