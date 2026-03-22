@@ -394,12 +394,17 @@ function parseMedia(text) {
         const trimmed = line.trim();
         const ytId = extractYouTubeId(trimmed);
         if (ytId) {
-            return `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
-                <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                    <div style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:24px solid white;margin-left:4px;"></div>
-                </div>
-            </a>`;
+            return `<div style="position:relative;width:100%;padding-top:56.25%;margin:8px 0;border-radius:8px;overflow:hidden;background:#000;">
+                <iframe
+                    src="https://www.youtube.com/embed/${ytId}?rel=0"
+                    title="YouTube video"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen
+                    style="position:absolute;inset:0;width:100%;height:100%;border:0;">
+                </iframe>
+            </div>`;
         }
         if (isVideoUrl(trimmed)) {
             return `<video src="${trimmed}" controls style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
