@@ -232,6 +232,7 @@ window.MarketData = {
     fetchHistoricalPrice,
     fetchTickerSuggestions,
     clearCache,
+    resetCorsWarningState: () => { corsWarningShown = false; },
 };
 
 window.YahooFinance = window.MarketData; // backwards-compat alias
