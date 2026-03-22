@@ -416,6 +416,22 @@ function renderMarkdownTableBlock(block = '') {
     return `<div style="overflow-x:auto;margin:8px 0;"><table style="border-collapse:collapse;width:100%;font-size:12px;">${headHtml}${bodyHtml}</table></div>`;
 }
 
+function escapeHtml(text = '') {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function renderInlineMarkdown(text = '') {
+    let out = escapeHtml(text);
+    out = out.replace(/`([^`]+)`/g, '<code style="background:#f1f1f1;padding:1px 4px;border-radius:4px;">$1</code>');
+    out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    return out;
+}
+
 function parseMedia(text) {
     if (!text) return '';
 
@@ -426,7 +442,7 @@ function parseMedia(text) {
     });
 
     const lines = withTables.split('\n');
-    return lines.map(line => {
+    const rendered = lines.map(line => {
         const mediaUrl = extractMediaUrlFromLine(line);
         const ytId = extractYouTubeId(mediaUrl);
         if (ytId) {
@@ -452,8 +468,27 @@ function parseMedia(text) {
         if (isImageUrl(mediaUrl)) {
             return `<img src="${mediaUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
         }
-        return line;
-    }).join('\n');
+
+        // Keep generated table/html blocks untouched.
+        if (/^\s*</.test(line)) return line;
+
+        // Basic markdown support for normal text lines.
+        const heading = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/);
+        if (heading) {
+            const level = Math.min(3, heading[1].length);
+            const text = renderInlineMarkdown(heading[2]);
+            return `<h${level} style="margin:10px 0 6px 0;">${text}</h${level}>`;
+        }
+
+        const bullet = line.match(/^\s*[-*]\s+(.+)$/);
+        if (bullet) return `<li>${renderInlineMarkdown(bullet[1])}</li>`;
+
+        if (!line.trim()) return '<br>';
+        return `<div>${renderInlineMarkdown(line)}</div>`;
+    });
+
+    // Wrap adjacent list items into a UL.
+    return rendered.join('\n').replace(/(?:<li>[\s\S]*?<\/li>\n?)+/g, (chunk) => `<ul style="margin:6px 0 6px 18px;">${chunk}</ul>`);
 }
 
 function serializeNotes(editorEl) {
