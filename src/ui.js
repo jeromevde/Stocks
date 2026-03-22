@@ -391,8 +391,8 @@ function parseMedia(text) {
     if (!text) return '';
     const lines = text.split('\n');
     return lines.map(line => {
-        const trimmed = line.trim();
-        const ytId = extractYouTubeId(trimmed);
+        const mediaUrl = extractMediaUrlFromLine(line);
+        const ytId = extractYouTubeId(mediaUrl);
         if (ytId) {
             return `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
                 <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
@@ -401,11 +401,11 @@ function parseMedia(text) {
                 </div>
             </a>`;
         }
-        if (isVideoUrl(trimmed)) {
-            return `<video src="${trimmed}" controls style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+        if (isVideoUrl(mediaUrl)) {
+            return `<video src="${mediaUrl}" controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
         }
-        if (isImageUrl(trimmed)) {
-            return `<img src="${trimmed}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
+        if (isImageUrl(mediaUrl)) {
+            return `<img src="${mediaUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
         }
         return line;
     }).join('\n');
