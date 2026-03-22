@@ -282,7 +282,7 @@ function updatePortfolioTable() {
 function buildResearchPrompt(stock) {
     const name = stock?.name || stock?.ticker || '';
     const ticker = stock?.ticker || '';
-    return `What does ${name} (${ticker}) sell?\n\nGive a concise breakdown of main revenue sources by segment and geography (latest fiscal year), with percentages when available.\n\nAlso include:\n- Business model summary\n- Top 3 growth drivers\n- Top 3 key risks\n- Competitors\n- What to verify in latest annual report/10-K`;
+    return `What does ${name} (${ticker}) sell?\n\nGive a concise breakdown of main revenue sources by segment and geography (latest fiscal year), with percentages when available.\n\nFormat output in clean markdown with short bullets and exactly ONE summary table:\n\n| Section | Key points |\n|---|---|\n| Business model | core products/services + monetization |\n| Revenue segments | latest mix with percentages when available |\n| Geography | regional split with percentages when available |\n| Growth drivers | top 3 |\n| Key risks | top 3 |\n| Competitors | key public peers |\n| What to verify in filings | latest 10-K / annual report checks |\n\nAlso include a final verdict line: Bull / Neutral / Bear + confidence (0-100).`;
 }
 
 function openProviderChat(provider, stock) {
