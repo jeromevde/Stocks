@@ -563,6 +563,15 @@ function renderNotesHeader(idx) {
         <span class="notes-popup-arrows-hint">${hint}</span>`;
 }
 
+function refreshNotesPreviewCell(idx, notesText) {
+    const stock = window.Portfolio?.data?.[idx];
+    if (!stock) return;
+    const row = document.querySelector(`#portfolio-tbody tr[data-ticker="${CSS.escape(stock.ticker)}"]`);
+    const btn = row?.querySelector('.notes-btn');
+    if (!btn) return;
+    btn.textContent = getNotesPreview(notesText);
+}
+
 function openNotesPopup(idx) {
     currentNotesStockIndex = idx;
     const stock = window.Portfolio.data[idx];
@@ -571,10 +580,12 @@ function openNotesPopup(idx) {
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
 
-    // Live-sync notes so table previews update without manual page refresh.
+    // Live-sync notes so table previews update immediately while typing.
     editor.oninput = () => {
         if (currentNotesStockIndex === null) return;
-        window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor));
+        const serialized = serializeNotes(editor);
+        window.Portfolio.updateNotes(currentNotesStockIndex, serialized);
+        refreshNotesPreviewCell(currentNotesStockIndex, serialized);
         if (typeof window.debouncedUpdateTable === 'function') window.debouncedUpdateTable();
     };
 
