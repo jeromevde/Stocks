@@ -431,26 +431,13 @@ function parseMedia(text) {
         const ytId = extractYouTubeId(mediaUrl);
         if (ytId) {
             const embedUrl = `https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`;
-            return `<div contenteditable="false" style="position:relative;width:100%;padding-top:56.25%;margin:8px 0;border-radius:8px;overflow:hidden;">
-                <iframe
-                    src="${embedUrl}"
-                    title="YouTube video"
-                    loading="lazy"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin"
-                    allowfullscreen
-                    style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:auto;">
-                </iframe>
-            </div>`;
+            return `<div data-media-url="https://www.youtube.com/watch?v=${ytId}" contenteditable="false" style="position:relative;width:100%;padding-top:56.25%;margin:8px 0;border-radius:8px;overflow:hidden;"><iframe src="${embedUrl}" title="YouTube video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:auto;"></iframe></div>`;
         }
         if (isVideoUrl(mediaUrl)) {
-            return `<video contenteditable="false" controls playsinline style="display:block;width:100%;max-width:100%;height:auto;border-radius:8px;margin:8px 0;pointer-events:auto;background:#000;" preload="metadata">
-                <source src="${mediaUrl}">
-                <a href="${mediaUrl}" target="_blank" rel="noopener noreferrer">Open video</a>
-            </video>`;
+            return `<video data-media-url="${mediaUrl}" contenteditable="false" controls playsinline style="display:block;width:100%;max-width:100%;height:auto;border-radius:8px;margin:8px 0;pointer-events:auto;background:#000;" preload="metadata"><source src="${mediaUrl}"><a href="${mediaUrl}" target="_blank" rel="noopener noreferrer">Open video</a></video>`;
         }
         if (isImageUrl(mediaUrl)) {
-            return `<img contenteditable="false" src="${mediaUrl}" style="display:block;max-width:100%;height:auto;object-fit:contain;border-radius:8px;margin:8px 0;pointer-events:auto;" loading="eager" decoding="sync" />`;
+            return `<img data-media-url="${mediaUrl}" contenteditable="false" src="${mediaUrl}" style="display:block;max-width:100%;height:auto;object-fit:contain;border-radius:8px;margin:8px 0;pointer-events:auto;" loading="eager" decoding="sync" />`;
         }
         if (!line.length) return '<div><br></div>';
         return `<div>${escapeHtml(line)}</div>`;
@@ -458,48 +445,34 @@ function parseMedia(text) {
 }
 
 function serializeNotes(editorEl) {
-    // Convert rich/media nodes back to plain text URLs first.
     const clone = editorEl.cloneNode(true);
 
-    clone.querySelectorAll('a').forEach(a => {
-        const href = a.href || '';
-        const m = href.match(/youtube\.com\/watch\?v=([\w-]{11})/);
-        if (m) {
-            a.replaceWith(`https://www.youtube.com/watch?v=${m[1]}`);
-            return;
-        }
-        if (href.startsWith('http')) a.replaceWith(href);
-    });
+    const isBlock = new Set(['DIV', 'P', 'LI', 'UL', 'OL', 'H1', 'H2', 'H3']);
 
-    clone.querySelectorAll('iframe').forEach(frame => {
-        const src = frame.getAttribute('src') || '';
-        const m = src.match(/youtube\.com\/embed\/([\w-]{11})/i);
-        if (m) frame.replaceWith(`https://www.youtube.com/watch?v=${m[1]}`);
-    });
-
-    clone.querySelectorAll('img').forEach(img => {
-        img.replaceWith(img.src || '');
-    });
-
-    clone.querySelectorAll('video').forEach(video => {
-        video.replaceWith(video.currentSrc || video.src || '');
-    });
-
-    // Explicit DOM walk so blank lines survive exactly; avoid innerText collapsing.
     const toText = (node) => {
         if (!node) return '';
         if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
         if (node.nodeType !== Node.ELEMENT_NODE) return '';
 
-        const tag = node.tagName;
+        const el = node;
+        const tag = el.tagName;
+
+        const mediaUrl = el.getAttribute('data-media-url');
+        if (mediaUrl) return `${mediaUrl}\n`;
+
         if (tag === 'BR') return '\n';
 
-        let content = '';
-        node.childNodes.forEach(child => { content += toText(child); });
+        if (tag === 'A') {
+            const href = el.getAttribute('href') || '';
+            const txt = el.textContent || '';
+            if (href.startsWith('http') && (!txt || txt === href)) return href;
+        }
 
-        // Block elements terminate with a newline, but avoid double-newline for <div><br></div>.
-        if (tag === 'DIV' || tag === 'P' || tag === 'LI') {
-            return content.endsWith('\n') ? content : (content + '\n');
+        let content = '';
+        el.childNodes.forEach(child => { content += toText(child); });
+
+        if (isBlock.has(tag)) {
+            return content.endsWith('\n') ? content : `${content}\n`;
         }
         return content;
     };
@@ -507,14 +480,10 @@ function serializeNotes(editorEl) {
     let out = '';
     clone.childNodes.forEach(child => { out += toText(child); });
 
-    out = out
+    return out
         .replace(/\u00a0/g, ' ')
-        .replace(/\r\n?/g, '\n');
-
-    // Avoid injecting a trailing newline on every save cycle.
-    out = out.replace(/\n+$/g, '');
-
-    return out;
+        .replace(/\r\n?/g, '\n')
+        .replace(/\n+$/g, '');
 }
 
 /** Notes popup */
