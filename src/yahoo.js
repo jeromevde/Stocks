@@ -23,6 +23,22 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+let corsWarningShown = false;
+
+function isLikelyCorsOrNetworkError(err) {
+    const msg = String(err?.message || '').toLowerCase();
+    return msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('load failed') || msg.includes('typeerror');
+}
+
+function showCorsWarningOnce() {
+    if (corsWarningShown) return;
+    corsWarningShown = true;
+
+    if (typeof window.showStatus === 'function') {
+        window.showStatus('Market data blocked (likely CORS/network). Enable CORS for query1.finance.yahoo.com and refresh.', 'error');
+    }
+}
+
 async function fetchJsonDirect(url, label = 'request') {
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -37,6 +53,7 @@ async function fetchJsonDirect(url, label = 'request') {
                 await sleep(delayMs);
                 continue;
             }
+            if (isLikelyCorsOrNetworkError(err)) showCorsWarningOnce();
             throw err;
         }
     }
@@ -204,6 +221,7 @@ window.MarketData = {
     fetchHistoricalPrice,
     fetchTickerSuggestions,
     clearCache,
+    resetCorsWarningState: () => { corsWarningShown = false; },
 };
 
 window.YahooFinance = window.MarketData; // backwards-compat alias
