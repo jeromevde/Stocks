@@ -24,7 +24,10 @@ function sleep(ms) {
 }
 
 let corsWarningShown = false;
-const SHOW_CORS_TOAST = localStorage.getItem('show_cors_warning_toast') === '1';
+
+function isCorsToastEnabled() {
+    return localStorage.getItem('show_cors_warning_toast') === '1';
+}
 
 function isLikelyCorsOrNetworkError(err) {
     const msg = String(err?.message || '').toLowerCase();

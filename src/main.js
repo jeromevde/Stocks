@@ -169,7 +169,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // LLM guide modal
     const llmModal = document.getElementById('llm-guide-modal');
     const llmText = document.getElementById('llm-guide-text');
-    const storedGuide = localStorage.getItem('llm_guide_markdown') || DEFAULT_LLM_GUIDE;
+    const storedGuideRaw = localStorage.getItem('llm_guide_markdown');
+    let storedGuide = storedGuideRaw || DEFAULT_LLM_GUIDE;
+
+    // Auto-migrate older local guide variants so users see the latest table standard.
+    if (storedGuideRaw && !storedGuideRaw.includes('## Markdown table standard (mandatory)')) {
+        storedGuide = DEFAULT_LLM_GUIDE;
+        localStorage.setItem('llm_guide_markdown', storedGuide);
+    }
+
     if (llmText) llmText.value = storedGuide;
 
     document.getElementById('llm-guide-btn')?.addEventListener('click', () => {

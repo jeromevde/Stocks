@@ -333,7 +333,7 @@ function renderRow(tbody, stock) {
         <td style="text-align:center"><div class="ticker-cell" style="cursor:pointer;position:relative;padding-right:16px;" data-t="${stock.ticker}"><b style="color:#0066cc">${stock.ticker}</b><select class="research-provider-select" title="Quick research"><option value="">?</option><option value="chatgpt">ChatGPT</option><option value="grok">Grok</option><option value="gemini">Gemini</option><option value="claude">Claude</option></select><div style="font-size:11px;color:#888">${stock.name || ''}</div></div></td>
         <td style="text-align:center"><div class="date-disp" style="cursor:pointer"><div style="font-size:12px">${d.formatted}</div><div style="font-size:10px;color:#999">${d.timeAgo}</div></div><input type="date" value="${stock.date}" class="edit-date" style="display:none;width:130px;padding:4px;font-size:12px;border:1px solid #ddd;border-radius:4px"></td>
         <td style="text-align:center"><div class="labels-box" style="min-width:80px;padding:4px">${labels}${addLabelDropdown}</div></td>
-        <td style="text-align:center"><span class="notes-btn" style="cursor:pointer;padding:8px;background:#f9f9f9;color:#666;border-radius:3px;display:inline-block;min-width:80px">${notesShort}</span></td>
+        <td style="text-align:center"><button type="button" class="notes-btn" style="cursor:pointer;padding:8px;background:#f9f9f9;color:#666;border-radius:3px;display:inline-block;min-width:80px;border:0;pointer-events:auto">${notesShort}</button></td>
         <td class="price-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:80px">${priceDisplay}</td>
         <td class="return3m-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:60px">${colorReturn(stock.return3m)}</td>
         <td class="cumret-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:60px">${colorReturn(stock.cumulativeReturn)}</td>
@@ -353,7 +353,11 @@ function renderRow(tbody, stock) {
             e.target.value = '';
         });
     }
-    tr.querySelector('.notes-btn').addEventListener('click', () => openNotesPopup(idx));
+    tr.querySelector('.notes-btn').addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        openNotesPopup(idx);
+    });
 
     const dateDisp = tr.querySelector('.date-disp');
     const dateInput = tr.querySelector('.edit-date');
