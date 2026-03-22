@@ -449,7 +449,7 @@ function parseMedia(text) {
 }
 
 function serializeNotes(editorEl) {
-    // Convert rich/media nodes back to plain text URLs, then read as text.
+    // Convert rich/media nodes back to plain text URLs first.
     const clone = editorEl.cloneNode(true);
 
     clone.querySelectorAll('a').forEach(a => {
@@ -476,13 +476,31 @@ function serializeNotes(editorEl) {
         video.replaceWith(video.currentSrc || video.src || '');
     });
 
-    // innerText preserves block boundaries and user-entered blank lines better
-    // than ad-hoc HTML replacements.
-    return (clone.innerText || '')
+    // Explicit DOM walk so blank lines survive exactly; avoid innerText collapsing.
+    const toText = (node) => {
+        if (!node) return '';
+        if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+        if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+        const tag = node.tagName;
+        if (tag === 'BR') return '\n';
+
+        let content = '';
+        node.childNodes.forEach(child => { content += toText(child); });
+
+        // Block elements should terminate with a newline.
+        if (tag === 'DIV' || tag === 'P' || tag === 'LI') return content + '\n';
+        return content;
+    };
+
+    let out = '';
+    clone.childNodes.forEach(child => { out += toText(child); });
+
+    return out
         .replace(/\u00a0/g, ' ')
         .replace(/\r\n?/g, '\n')
         .split('\n')
-        .map(line => line.replace(/[ \t]+$/g, '').replace(/^[ \t]+$/g, ''))
+        .map(line => line.replace(/[ \t]+$/g, ''))
         .join('\n');
 }
 
