@@ -387,9 +387,16 @@ function openChart(ticker) {
 function closeChart() {}
 
 
+function escapeHtml(text = '') {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 function parseMedia(text) {
     if (!text) return '';
-    const lines = text.split('\n');
+    const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
     return lines.map(line => {
         const trimmed = line.trim();
         const ytId = extractYouTubeId(trimmed);
@@ -407,8 +414,9 @@ function parseMedia(text) {
         if (isImageUrl(trimmed)) {
             return `<img src="${trimmed}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
         }
-        return line;
-    }).join('\n');
+        if (!line.length) return '<div><br></div>';
+        return `<div>${escapeHtml(line)}</div>`;
+    }).join('');
 }
 
 function serializeNotes(editorEl) {
