@@ -412,32 +412,38 @@ function parseMedia(text) {
 }
 
 function serializeNotes(editorEl) {
-    // Get the plain text, converting <img> and <iframe> back to URLs
+    // Convert rich/media nodes back to plain text URLs, then read as text.
     const clone = editorEl.cloneNode(true);
+
     clone.querySelectorAll('a').forEach(a => {
         const href = a.href || '';
         const m = href.match(/youtube\.com\/watch\?v=([\w-]{11})/);
         if (m) {
-            a.replaceWith(`https://www.youtube.com/watch?v=${m[1]}\n`);
+            a.replaceWith(`https://www.youtube.com/watch?v=${m[1]}`);
+            return;
         }
+        if (href.startsWith('http')) a.replaceWith(href);
     });
+
+    clone.querySelectorAll('iframe').forEach(frame => {
+        const src = frame.getAttribute('src') || '';
+        const m = src.match(/youtube\.com\/embed\/([\w-]{11})/i);
+        if (m) frame.replaceWith(`https://www.youtube.com/watch?v=${m[1]}`);
+    });
+
     clone.querySelectorAll('img').forEach(img => {
-        img.replaceWith(img.src + '\n');
+        img.replaceWith(img.src || '');
     });
+
     clone.querySelectorAll('video').forEach(video => {
-        video.replaceWith((video.currentSrc || video.src || '') + '\n');
+        video.replaceWith(video.currentSrc || video.src || '');
     });
-    let html = clone.innerHTML;
-    // Preserve line breaks - convert divs and brs to newlines
-    html = html.replace(/<div><br><\/div>/gi, '\n');
-    html = html.replace(/<div>/gi, '\n').replace(/<\/div>/gi, '');
-    html = html.replace(/<br\s*\/?>/gi, '\n');
-    // Keep spaces but decode HTML entities properly
-    html = html.replace(/&nbsp;/g, ' ');
-    // Don't strip leading newlines - preserve formatting
-    const decoder = document.createElement('textarea');
-    decoder.innerHTML = html;
-    return decoder.value;
+
+    // innerText preserves block boundaries and user-entered blank lines better
+    // than ad-hoc HTML replacements.
+    return (clone.innerText || '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/\r\n?/g, '\n');
 }
 
 /** Notes popup */
