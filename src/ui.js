@@ -497,20 +497,24 @@ function serializeNotes(editorEl) {
         let content = '';
         node.childNodes.forEach(child => { content += toText(child); });
 
-        // Block elements should terminate with a newline.
-        if (tag === 'DIV' || tag === 'P' || tag === 'LI') return content + '\n';
+        // Block elements terminate with a newline, but avoid double-newline for <div><br></div>.
+        if (tag === 'DIV' || tag === 'P' || tag === 'LI') {
+            return content.endsWith('\n') ? content : (content + '\n');
+        }
         return content;
     };
 
     let out = '';
     clone.childNodes.forEach(child => { out += toText(child); });
 
-    return out
+    out = out
         .replace(/\u00a0/g, ' ')
-        .replace(/\r\n?/g, '\n')
-        .split('\n')
-        .map(line => line.replace(/[ \t]+$/g, ''))
-        .join('\n');
+        .replace(/\r\n?/g, '\n');
+
+    // Avoid injecting a trailing newline on every save cycle.
+    out = out.replace(/\n+$/g, '');
+
+    return out;
 }
 
 /** Notes popup */
