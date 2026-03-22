@@ -282,7 +282,7 @@ function updatePortfolioTable() {
 function buildResearchPrompt(stock) {
     const name = stock?.name || stock?.ticker || '';
     const ticker = stock?.ticker || '';
-    return `What does ${name} (${ticker}) sell?\n\nGive a concise breakdown of main revenue sources by segment and geography (latest fiscal year), with percentages when available.\n\nFormat output in clean markdown with short bullets and exactly ONE summary table:\n\n| Section | Key points |\n|---|---|\n| Business model | core products/services + monetization |\n| Revenue segments | latest mix with percentages when available |\n| Geography | regional split with percentages when available |\n| Growth drivers | top 3 |\n| Key risks | top 3 |\n| Competitors | key public peers |\n| What to verify in filings | latest 10-K / annual report checks |\n\nAlso include a final verdict line: Bull / Neutral / Bear + confidence (0-100).`;
+    return `What does ${name} (${ticker}) sell?\n\nKeep it SHORT (max 120 words excluding table), practical, and decision-focused.\n\nUse exactly one compact markdown table:\n\n| Item | Notes |\n|---|---|\n| Business model | one-liner |\n| Revenue mix | key segments/geographies with % when known |\n| Growth drivers | top 2 |\n| Risks | top 2 |\n\nThen add 3 bullets only:\n- What market is pricing in\n- What to verify in latest filing\n- Verdict: Bull / Neutral / Bear + confidence (0-100)`;
 }
 
 function openProviderChat(provider, stock) {
@@ -477,6 +477,14 @@ function openNotesPopup(idx) {
     renderNotesHeader(idx);
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
+
+    // Live-sync notes so table previews update without manual page refresh.
+    editor.oninput = () => {
+        if (currentNotesStockIndex === null) return;
+        window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor));
+        if (typeof window.debouncedUpdateTable === 'function') window.debouncedUpdateTable();
+    };
+
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
 }
