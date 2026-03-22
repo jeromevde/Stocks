@@ -15,6 +15,17 @@ function tryAutoLogin() {
     } catch (e) { console.warn('Auto-login failed:', e); }
 }
 
+const LLM_TABLE_SECTION = `## Markdown table standard (mandatory)
+Use exactly one compact markdown table for key metrics to keep output consistent and easy to scan:
+| Metric | Latest | 5Y context | Signal |
+|---|---:|---:|---|
+| Revenue growth | ... | ... | improving / flat / deteriorating |
+| Operating margin | ... | ... | ... |
+| FCF margin | ... | ... | ... |
+| ROIC | ... | ... | ... |
+| Net debt / EBITDA | ... | ... | ... |
+| Valuation (EV/EBIT or P/E) | ... | ... | rich / fair / cheap |`;
+
 const DEFAULT_LLM_GUIDE = `# STOCK NOTES COPILOT (BRUTALLY HONEST)
 
 ## Mission
@@ -34,16 +45,7 @@ No cheerleading.
 8. What must happen next (3 measurable checkpoints)
 9. Verdict: Buy / Watch / Avoid + confidence (0-100)
 
-## Markdown table standard (mandatory)
-Use exactly one compact markdown table for key metrics to keep output consistent and easy to scan:
-| Metric | Latest | 5Y context | Signal |
-|---|---:|---:|---|
-| Revenue growth | ... | ... | improving / flat / deteriorating |
-| Operating margin | ... | ... | ... |
-| FCF margin | ... | ... | ... |
-| ROIC | ... | ... | ... |
-| Net debt / EBITDA | ... | ... | ... |
-| Valuation (EV/EBIT or P/E) | ... | ... | rich / fair / cheap |
+${LLM_TABLE_SECTION}
 
 ## Data discipline
 - Use primary sources first: latest 10-K/20-F, 10-Q, earnings transcript, investor deck.
@@ -173,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let storedGuide = storedGuideRaw || DEFAULT_LLM_GUIDE;
 
     // Auto-migrate older local guide variants so users see the latest table standard.
-    if (storedGuideRaw && !storedGuideRaw.includes('## Markdown table standard (mandatory)')) {
+    if (storedGuideRaw && !storedGuideRaw.includes('| Metric | Latest | 5Y context | Signal |')) {
         storedGuide = DEFAULT_LLM_GUIDE;
         localStorage.setItem('llm_guide_markdown', storedGuide);
     }

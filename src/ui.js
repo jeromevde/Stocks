@@ -483,12 +483,19 @@ function serializeNotes(editorEl) {
     decoder.innerHTML = html;
 
     // Normalize newline/whitespace noise from contenteditable wrappers.
-    return decoder.value
+    let text = decoder.value
         .replace(/\r\n?/g, '\n')
         .split('\n')
         .map(line => line.replace(/[ \t]+$/g, ''))
-        .join('\n')
-        .replace(/\n{3,}/g, '\n\n');
+        .join('\n');
+
+    // Remove whitespace-only lines and excessive vertical spacing.
+    text = text.replace(/\n[ \t]+\n/g, '\n\n');
+    text = text.replace(/[ \t]+\n/g, '\n');
+    text = text.replace(/\n{3,}/g, '\n\n');
+    text = text.replace(/^\n+|\n+$/g, '');
+
+    return text;
 }
 
 /** Notes popup */
