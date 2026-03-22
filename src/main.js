@@ -34,6 +34,17 @@ No cheerleading.
 8. What must happen next (3 measurable checkpoints)
 9. Verdict: Buy / Watch / Avoid + confidence (0-100)
 
+## Markdown table standard (mandatory)
+Use exactly one compact markdown table for key metrics to keep output consistent and easy to scan:
+| Metric | Latest | 5Y context | Signal |
+|---|---:|---:|---|
+| Revenue growth | ... | ... | improving / flat / deteriorating |
+| Operating margin | ... | ... | ... |
+| FCF margin | ... | ... | ... |
+| ROIC | ... | ... | ... |
+| Net debt / EBITDA | ... | ... | ... |
+| Valuation (EV/EBIT or P/E) | ... | ... | rich / fair / cheap |
+
 ## Data discipline
 - Use primary sources first: latest 10-K/20-F, 10-Q, earnings transcript, investor deck.
 - If source is older than 120 days, flag STALE.
