@@ -23,6 +23,15 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function normalizeFetchError(err) {
+    const msg = String(err?.message || err || 'Unknown error');
+    // Browser fetch often throws TypeError: Failed to fetch on CORS/network blocks.
+    if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+        return new Error('Failed to fetch market data (likely CORS blocked). Enable CORS for this browser session and retry.');
+    }
+    return err instanceof Error ? err : new Error(msg);
+}
+
 async function fetchJsonDirect(url, label = 'request') {
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -30,7 +39,8 @@ async function fetchJsonDirect(url, label = 'request') {
             mdLog(`${label} direct fetch`, { attempt: attempt + 1, status: res?.status, ok: !!res?.ok });
             if (!res?.ok) throw new Error(`HTTP ${res?.status ?? 'error'}`);
             return await res.json();
-        } catch (err) {
+        } catch (rawErr) {
+            const err = normalizeFetchError(rawErr);
             if (attempt < 2) {
                 const delayMs = 250 * (attempt + 1);
                 mdWarn(`${label} error, retrying`, { attempt: attempt + 1, delayMs, message: String(err?.message || err) });
