@@ -86,6 +86,19 @@ function isVideoUrl(text = '') {
     return ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'].includes(ext);
 }
 
+function extractMediaUrlFromLine(line = '') {
+    const trimmed = line.trim();
+    if (!trimmed) return '';
+
+    // Markdown link: [label](url)
+    const md = trimmed.match(/\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
+    if (md) return md[1];
+
+    // Plain URL inside line
+    const raw = trimmed.match(/https?:\/\/[^\s<>")']+/i);
+    return raw ? raw[0] : '';
+}
+
 function getNotesPreview(notes) {
     if (!notes) return '';
 
@@ -408,7 +421,10 @@ function parseMedia(text) {
             </div>`;
         }
         if (isVideoUrl(mediaUrl)) {
-            return `<video src="${mediaUrl}" controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+            return `<video controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata">
+                <source src="${mediaUrl}">
+                <a href="${mediaUrl}" target="_blank" rel="noopener noreferrer">Open video</a>
+            </video>`;
         }
         if (isImageUrl(mediaUrl)) {
             return `<img src="${mediaUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
