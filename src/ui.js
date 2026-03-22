@@ -414,6 +414,15 @@ function lockRichMediaNodes(editor) {
     });
 }
 
+function prepareMediaInEditor(editor) {
+    if (!editor) return;
+    lockRichMediaNodes(editor);
+    editor.querySelectorAll('img').forEach(img => {
+        img.loading = 'eager';
+        img.decoding = 'sync';
+    });
+}
+
 function parseMedia(text) {
     if (!text) return '';
     const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
@@ -435,13 +444,13 @@ function parseMedia(text) {
             </div>`;
         }
         if (isVideoUrl(mediaUrl)) {
-            return `<video contenteditable="false" controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;pointer-events:auto;" preload="metadata">
+            return `<video contenteditable="false" controls playsinline style="display:block;width:100%;max-width:100%;height:auto;border-radius:8px;margin:8px 0;pointer-events:auto;background:#000;" preload="metadata">
                 <source src="${mediaUrl}">
                 <a href="${mediaUrl}" target="_blank" rel="noopener noreferrer">Open video</a>
             </video>`;
         }
         if (isImageUrl(mediaUrl)) {
-            return `<img contenteditable="false" src="${mediaUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;pointer-events:auto;" loading="lazy" />`;
+            return `<img contenteditable="false" src="${mediaUrl}" style="display:block;max-width:100%;height:auto;object-fit:contain;border-radius:8px;margin:8px 0;pointer-events:auto;" loading="eager" decoding="sync" />`;
         }
         if (!line.length) return '<div><br></div>';
         return `<div>${escapeHtml(line)}</div>`;
@@ -541,7 +550,7 @@ function openNotesPopup(idx) {
     renderNotesHeader(idx);
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
-    lockRichMediaNodes(editor);
+    prepareMediaInEditor(editor);
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
 }
@@ -562,7 +571,8 @@ function navigateNotesPopup(step) {
     renderNotesHeader(currentNotesStockIndex);
     if (editor) {
         editor.innerHTML = parseMedia(stock.notes || '');
-        lockRichMediaNodes(editor);
+        prepareMediaInEditor(editor);
+        editor.scrollTop = 0;
         editor.focus();
     }
 }
