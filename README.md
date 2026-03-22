@@ -5,21 +5,9 @@
 ## Quick start
 
 1. Open: https://jeromevde.github.io/Stocks/
-2. Enable CORS (choose one):
+2. Add your GitHub token in the app (tile in the top bar)
 
-### Firefox
-
-1. Open [about:config](about:config)
-2. Search `content.cors.disable`
-3. Set to `true`
-4. When done, set it back to `false`
-
-### Chromium / Edge (separate instance)
-
-```bash
-open -n "/Applications/Google Chrome.app" --args --disable-web-security
-open -n "/Applications/Microsoft Edge.app" --args --disable-web-security
-```
+No browser CORS tweaks are required anymore.
 
 ## GitHub token
 

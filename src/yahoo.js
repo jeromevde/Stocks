@@ -2,7 +2,7 @@
  * Market data
  *  - Prices:        Yahoo Finance v8  (free, no API key)
  *  - Ticker search: Yahoo Finance search endpoint (free, no API key)
- * Transport:        Direct fetch (requires CORS extension)
+ * Transport:        Direct fetch + CORS-safe proxy fallback
  */
 
 const apiCache = new Map();
@@ -24,22 +24,45 @@ function sleep(ms) {
 }
 
 async function fetchJsonDirect(url, label = 'request') {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    const directErrorMessages = [];
+
+    for (let attempt = 0; attempt < 2; attempt++) {
         try {
             const res = await fetch(url, { headers: { Accept: 'application/json' } });
             mdLog(`${label} direct fetch`, { attempt: attempt + 1, status: res?.status, ok: !!res?.ok });
             if (!res?.ok) throw new Error(`HTTP ${res?.status ?? 'error'}`);
             return await res.json();
         } catch (err) {
-            if (attempt < 2) {
+            const message = String(err?.message || err);
+            directErrorMessages.push(message);
+            if (attempt < 1) {
                 const delayMs = 250 * (attempt + 1);
-                mdWarn(`${label} error, retrying`, { attempt: attempt + 1, delayMs, message: String(err?.message || err) });
+                mdWarn(`${label} direct fetch error, retrying`, { attempt: attempt + 1, delayMs, message });
                 await sleep(delayMs);
                 continue;
             }
-            throw err;
         }
     }
+
+    // Fallback for browsers/networks where direct Yahoo requests are blocked by CORS.
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const res = await fetch(proxyUrl, { headers: { Accept: 'application/json' } });
+            mdLog(`${label} proxy fetch`, { attempt: attempt + 1, status: res?.status, ok: !!res?.ok });
+            if (!res?.ok) throw new Error(`HTTP ${res?.status ?? 'error'}`);
+            return await res.json();
+        } catch (err) {
+            if (attempt < 1) {
+                const delayMs = 300 * (attempt + 1);
+                mdWarn(`${label} proxy fetch error, retrying`, { attempt: attempt + 1, delayMs, message: String(err?.message || err) });
+                await sleep(delayMs);
+                continue;
+            }
+            throw new Error(`Direct + proxy fetch failed (${label}): ${directErrorMessages.join(' | ')} | proxy: ${String(err?.message || err)}`);
+        }
+    }
+
     throw new Error('Retries exhausted');
 }
 
