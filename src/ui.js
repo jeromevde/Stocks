@@ -86,6 +86,15 @@ function isVideoUrl(text = '') {
     return ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'].includes(ext);
 }
 
+function extractUrlFromLine(text = '') {
+    const t = String(text || '').trim();
+    if (!t) return '';
+    const md = t.match(/\[[^\]]+\]\((https?:\/\/[^)\s]+)\)/i);
+    if (md) return md[1];
+    const bare = t.match(/https?:\/\/[^\s<>"')]+/i);
+    return bare ? bare[0] : '';
+}
+
 function extractMediaUrlFromLine(line = '') {
     const trimmed = line.trim();
     if (!trimmed) return '';
@@ -415,7 +424,10 @@ function parseMedia(text) {
             </a>`;
         }
         if (isVideoUrl(url)) {
-            return `<video src="${url}" controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+            return `<video controls playsinline muted style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata">
+                <source src="${url}">
+                <a href="${url}" target="_blank" rel="noopener noreferrer">Open video</a>
+            </video>`;
         }
         if (isImageUrl(url)) {
             return `<img src="${url}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
