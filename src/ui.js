@@ -411,6 +411,16 @@ function parseMedia(text) {
     }).join('\n');
 }
 
+function normalizeNotesWhitespace(text = '') {
+    return String(text)
+        .replace(/\r\n?/g, '\n')
+        .split('\n')
+        .map(line => line.replace(/[ \t]+$/g, ''))
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
 function serializeNotes(editorEl) {
     // Get the plain text, converting <img> and <iframe> back to URLs
     const clone = editorEl.cloneNode(true);
@@ -434,10 +444,9 @@ function serializeNotes(editorEl) {
     html = html.replace(/<br\s*\/?>/gi, '\n');
     // Keep spaces but decode HTML entities properly
     html = html.replace(/&nbsp;/g, ' ');
-    // Don't strip leading newlines - preserve formatting
     const decoder = document.createElement('textarea');
     decoder.innerHTML = html;
-    return decoder.value;
+    return normalizeNotesWhitespace(decoder.value);
 }
 
 /** Notes popup */
