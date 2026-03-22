@@ -398,20 +398,24 @@ function renderMarkdownTableBlock(block = '') {
     const rows = block.split('\n').map(l => l.trim()).filter(Boolean);
     if (rows.length < 2) return '';
 
-    const header = rows[0];
-    const divider = rows[1];
-    if (!/^\|.*\|$/.test(header) || !/^\|[-:| ]+\|$/.test(divider)) return '';
+    const normalizeRow = (row) => {
+        const clean = row.trim();
+        // Support both "| a | b |" and "a | b" styles.
+        const core = clean.startsWith('|') && clean.endsWith('|') ? clean.slice(1, -1) : clean;
+        return core.split('|').map(c => c.trim());
+    };
 
-    const bodyRows = rows.slice(2).filter(r => /^\|.*\|$/.test(r));
-    const splitRow = (row) => row.slice(1, -1).split('|').map(c => c.trim());
-    const headerCells = splitRow(header);
-    if (!headerCells.length) return '';
+    const isDividerRow = (row) => {
+        const cells = normalizeRow(row);
+        return cells.length > 0 && cells.every(c => /^:?-{3,}:?$/.test(c));
+    };
 
-    const headHtml = `<tr>${headerCells.map(c => `<th style="border:1px solid #ddd;padding:6px 8px;background:#f7f7f7;text-align:left;">${c}</th>`).join('')}</tr>`;
-    const bodyHtml = bodyRows.map(r => {
-        const cells = splitRow(r);
-        return `<tr>${cells.map(c => `<td style="border:1px solid #ddd;padding:6px 8px;vertical-align:top;">${c}</td>`).join('')}</tr>`;
-    }).join('');
+    const headerCells = normalizeRow(rows[0]);
+    if (!headerCells.length || !isDividerRow(rows[1])) return '';
+
+    const bodyRows = rows.slice(2).map(normalizeRow).filter(cells => cells.length > 0);
+    const headHtml = `<tr>${headerCells.map(c => `<th style="border:1px solid #ddd;padding:6px 8px;background:#f7f7f7;text-align:left;">${renderInlineMarkdown(c)}</th>`).join('')}</tr>`;
+    const bodyHtml = bodyRows.map(cells => `<tr>${cells.map(c => `<td style="border:1px solid #ddd;padding:6px 8px;vertical-align:top;">${renderInlineMarkdown(c)}</td>`).join('')}</tr>`).join('');
 
     return `<div style="overflow-x:auto;margin:8px 0;"><table style="border-collapse:collapse;width:100%;font-size:12px;">${headHtml}${bodyHtml}</table></div>`;
 }
@@ -436,7 +440,7 @@ function parseMedia(text) {
     if (!text) return '';
 
     // Convert markdown tables to HTML tables first.
-    const withTables = text.replace(/(^|\n)(\|.+\|\n\|[-:| ]+\|(?:\n\|.*\|)*)/gmi, (m, p1, tableBlock) => {
+    const withTables = text.replace(/(^|\n)((?:\s*\|?.+\|.+\n)\s*\|?\s*:?-{3,}:?(?:\s*\|\s*:?-{3,}:?)*\s*\|?\n(?:\s*\|?.+\|.+(?:\n|$))*)/gmi, (m, p1, tableBlock) => {
         const html = renderMarkdownTableBlock(tableBlock);
         return p1 + (html || tableBlock);
     });
