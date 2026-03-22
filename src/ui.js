@@ -3,6 +3,7 @@
  */
 let tableUpdateTimeout = null;
 let currentNotesStockIndex = null;
+let notesEditorDirty = false;
 const NOTES_PREVIEW_MAX_CHARS = 100;
 const LABEL_TAB_COOKIE = 'labelTab';
 
@@ -518,12 +519,14 @@ function renderNotesHeader(idx) {
 
 function openNotesPopup(idx) {
     currentNotesStockIndex = idx;
+    notesEditorDirty = false;
     const stock = window.Portfolio.data[idx];
     const overlay = document.getElementById('notes-popup-overlay');
     renderNotesHeader(idx);
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
     prepareMediaInEditor(editor);
+    editor.oninput = () => { notesEditorDirty = true; };
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
 }
@@ -531,7 +534,10 @@ function openNotesPopup(idx) {
 function navigateNotesPopup(step) {
     if (currentNotesStockIndex === null) return;
     const editor = document.getElementById('notes-editor');
-    if (editor) window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor));
+    if (editor && notesEditorDirty) {
+        window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor));
+        notesEditorDirty = false;
+    }
 
     const visible = getVisibleTableStockIndices();
     if (!visible.length) return;
@@ -552,9 +558,10 @@ function navigateNotesPopup(step) {
 
 function closeNotesPopup() {
     const editor = document.getElementById('notes-editor');
-    if (editor && currentNotesStockIndex !== null) {
+    if (editor && currentNotesStockIndex !== null && notesEditorDirty) {
         window.Portfolio.updateNotes(currentNotesStockIndex, serializeNotes(editor));
     }
+    notesEditorDirty = false;
     const overlay = document.getElementById('notes-popup-overlay');
     overlay.classList.remove('show');
     setTimeout(() => { overlay.style.display = 'none'; currentNotesStockIndex = null; }, 200);
