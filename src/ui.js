@@ -86,6 +86,19 @@ function isVideoUrl(text = '') {
     return ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'].includes(ext);
 }
 
+function extractMediaUrlFromLine(line = '') {
+    const trimmed = String(line || '').trim();
+    if (!trimmed) return '';
+
+    // Markdown link: [label](url)
+    const md = trimmed.match(/\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
+    if (md) return md[1];
+
+    // Plain URL inside line
+    const raw = trimmed.match(/https?:\/\/[^\s<>")']+/i);
+    return raw ? raw[0] : '';
+}
+
 function getNotesPreview(notes) {
     if (!notes) return '';
 
@@ -398,21 +411,30 @@ function parseMedia(text) {
     if (!text) return '';
     const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
     return lines.map(line => {
-        const trimmed = line.trim();
-        const ytId = extractYouTubeId(trimmed);
+        const mediaUrl = extractMediaUrlFromLine(line);
+        const ytId = extractYouTubeId(mediaUrl);
         if (ytId) {
-            return `<a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" style="display:block;position:relative;margin:8px 0;border-radius:8px;overflow:hidden;text-decoration:none;">
-                <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;display:block;border-radius:8px;" />
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                    <div style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:24px solid white;margin-left:4px;"></div>
-                </div>
-            </a>`;
+            const embedUrl = `https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`;
+            return `<div style="position:relative;width:100%;padding-top:56.25%;margin:8px 0;border-radius:8px;overflow:hidden;">
+                <iframe
+                    src="${embedUrl}"
+                    title="YouTube video"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen
+                    style="position:absolute;inset:0;width:100%;height:100%;border:0;">
+                </iframe>
+            </div>`;
         }
-        if (isVideoUrl(trimmed)) {
-            return `<video src="${trimmed}" controls style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata"></video>`;
+        if (isVideoUrl(mediaUrl)) {
+            return `<video controls playsinline style="max-width:100%;height:auto;border-radius:8px;margin:8px 0;" preload="metadata">
+                <source src="${mediaUrl}">
+                <a href="${mediaUrl}" target="_blank" rel="noopener noreferrer">Open video</a>
+            </video>`;
         }
-        if (isImageUrl(trimmed)) {
-            return `<img src="${trimmed}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
+        if (isImageUrl(mediaUrl)) {
+            return `<img src="${mediaUrl}" style="max-width:100%; height:auto; border-radius:8px; margin:8px 0;" loading="lazy" />`;
         }
         if (!line.length) return '<div><br></div>';
         return `<div>${escapeHtml(line)}</div>`;
