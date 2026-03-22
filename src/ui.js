@@ -508,13 +508,13 @@ function renderNotesHeader(idx) {
     const total = colorReturn(stock?.cumulativeReturn || 'N/A');
     const hint = '←/→/↑/↓';
     document.getElementById('notes-popup-stock').innerHTML = `
-        <span class="notes-popup-stock-main">
-            <span>${title}</span>
-            <span class="notes-popup-stock-metric">Price: ${price}</span>
+        <span class="notes-popup-stock-main" style="display:flex;align-items:center;gap:14px;width:100%;">
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</span>
+            <span class="notes-popup-stock-metric" style="font-weight:800;font-size:1.05em;color:#111;background:#ffe082;padding:2px 8px;border-radius:999px;">Price: ${price}</span>
             <span class="notes-popup-stock-metric">3M: ${ret3m}</span>
             <span class="notes-popup-stock-metric">Total: ${total}</span>
         </span>
-        <span class="notes-popup-arrows-hint">${hint}</span>`;
+        <span class="notes-popup-arrows-hint" style="margin-left:auto;">${hint}</span>`;
 }
 
 function openNotesPopup(idx) {
