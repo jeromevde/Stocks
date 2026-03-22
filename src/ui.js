@@ -480,7 +480,10 @@ function serializeNotes(editorEl) {
     // than ad-hoc HTML replacements.
     return (clone.innerText || '')
         .replace(/\u00a0/g, ' ')
-        .replace(/\r\n?/g, '\n');
+        .replace(/\r\n?/g, '\n')
+        .split('\n')
+        .map(line => line.replace(/[ \t]+$/g, '').replace(/^[ \t]+$/g, ''))
+        .join('\n');
 }
 
 /** Notes popup */
