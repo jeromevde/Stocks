@@ -24,7 +24,7 @@ async function loadLlmPrompt() {
     } catch (e) {
         console.warn('Could not load llm-prompt.md:', e);
     }
-    return '';
+    return '(Could not load llm-prompt.md. Check that the file is served alongside index.html.)';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
