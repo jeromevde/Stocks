@@ -107,8 +107,9 @@
                 <button class="notes-popup-close minimal" id="notes-popup-close" title="Close">×</button>
                 
                 <!-- Rich editor with auto-embed -->
-                <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column;">
-                    <div id="notes-editor" contenteditable="true" style="flex:1; min-height:200px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here..."></div>
+                <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column; gap:10px;">
+                    <div id="notes-editor" contenteditable="true" style="flex:1; min-height:180px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here..."></div>
+                    <div id="notes-markdown-preview" style="min-height:120px; max-height:30vh; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa; padding:10px;"></div>
                 </div>
             </div>
         </div>
@@ -168,6 +169,7 @@
         </div>
     </div>
     <!-- Load modules in order with cache busting -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="github.js?v=__BUILD_HASH__"></script>
     <script src="yahoo.js?v=__BUILD_HASH__"></script>
     <script src="portfolio.js?v=__BUILD_HASH__"></script>
