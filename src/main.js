@@ -16,29 +16,6 @@ function tryAutoLogin() {
 }
 
 const LLM_GUIDE_CACHE_KEY = 'llm_guide_markdown_v2';
-let llmMode = 'preview';
-
-function setLlmMode(mode) {
-    llmMode = mode;
-    const ta = document.getElementById('llm-guide-text');
-    const pv = document.getElementById('llm-guide-preview');
-    const bPrev = document.getElementById('llm-mode-preview');
-    const bEdit = document.getElementById('llm-mode-edit');
-    if (!ta || !pv) return;
-    const isPreview = mode === 'preview';
-    ta.style.display = isPreview ? 'none' : 'block';
-    pv.style.display = isPreview ? 'block' : 'none';
-    if (bPrev) bPrev.style.opacity = isPreview ? '1' : '0.7';
-    if (bEdit) bEdit.style.opacity = isPreview ? '0.7' : '1';
-}
-
-function updateLlmPreview() {
-    const ta = document.getElementById('llm-guide-text');
-    const pv = document.getElementById('llm-guide-preview');
-    if (!ta || !pv) return;
-    if (window.marked?.parse) pv.innerHTML = window.marked.parse(ta.value || '');
-    else pv.textContent = ta.value || '';
-}
 
 async function loadLlmPrompt() {
     const stored = localStorage.getItem(LLM_GUIDE_CACHE_KEY);
@@ -112,25 +89,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // LLM guide modal
     const llmModal = document.getElementById('llm-guide-modal');
     const llmText = document.getElementById('llm-guide-text');
-    loadLlmPrompt().then(guide => {
-        if (llmText) llmText.value = guide;
-        updateLlmPreview();
-        setLlmMode('preview');
-    });
+    loadLlmPrompt().then(guide => { if (llmText) llmText.value = guide; });
 
     document.getElementById('llm-guide-btn')?.addEventListener('click', () => {
         if (!llmModal) return;
         llmModal.style.display = 'flex';
-        updateLlmPreview();
-        setLlmMode('preview');
     });
     document.getElementById('llm-guide-close')?.addEventListener('click', () => {
         if (llmModal) llmModal.style.display = 'none';
     });
-    document.getElementById('llm-mode-preview')?.addEventListener('click', () => setLlmMode('preview'));
-    document.getElementById('llm-mode-edit')?.addEventListener('click', () => setLlmMode('edit'));
-    llmText?.addEventListener('input', updateLlmPreview);
-
     document.getElementById('llm-guide-copy')?.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(llmText?.value || '');
@@ -139,20 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus('Copy failed', 'error');
         }
     });
-    document.getElementById('llm-guide-save')?.addEventListener('click', async () => {
-        const content = llmText?.value || '';
-        localStorage.setItem(LLM_GUIDE_CACHE_KEY, content);
-        try {
-            if (!window.githubClient?.isAuthenticated || !window.githubClient.isAuthenticated()) {
-                showStatus('Connect GitHub first to save llm-prompt.md', 'error');
-                return;
-            }
-            await window.githubClient.saveFile(content, 'Update llm-prompt.md instructions', 'llm-prompt.md');
-            showStatus('LLM instructions saved to GitHub (llm-prompt.md)', 'success');
-        } catch (e) {
-            console.error(e);
-            showStatus('GitHub save failed, kept local draft', 'error');
-        }
+    document.getElementById('llm-guide-save')?.addEventListener('click', () => {
+        localStorage.setItem(LLM_GUIDE_CACHE_KEY, llmText?.value || '');
+        showStatus('LLM instructions saved locally', 'success');
     });
 
     // Add stock button → open modal
