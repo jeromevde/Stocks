@@ -15,88 +15,17 @@ function tryAutoLogin() {
     } catch (e) { console.warn('Auto-login failed:', e); }
 }
 
-const DEFAULT_LLM_GUIDE = `# STOCK NOTES COPILOT (BRUTALLY HONEST)
-
-## Mission
-Populate each stock note with decision-grade analysis, not vibes.
-If evidence is weak, say it clearly.
-If thesis is broken, say SELL / AVOID clearly.
-No cheerleading.
-
-## Output format (compact)
-1. Thesis in 1-2 lines
-2. What market is pricing in
-3. Latest catalysts (last 90 days)
-4. Moat + risks (most likely failure modes)
-5. Financial quality snapshot (5Y where possible)
-6. Valuation sanity check
-7. Red flags checklist
-8. What must happen next (3 measurable checkpoints)
-9. Verdict: Buy / Watch / Avoid + confidence (0-100)
-
-## Data discipline
-- Use primary sources first: latest 10-K/20-F, 10-Q, earnings transcript, investor deck.
-- If source is older than 120 days, flag STALE.
-- Distinguish facts vs assumptions.
-- No ratio without formula context.
-
-## Conventions for AI-readable site docs
-- Prefer publishing /llms.txt and optional /llms-full.txt (emerging convention, not universal yet).
-- Also keep this markdown in-app and in repo for agent grounding.
-- Keep sections stable and machine-parseable.
-
-## Fundamental checklist (definitions included)
-### Profitability
-- Gross margin = (Revenue-COGS)/Revenue: pricing power + unit economics.
-- Operating margin (EBIT margin): operating efficiency.
-- FCF margin = FCF/Revenue: cash conversion quality.
-- ROIC = NOPAT/Invested Capital: value creation vs cost of capital.
-
-### Growth quality
-- Revenue growth: organic vs M&A split.
-- EPS growth: check if real or buyback-driven.
-- SBC % revenue: dilution risk.
-
-### Balance sheet & solvency
-- Net debt = Debt - Cash.
-- Net debt / EBITDA: leverage stress.
-- Interest coverage = EBIT/Interest.
-- Current ratio = Current assets / Current liabilities.
-
-### Cash flow quality
-- CFO vs Net income: earnings quality.
-- Capex intensity = Capex/Revenue.
-- FCF trend and cyclicality.
-
-### Working capital
-- DSO / DIO / DPO and trend.
-- Inventory growth vs revenue growth divergence.
-
-### Valuation
-- EV/Sales (early growth), EV/EBIT, P/E, FCF yield.
-- Compare vs own 5Y range + peers.
-- State implied growth the multiple assumes.
-
-## Annual report / filing red flags
-- Frequent KPI definition changes.
-- “Adjusted” earnings widening from GAAP repeatedly.
-- Large unexplained goodwill/intangibles growth.
-- Related-party transactions growth.
-- Customer concentration >20%.
-- Rising receivables while revenue accelerates.
-- Insider selling clusters without clear reason.
-
-## 2025-2026 macro context to include in notes
-- AI capex boom can inflate near-term narratives: test ROI, not buzzwords.
-- Higher-for-longer rate risk still matters for long-duration multiples.
-- Earnings quality > headline growth in expensive names.
-- Energy/power constraints for AI infra are non-trivial for some themes.
-
-## Writing style
-- Short bullets, hard claims, clear uncertainty tags.
-- Use: FACT / INFERENCE / RISK labels where useful.
-- End with: “What would make this thesis wrong?”
-`;
+async function loadLlmPrompt() {
+    const stored = localStorage.getItem('llm_guide_markdown');
+    if (stored) return stored;
+    try {
+        const res = await fetch('llm-prompt.md');
+        if (res.ok) return await res.text();
+    } catch (e) {
+        console.warn('Could not load llm-prompt.md:', e);
+    }
+    return '(Could not load llm-prompt.md. Check that the file is served alongside index.html.)';
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing Stock Tracker...');
@@ -158,8 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // LLM guide modal
     const llmModal = document.getElementById('llm-guide-modal');
     const llmText = document.getElementById('llm-guide-text');
-    const storedGuide = localStorage.getItem('llm_guide_markdown') || DEFAULT_LLM_GUIDE;
-    if (llmText) llmText.value = storedGuide;
+    loadLlmPrompt().then(guide => { if (llmText) llmText.value = guide; });
 
     document.getElementById('llm-guide-btn')?.addEventListener('click', () => {
         if (!llmModal) return;
