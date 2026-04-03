@@ -554,6 +554,7 @@ function updateNotesMarkdownPreview() {
 
 function openNotesPopup(idx) {
     currentNotesStockIndex = idx;
+    document.getElementById('notes-back-btn')?.addEventListener('click', closeNotesPopup, { once: true });
     notesEditorDirty = false;
     const stock = window.Portfolio.data[idx];
     const overlay = document.getElementById('notes-popup-overlay');
