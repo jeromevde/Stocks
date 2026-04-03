@@ -127,10 +127,15 @@
                 </div>
                 <div class="modal-body">
                     <p style="margin-top:0;color:#666;font-size:13px;">Use this as the stock-analysis instruction block for OpenClaw/LLMs.</p>
-                    <textarea id="llm-guide-text" style="width:100%;height:62vh;resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.45;padding:12px;border:1px solid #ddd;border-radius:8px;"></textarea>
+                    <div style="display:flex; gap:8px; justify-content:flex-end; margin-bottom:8px;">
+                        <button id="llm-mode-preview" class="btn-secondary">Preview</button>
+                        <button id="llm-mode-edit" class="btn-secondary">Edit</button>
+                    </div>
+                    <textarea id="llm-guide-text" style="display:none;width:100%;height:62vh;resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.45;padding:12px;border:1px solid #ddd;border-radius:8px;"></textarea>
+                    <div id="llm-guide-preview" style="height:62vh;overflow:auto;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;padding:10px;"></div>
                     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
                         <button id="llm-guide-copy" class="btn-secondary">Copy</button>
-                        <button id="llm-guide-save" class="btn-primary">Save locally</button>
+                        <button id="llm-guide-save" class="btn-primary">Save to GitHub</button>
                     </div>
                 </div>
             </div>

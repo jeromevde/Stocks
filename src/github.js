@@ -65,8 +65,8 @@ class GitHubClient {
         return res;
     }
 
-    async loadFile() {
-        const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}?t=${Date.now()}`;
+    async loadFile(path = this.filePath) {
+        const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${path}?t=${Date.now()}`;
         const res = await this._fetch(url);
         if (res.status === 404) return { exists: false, content: null };
         if (!res.ok) throw new Error(`GitHub API ${res.status}`);
@@ -91,10 +91,10 @@ class GitHubClient {
         return { exists: true, content, sha: data.sha };
     }
 
-    async saveFile(content, message = 'Update portfolio') {
+    async saveFile(content, message = 'Update portfolio', path = this.filePath) {
         // Get current SHA
-        const current = await this.loadFile();
-        const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`;
+        const current = await this.loadFile(path);
+        const url = `${this.API_URL}/repos/${this.repoOwner}/${this.repoName}/contents/${path}`;
         // Convert to base64 in chunks to avoid "Maximum call stack size exceeded"
         const bytes = new TextEncoder().encode(content);
         let binaryString = '';
