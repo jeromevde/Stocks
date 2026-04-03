@@ -108,12 +108,8 @@
                 
                 <!-- Rich editor with auto-embed -->
                 <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column; gap:10px;">
-                    <div style="display:flex; gap:8px; justify-content:flex-end;">
-                        <button id="notes-mode-preview" class="btn-secondary" style="padding:6px 10px;">Preview</button>
-                        <button id="notes-mode-edit" class="btn-secondary" style="padding:6px 10px;">Edit</button>
-                    </div>
-                    <div id="notes-editor" contenteditable="true" style="display:none; flex:1; min-height:180px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here..."></div>
-                    <div id="notes-markdown-preview" style="flex:1; min-height:180px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa; padding:10px;"></div>
+                    <div id="notes-editor" contenteditable="true" style="flex:1; min-height:180px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here..."></div>
+                    <div id="notes-markdown-preview" style="min-height:120px; max-height:30vh; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa; padding:10px;"></div>
                 </div>
             </div>
         </div>
