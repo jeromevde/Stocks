@@ -252,13 +252,7 @@ tr.unrated-row { background: #fff5f5 !important; }
     .actions-section { flex-direction: column; align-items: stretch; gap: 10px; }
     .modal-content { width: 95%; }
     .form-row { flex-direction: column; }
-    .notes-popup-content.minimal { width: 99%; height: 95vh; padding: 10px; }
-    .notes-popup-stock { font-size: 24px; gap: 8px; }
-    .notes-popup-stock-main { gap: 8px; }
-    .notes-popup-stock-metric { font-size: 13px; }
-    .notes-popup-arrows-hint { font-size: 11px; }
-    #notes-mode-preview, #notes-mode-edit { font-size: 12px; padding: 6px 10px; }
-    #notes-markdown-preview { min-height: 220px; }
+    .notes-popup-content.minimal { width: 97%; height: 92vh; }
     .github-connected { flex-direction: column; gap: 10px; text-align: center; }
     .api-key-bar { position: static; justify-content: flex-end; margin-bottom: 12px; }
 }
