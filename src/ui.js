@@ -524,6 +524,18 @@ function renderNotesHeader(idx) {
     }
 }
 
+function updateNotesMarkdownPreview() {
+    const editor = document.getElementById('notes-editor');
+    const preview = document.getElementById('notes-markdown-preview');
+    if (!editor || !preview) return;
+    const md = serializeNotes(editor) || '';
+    if (window.marked?.parse) {
+        preview.innerHTML = window.marked.parse(md);
+    } else {
+        preview.textContent = md;
+    }
+}
+
 function openNotesPopup(idx) {
     currentNotesStockIndex = idx;
     notesEditorDirty = false;
@@ -533,7 +545,8 @@ function openNotesPopup(idx) {
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
     prepareMediaInEditor(editor);
-    editor.oninput = () => { notesEditorDirty = true; };
+    updateNotesMarkdownPreview();
+    editor.oninput = () => { notesEditorDirty = true; updateNotesMarkdownPreview(); };
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
 }
@@ -558,6 +571,7 @@ function navigateNotesPopup(step) {
     if (editor) {
         editor.innerHTML = parseMedia(stock.notes || '');
         prepareMediaInEditor(editor);
+        updateNotesMarkdownPreview();
         editor.scrollTop = 0;
         editor.focus();
     }
