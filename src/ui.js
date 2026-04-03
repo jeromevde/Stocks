@@ -5,6 +5,7 @@ let tableUpdateTimeout = null;
 let currentNotesStockIndex = null;
 let notesEditorDirty = false;
 let notesMode = 'preview';
+let notesTouchStartX = null;
 
 function setNotesMode(mode) {
     notesMode = mode;
@@ -556,6 +557,7 @@ function openNotesPopup(idx) {
     notesEditorDirty = false;
     const stock = window.Portfolio.data[idx];
     const overlay = document.getElementById('notes-popup-overlay');
+    const panel = document.querySelector('.notes-popup-content.minimal');
     renderNotesHeader(idx);
     const editor = document.getElementById('notes-editor');
     editor.innerHTML = parseMedia(stock.notes || '');
@@ -568,6 +570,30 @@ function openNotesPopup(idx) {
     if (modePreviewBtn) modePreviewBtn.onclick = () => setNotesMode('preview');
     if (modeEditBtn) modeEditBtn.onclick = () => setNotesMode('edit');
     setNotesMode('preview');
+
+    if (panel) {
+        const handleSwipeEnd = (endX) => {
+            if (notesTouchStartX == null) return;
+            const dx = endX - notesTouchStartX;
+            notesTouchStartX = null;
+            if (Math.abs(dx) < 50) return;
+            if (dx < 0) navigateNotesPopup(1);   // swipe left -> next
+            else navigateNotesPopup(-1);         // swipe right -> previous
+        };
+
+        panel.ontouchstart = (e) => {
+            if (!e.touches || !e.touches.length) return;
+            notesTouchStartX = e.touches[0].clientX;
+        };
+        panel.ontouchend = (e) => {
+            if (!e.changedTouches || !e.changedTouches.length) return;
+            handleSwipeEnd(e.changedTouches[0].clientX);
+        };
+
+        // pointer fallback (also testable in desktop automation)
+        panel.onpointerdown = (e) => { notesTouchStartX = e.clientX; };
+        panel.onpointerup = (e) => { handleSwipeEnd(e.clientX); };
+    }
 
     overlay.style.display = 'flex';
     setTimeout(() => { overlay.classList.add('show'); }, 10);
