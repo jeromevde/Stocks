@@ -91,20 +91,6 @@ async function yfFetchQuote(ticker) {
     return data?.quoteResponse?.result?.[0] || null;
 }
 
-async function yfFetchQuotesBatch(tickers) {
-    const symbols = [...new Set((tickers || []).map(t => String(t).trim().toUpperCase()).filter(Boolean))];
-    if (!symbols.length) return new Map();
-    const url = `${YF_BASE}/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(','))}`;
-    const data = await fetchJsonDirect(url, `quote_batch:${symbols.length}`);
-    const rows = data?.quoteResponse?.result || [];
-    const map = new Map();
-    rows.forEach(r => {
-        if (!r?.symbol) return;
-        map.set(String(r.symbol).toUpperCase(), r);
-    });
-    return map;
-}
-
 /**
  * Single Yahoo call: 94-day chart → current price + 3-month return.
  */
@@ -152,27 +138,15 @@ async function fetchBatchPriceAndReturn(tickers, onEach) {
     const map    = {};
     mdLog('batch start', { count: unique.length, tickers: unique });
 
-    let quoteMap = new Map();
-    try {
-        quoteMap = await yfFetchQuotesBatch(unique);
-    } catch (e) {
-        mdWarn('batch quote fetch failed', { message: e.message });
-    }
-
     await Promise.all(unique.map(async ticker => {
         try {
             const entry  = await yfPriceAndReturn(ticker);
-            const q = quoteMap.get(ticker);
-            if ((entry.marketCap == null) && q && typeof q.marketCap === 'number') {
-                entry.marketCap = q.marketCap;
-            }
             map[ticker]  = entry;
             onEach?.(ticker, entry);
-            mdLog('batch ticker done', { ticker, price: entry.price, ret3m: entry.ret3m, marketCap: entry.marketCap });
+            mdLog('batch ticker done', { ticker, price: entry.price, ret3m: entry.ret3m });
         } catch (e) {
             mdWarn('batch ticker failed', { ticker, message: e.message });
-            const q = quoteMap.get(ticker);
-            const entry = { price: null, ret3m: null, marketCap: (q && typeof q.marketCap === 'number') ? q.marketCap : null };
+            const entry = { price: null, ret3m: null };
             map[ticker] = entry;
             onEach?.(ticker, entry);
         }
