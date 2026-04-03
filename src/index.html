@@ -105,20 +105,25 @@
             <div class="notes-popup-content minimal">
                 <div class="notes-topbar" style="display:flex;align-items:center;gap:8px;">
                     <button id="notes-back-btn" class="btn-secondary" style="padding:6px 10px;">← Back</button>
+                    <button id="notes-sidebar-toggle" class="btn-secondary" style="padding:6px 10px;">☰ Stocks</button>
                     <button id="notes-prev-btn" class="btn-secondary" style="padding:6px 10px;">← Prev</button>
                     <button id="notes-next-btn" class="btn-secondary" style="padding:6px 10px;">Next →</button>
-                    <div id="notes-popup-stock" class="notes-popup-stock"></div>
                 </div>
                 <button class="notes-popup-close minimal" id="notes-popup-close" title="Close">×</button>
-                
-                <!-- Rich editor with auto-embed -->
-                <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column; gap:10px;">
-                    <div style="display:flex; gap:8px; justify-content:flex-end;">
-                        <button id="notes-mode-preview" class="btn-secondary" style="padding:6px 10px;">Preview</button>
-                        <button id="notes-mode-edit" class="btn-secondary" style="padding:6px 10px;">Edit</button>
-                    </div>
-                    <div id="notes-editor" contenteditable="true" style="display:none; flex:1; min-height:180px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here..."></div>
-                    <div id="notes-markdown-preview" style="flex:1; min-height:180px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa; padding:10px;"></div>
+
+                <div class="notes-split-layout">
+                    <aside id="notes-sidebar" class="notes-sidebar"></aside>
+                    <section id="notes-detail" class="notes-detail">
+                        <div id="notes-popup-stock" class="notes-popup-stock"></div>
+                        <div id="notes-edit-panel" class="notes-panel" style="flex:1; display:flex; flex-direction:column; gap:10px;">
+                            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                                <button id="notes-mode-preview" class="btn-secondary" style="padding:6px 10px;">Preview</button>
+                                <button id="notes-mode-edit" class="btn-secondary" style="padding:6px 10px;">Edit</button>
+                            </div>
+                            <div id="notes-editor" contenteditable="true" style="display:none; flex:1; min-height:180px; padding:12px; border:1px solid #ddd; border-radius:8px; background:white; overflow-y:auto; line-height:1.6; outline:none;" placeholder="Write your notes here..."></div>
+                            <div id="notes-markdown-preview" style="flex:1; min-height:180px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; background:#fafafa; padding:10px;"></div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -169,6 +174,7 @@
                     </th>
                     <th>Notes</th>
                     <th>Current Price</th>
+                    <th>Market Cap</th>
                     <th id="sort-3m-return" style="cursor:pointer;">3M Return</th>
                     <th id="sort-cumret" style="cursor:pointer;">Cumulative Return</th>
                     <th style="width: 30px;"></th>

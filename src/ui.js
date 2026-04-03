@@ -68,6 +68,15 @@ function formatDate(dateStr) {
     return { formatted, timeAgo };
 }
 
+function formatMarketCap(val) {
+    const n = Number(val);
+    if (!Number.isFinite(n) || n <= 0) return 'N/A';
+    if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
+    if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+    if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+    return `$${Math.round(n).toLocaleString()}`;
+}
+
 function colorReturn(val) {
     if (!val || val === 'N/A' || val === 'Error' || val === '...') return `<span style="color:#666;display:inline-block;min-width:50px">${val}</span>`;
     const n = parseFloat(val);
@@ -302,7 +311,7 @@ function updatePortfolioTable() {
     if (unrated.length > 0) {
         const tr = document.createElement('tr');
         const show = window.Portfolio.showZeroStarStocks;
-        tr.innerHTML = `<td colspan="9" style="text-align:center;background:#f5f5f5;cursor:pointer;padding:10px;border-top:2px solid #ddd;color:#666;font-size:14px;">${show ? '▼' : '▶'} ${unrated.length} unrated stock${unrated.length > 1 ? 's' : ''}</td>`;
+        tr.innerHTML = `<td colspan="10" style="text-align:center;background:#f5f5f5;cursor:pointer;padding:10px;border-top:2px solid #ddd;color:#666;font-size:14px;">${show ? '▼' : '▶'} ${unrated.length} unrated stock${unrated.length > 1 ? 's' : ''}</td>`;
         tr.addEventListener('click', () => { window.Portfolio.showZeroStarStocks = !show; updatePortfolioTable(); });
         tbody.appendChild(tr);
         if (show) unrated.forEach(s => renderRow(tbody, s));
@@ -354,6 +363,7 @@ function renderRow(tbody, stock) {
         : '';
     const notesShort = getNotesPreview(stock.notes);
     const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
+    const mcapDisplay = formatMarketCap(stock.marketCap);
 
     tr.innerHTML = `
         <td style="text-align:center">${stars}</td>
@@ -362,6 +372,7 @@ function renderRow(tbody, stock) {
         <td style="text-align:center"><div class="labels-box" style="min-width:80px;padding:4px">${labels}${addLabelDropdown}</div></td>
         <td style="text-align:center"><span class="notes-btn" style="cursor:pointer;padding:8px;background:#f9f9f9;color:#666;border-radius:3px;display:inline-block;min-width:80px">${notesShort}</span></td>
         <td class="price-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:80px">${priceDisplay}</td>
+        <td class="mcap-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:82px">${mcapDisplay}</td>
         <td class="return3m-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:60px">${colorReturn(stock.return3m)}</td>
         <td class="cumret-cell" style="text-align:right;font-variant-numeric:tabular-nums;min-width:60px">${colorReturn(stock.cumulativeReturn)}</td>
         <td style="text-align:center;width:30px"><button class="rm-stock" style="background:none;color:#ccc;border:none;cursor:pointer;font-size:16px">×</button></td>`;
@@ -516,19 +527,24 @@ function getVisibleTableStockIndices() {
 
 function renderNotesHeader(idx) {
     const stock = window.Portfolio.data[idx];
-    const title = stock ? `${stock.ticker} — ${stock.name || ''}` : '';
+    const d = formatDate(stock?.date || '');
     const price = (stock?.nowPrice && stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' && stock.nowPrice !== '...')
         ? `$${stock.nowPrice}`
         : (stock?.nowPrice || 'N/A');
+    const mcap = formatMarketCap(stock?.marketCap);
     const ret3m = colorReturn(stock?.return3m || 'N/A');
     const total = colorReturn(stock?.cumulativeReturn || 'N/A');
+    const labels = (stock?.labels || []).join(', ') || '-';
     document.getElementById('notes-popup-stock').innerHTML = `
-        <span class="notes-popup-stock-main" style="display:flex;align-items:center;gap:14px;width:100%;">
-            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</span>
-            <span class="notes-popup-stock-metric" style="font-weight:800;font-size:1.05em;color:#111;background:#ffe082;padding:2px 8px;border-radius:999px;">${price}</span>
-            <span class="notes-popup-stock-metric">3M: ${ret3m}</span>
-            <span class="notes-popup-stock-metric">Total: ${total}</span>
-        </span>`;
+        <div class="notes-toolbar-row">
+            <div><b>${stock?.ticker || ''}</b><div style="font-size:11px;color:#6b7280">${stock?.name || ''}</div></div>
+            <div>${d.formatted || '-'}</div>
+            <div>${labels}</div>
+            <div>${price}</div>
+            <div>${mcap}</div>
+            <div>3M ${ret3m}</div>
+            <div>Total ${total}</div>
+        </div>`;
 
     // If modal navigation reveals a stock that never entered viewport, load its price now.
     if (stock?.ticker && (stock.nowPrice === 'Loading...' || stock.nowPrice === '...') && typeof loadPriceLazy === 'function') {
@@ -550,13 +566,41 @@ function updateNotesMarkdownPreview() {
     }
 }
 
+function renderNotesSidebar() {
+    const sidebar = document.getElementById('notes-sidebar');
+    if (!sidebar) return;
+    const visible = getVisibleTableStockIndices();
+    sidebar.innerHTML = '';
+    visible.forEach(i => {
+        const s = window.Portfolio.data[i];
+        const btn = document.createElement('button');
+        btn.className = 'notes-sidebar-item' + (i === currentNotesStockIndex ? ' active' : '');
+        btn.textContent = `${s.ticker} — ${s.name || ''}`;
+        btn.onclick = () => {
+            currentNotesStockIndex = i;
+            renderNotesHeader(i);
+            const editor = document.getElementById('notes-editor');
+            if (editor) {
+                editor.innerHTML = parseMedia(s.notes || '');
+                prepareMediaInEditor(editor);
+                updateNotesMarkdownPreview();
+            }
+            renderNotesSidebar();
+            document.querySelector('.notes-popup-content.minimal')?.classList.remove('sidebar-open');
+        };
+        sidebar.appendChild(btn);
+    });
+}
+
 function openNotesPopup(idx) {
     currentNotesStockIndex = idx;
     document.getElementById('notes-back-btn')?.addEventListener('click', closeNotesPopup, { once: true });
     const prevBtn = document.getElementById('notes-prev-btn');
     const nextBtn = document.getElementById('notes-next-btn');
+    const sidebarToggle = document.getElementById('notes-sidebar-toggle');
     if (prevBtn) prevBtn.onclick = () => navigateNotesPopup(-1);
     if (nextBtn) nextBtn.onclick = () => navigateNotesPopup(1);
+    if (sidebarToggle) sidebarToggle.onclick = () => document.querySelector('.notes-popup-content.minimal')?.classList.toggle('sidebar-open');
     notesEditorDirty = false;
     const stock = window.Portfolio.data[idx];
     const overlay = document.getElementById('notes-popup-overlay');
@@ -573,6 +617,7 @@ function openNotesPopup(idx) {
     if (modePreviewBtn) modePreviewBtn.onclick = () => setNotesMode('preview');
     if (modeEditBtn) modeEditBtn.onclick = () => setNotesMode('edit');
     setNotesMode('preview');
+    renderNotesSidebar();
 
     if (panel) {
         const handleSwipeEnd = (endX) => {
@@ -619,6 +664,7 @@ function navigateNotesPopup(step) {
 
     const stock = window.Portfolio.data[currentNotesStockIndex];
     renderNotesHeader(currentNotesStockIndex);
+    renderNotesSidebar();
     if (editor) {
         editor.innerHTML = parseMedia(stock.notes || '');
         prepareMediaInEditor(editor);
@@ -767,10 +813,12 @@ function updatePriceCells(stock) {
 
     const priceDisplay = stock.loading ? '...' : (stock.nowPrice !== 'N/A' && stock.nowPrice !== 'Loading...' ? '$' + stock.nowPrice : stock.nowPrice);
     const priceCell = tr.querySelector('.price-cell');
+    const mcapCell = tr.querySelector('.mcap-cell');
     const ret3mCell = tr.querySelector('.return3m-cell');
     const cumretCell = tr.querySelector('.cumret-cell');
 
     if (priceCell) priceCell.innerHTML = priceDisplay;
+    if (mcapCell) mcapCell.innerHTML = formatMarketCap(stock.marketCap);
     if (ret3mCell) ret3mCell.innerHTML = colorReturn(stock.return3m);
     if (cumretCell) cumretCell.innerHTML = colorReturn(stock.cumulativeReturn);
 }
@@ -816,13 +864,14 @@ async function loadPriceLazy(ticker) {
     if (!stock || stock.nowPrice !== 'Loading...') return;
     
     try {
-        const [{ price, ret3m }, hist] = await Promise.all([
+        const [{ price, ret3m, marketCap }, hist] = await Promise.all([
             api.fetchPriceAndReturn(ticker),
             api.fetchHistoricalPrice(ticker, stock.date)
         ]);
         
         stock.nowPrice = price != null ? Number(price).toFixed(2) : 'N/A';
         stock.return3m = ret3m != null ? ret3m : 'N/A';
+        stock.marketCap = marketCap ?? stock.marketCap ?? null;
         stock.cumulativeReturn = (price != null && hist != null)
             ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
         

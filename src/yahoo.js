@@ -104,13 +104,14 @@ async function yfPriceAndReturn(ticker) {
     const valid  = closes.filter(c => c != null);
 
     const price = meta.regularMarketPrice ?? meta.chartPreviousClose ?? (valid.length ? valid[valid.length - 1] : null);
+    const marketCap = (typeof meta.marketCap === 'number') ? meta.marketCap : null;
     let ret3m = null;
     if (valid.length >= 2) {
         const first = valid[0], last = valid[valid.length - 1];
         if (first > 0) ret3m = (((last - first) / first) * 100).toFixed(2);
     }
 
-    const entry = { price: typeof price === 'number' ? price : null, ret3m };
+    const entry = { price: typeof price === 'number' ? price : null, ret3m, marketCap };
     mdLog('quote computed', { ticker, price: entry.price, ret3m: entry.ret3m, bars: valid.length });
     setCache(ck, entry);
     return entry;
