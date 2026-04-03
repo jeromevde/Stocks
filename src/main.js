@@ -15,11 +15,13 @@ function tryAutoLogin() {
     } catch (e) { console.warn('Auto-login failed:', e); }
 }
 
+const LLM_GUIDE_CACHE_KEY = 'llm_guide_markdown_v2';
+
 async function loadLlmPrompt() {
-    const stored = localStorage.getItem('llm_guide_markdown');
+    const stored = localStorage.getItem(LLM_GUIDE_CACHE_KEY);
     if (stored) return stored;
     try {
-        const res = await fetch('llm-prompt.md');
+        const res = await fetch('llm-prompt.md?v=20260403-1');
         if (res.ok) return await res.text();
     } catch (e) {
         console.warn('Could not load llm-prompt.md:', e);
@@ -105,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     document.getElementById('llm-guide-save')?.addEventListener('click', () => {
-        localStorage.setItem('llm_guide_markdown', llmText?.value || '');
+        localStorage.setItem(LLM_GUIDE_CACHE_KEY, llmText?.value || '');
         showStatus('LLM instructions saved locally', 'success');
     });
 
