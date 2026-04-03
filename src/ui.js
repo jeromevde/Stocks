@@ -4,6 +4,21 @@
 let tableUpdateTimeout = null;
 let currentNotesStockIndex = null;
 let notesEditorDirty = false;
+let notesMode = 'preview';
+
+function setNotesMode(mode) {
+    notesMode = mode;
+    const editor = document.getElementById('notes-editor');
+    const preview = document.getElementById('notes-markdown-preview');
+    const btnPrev = document.getElementById('notes-mode-preview');
+    const btnEdit = document.getElementById('notes-mode-edit');
+    if (!editor || !preview) return;
+    const isPreview = mode === 'preview';
+    editor.style.display = isPreview ? 'none' : 'block';
+    preview.style.display = isPreview ? 'block' : 'none';
+    if (btnPrev) btnPrev.style.opacity = isPreview ? '1' : '0.7';
+    if (btnEdit) btnEdit.style.opacity = isPreview ? '0.7' : '1';
+}
 const NOTES_PREVIEW_MAX_CHARS = 100;
 const LABEL_TAB_COOKIE = 'labelTab';
 
@@ -547,8 +562,15 @@ function openNotesPopup(idx) {
     prepareMediaInEditor(editor);
     updateNotesMarkdownPreview();
     editor.oninput = () => { notesEditorDirty = true; updateNotesMarkdownPreview(); };
+
+    const modePreviewBtn = document.getElementById('notes-mode-preview');
+    const modeEditBtn = document.getElementById('notes-mode-edit');
+    if (modePreviewBtn) modePreviewBtn.onclick = () => setNotesMode('preview');
+    if (modeEditBtn) modeEditBtn.onclick = () => setNotesMode('edit');
+    setNotesMode('preview');
+
     overlay.style.display = 'flex';
-    setTimeout(() => { overlay.classList.add('show'); editor.focus(); }, 10);
+    setTimeout(() => { overlay.classList.add('show'); }, 10);
 }
 
 function navigateNotesPopup(step) {
