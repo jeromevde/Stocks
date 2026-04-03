@@ -255,16 +255,17 @@ tr.unrated-row { background: #fff5f5 !important; }
     .form-row { flex-direction: column; }
     .notes-popup-content.minimal {
         width: 99%;
-        height: calc(95vh - env(safe-area-inset-top, 0px));
+        height: 95vh;
         padding: 10px;
-        padding-top: calc(10px + env(safe-area-inset-top, 0px));
+        padding-top: 10px;
     }
     .notes-topbar {
         position: sticky;
         top: 0;
         background: #fff;
-        z-index: 3;
-        padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+        z-index: 10;
+        /* hard fallback + safe-area for browsers that don't report env() reliably */
+        padding-top: max(42px, calc(env(safe-area-inset-top, 0px) + 6px));
         padding-bottom: 6px;
     }
     .notes-topbar #notes-back-btn,
