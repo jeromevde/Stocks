@@ -253,8 +253,20 @@ tr.unrated-row { background: #fff5f5 !important; }
     .actions-section { flex-direction: column; align-items: stretch; gap: 10px; }
     .modal-content { width: 95%; }
     .form-row { flex-direction: column; }
-    .notes-popup-content.minimal { width: 99%; height: 95vh; padding: 10px; }
-    .notes-topbar { position: sticky; top: 0; background: #fff; z-index: 3; padding-bottom: 6px; }
+    .notes-popup-content.minimal {
+        width: 99%;
+        height: calc(95vh - env(safe-area-inset-top, 0px));
+        padding: 10px;
+        padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    }
+    .notes-topbar {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 3;
+        padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+        padding-bottom: 6px;
+    }
     .notes-topbar #notes-back-btn,
     .notes-topbar #notes-prev-btn,
     .notes-topbar #notes-next-btn { font-size: 12px; padding: 6px 8px; }
