@@ -99,7 +99,7 @@ function parseHtml(content) {
             labels: cells[3].textContent.split(',').map(l => l.trim()).filter(Boolean),
             notes: cells[4].textContent,
             rating: ratingMatch ? parseInt(ratingMatch[1]) : 0,
-            nowPrice: 'Loading...', cumulativeReturn: 'Calculating...', return3m: 'Loading...'
+            nowPrice: 'Loading...', cumulativeReturn: 'Calculating...', return3m: 'Loading...', marketCap: null
         };
     }).filter(Boolean);
 
@@ -174,7 +174,7 @@ async function updateAllPrices() {
     // Kick off all price+return requests; onEach fires as each resolves
     await api.fetchBatchPriceAndReturn(
         portfolio.map(s => s.ticker.toUpperCase()),
-        async (ticker, { price, ret3m }) => {
+        async (ticker, { price, ret3m, marketCap }) => {
             const idx = portfolio.findIndex(s => s.ticker.toUpperCase() === ticker);
             if (idx === -1) return;
             const stock = portfolio[idx];
@@ -182,6 +182,7 @@ async function updateAllPrices() {
 
             stock.nowPrice         = price != null ? Number(price).toFixed(2) : 'N/A';
             stock.return3m         = ret3m != null ? ret3m : 'N/A';
+            stock.marketCap        = marketCap ?? stock.marketCap ?? null;
             stock.cumulativeReturn = (price != null && hist != null)
                 ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
 
@@ -207,7 +208,7 @@ async function addStock(ticker, name, date, initialLabel = '') {
     const stock = {
         ticker: t, name: name || t, date: discoveryDate,
         labels: normalizedInitialLabel ? [normalizedInitialLabel] : [], notes: '', rating: 0,
-        nowPrice: '...', cumulativeReturn: '...', return3m: '...', loading: true
+        nowPrice: '...', cumulativeReturn: '...', return3m: '...', marketCap: null, loading: true
     };
     portfolio.push(stock);
     markChanged();
@@ -215,12 +216,13 @@ async function addStock(ticker, name, date, initialLabel = '') {
     showStatus(`Adding ${t}\u2026`, 'info');
 
     try {
-        const [{ price, ret3m }, hist] = await Promise.all([
+        const [{ price, ret3m, marketCap }, hist] = await Promise.all([
             api.fetchPriceAndReturn(t),
             api.fetchHistoricalPrice(t, discoveryDate)
         ]);
         stock.nowPrice = price != null ? price.toFixed(2) : 'N/A';
         stock.return3m = ret3m || 'N/A';
+        stock.marketCap = marketCap ?? stock.marketCap ?? null;
         stock.cumulativeReturn = (price != null && hist != null)
             ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
     } catch (err) {
@@ -256,11 +258,12 @@ async function updateDate(idx, date) {
     markChanged();
     const api = window.MarketData;
     try {
-        const [{ price }, hist] = await Promise.all([
+        const [{ price, marketCap }, hist] = await Promise.all([
             api.fetchPriceAndReturn(portfolio[idx].ticker),
             api.fetchHistoricalPrice(portfolio[idx].ticker, date)
         ]);
         portfolio[idx].nowPrice = price ? price.toFixed(2) : 'N/A';
+        portfolio[idx].marketCap = marketCap ?? portfolio[idx].marketCap ?? null;
         portfolio[idx].cumulativeReturn = (hist && price) ? (((price - hist) / hist) * 100).toFixed(2) : 'N/A';
         if (window.updatePriceCells) window.updatePriceCells(portfolio[idx]);
     } catch {}

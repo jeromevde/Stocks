@@ -85,6 +85,12 @@ async function yfFetch(ticker, period1, period2) {
     return data;
 }
 
+async function yfFetchQuote(ticker) {
+    const url = `${YF_BASE}/v7/finance/quote?symbols=${encodeURIComponent(ticker)}`;
+    const data = await fetchJsonDirect(url, `quote:${ticker}`);
+    return data?.quoteResponse?.result?.[0] || null;
+}
+
 /**
  * Single Yahoo call: 94-day chart → current price + 3-month return.
  */
@@ -98,19 +104,23 @@ async function yfPriceAndReturn(ticker) {
 
     const now = Math.floor(Date.now() / 1000);
     const p1  = now - 94 * 86400;
-    const json   = await yfFetch(ticker, p1, now);
+    const [json, quote] = await Promise.all([
+        yfFetch(ticker, p1, now),
+        yfFetchQuote(ticker).catch(() => null)
+    ]);
     const meta   = json?.chart?.result?.[0]?.meta ?? {};
     const closes = json?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? [];
     const valid  = closes.filter(c => c != null);
 
-    const price = meta.regularMarketPrice ?? meta.chartPreviousClose ?? (valid.length ? valid[valid.length - 1] : null);
+    const price = quote?.regularMarketPrice ?? meta.regularMarketPrice ?? meta.chartPreviousClose ?? (valid.length ? valid[valid.length - 1] : null);
+    const marketCap = (typeof quote?.marketCap === 'number') ? quote.marketCap : ((typeof meta.marketCap === 'number') ? meta.marketCap : null);
     let ret3m = null;
     if (valid.length >= 2) {
         const first = valid[0], last = valid[valid.length - 1];
         if (first > 0) ret3m = (((last - first) / first) * 100).toFixed(2);
     }
 
-    const entry = { price: typeof price === 'number' ? price : null, ret3m };
+    const entry = { price: typeof price === 'number' ? price : null, ret3m, marketCap };
     mdLog('quote computed', { ticker, price: entry.price, ret3m: entry.ret3m, bars: valid.length });
     setCache(ck, entry);
     return entry;
