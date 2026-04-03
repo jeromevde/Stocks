@@ -293,7 +293,8 @@ tr.unrated-row { background: #fff5f5 !important; }
 @media (max-width: 480px) {
     body { padding: 0.125em; }
     th, td { padding: 6px 4px; font-size: 0.75em; }
-    th:nth-child(7), td:nth-child(7) { display: none; }
+    /* keep Market Cap visible; hide 3M Return on very small screens */
+    th:nth-child(8), td:nth-child(8) { display: none; }
 }
 
 /* Add stock floating button */
