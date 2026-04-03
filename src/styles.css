@@ -229,7 +229,8 @@ tr.unrated-row { background: #fff5f5 !important; }
 .notes-popup-overlay.show { opacity: 1; visibility: visible; }
 .notes-popup-content.minimal { border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.15); padding: 16px 20px; max-width: 1600px; width: 97%; height: 92vh; display: flex; flex-direction: column; background: #fff; position: relative; }
 .notes-popup-overlay.show .notes-popup-content { transform: scale(1) translateY(0); }
-.notes-popup-stock { font-size: 48px; font-weight: 900; color: #111827; margin-bottom: 14px; display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; }
+.notes-topbar { margin-bottom: 8px; }
+.notes-popup-stock { font-size: 48px; font-weight: 900; color: #111827; margin-bottom: 0; display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; }
 .notes-popup-stock-main { display:flex; align-items:center; gap:16px; min-width:0; overflow:hidden; }
 .notes-popup-stock-main > span:first-child { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .notes-popup-stock-metric { font-size:24px; color:#4b5563; font-weight:800; white-space:nowrap; }
@@ -253,10 +254,13 @@ tr.unrated-row { background: #fff5f5 !important; }
     .modal-content { width: 95%; }
     .form-row { flex-direction: column; }
     .notes-popup-content.minimal { width: 99%; height: 95vh; padding: 10px; }
-    .notes-popup-stock { font-size: 24px; gap: 8px; }
-    .notes-popup-stock-main { gap: 8px; }
-    .notes-popup-stock-metric { font-size: 13px; }
-    .notes-popup-arrows-hint { font-size: 11px; }
+    .notes-topbar { position: sticky; top: 0; background: #fff; z-index: 3; padding-bottom: 6px; }
+    .notes-topbar #notes-back-btn,
+    .notes-topbar #notes-prev-btn,
+    .notes-topbar #notes-next-btn { font-size: 12px; padding: 6px 8px; }
+    .notes-popup-stock { font-size: 20px; gap: 6px; }
+    .notes-popup-stock-main { gap: 6px; flex-wrap: wrap; }
+    .notes-popup-stock-metric { font-size: 12px; }
     #notes-mode-preview, #notes-mode-edit { font-size: 12px; padding: 6px 10px; }
     #notes-markdown-preview { min-height: 220px; }
     .github-connected { flex-direction: column; gap: 10px; text-align: center; }
