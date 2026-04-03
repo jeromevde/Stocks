@@ -49,6 +49,16 @@ jobs:
               # Flatten src/ to target/
               rsync -a "$target/src/" "$target/"
               rm -rf "$target/src"
+
+              # Cache-bust assets with branch commit hash
+              local short_sha
+              short_sha=$(git rev-parse --short "$ref")
+              if [ -f "$target/index.html" ]; then
+                sed -i.bak "s/__BUILD_HASH__/${short_sha}/g" "$target/index.html" && rm -f "$target/index.html.bak"
+              fi
+              if [ -f "$target/main.js" ]; then
+                sed -i.bak "s/__BUILD_HASH__/${short_sha}/g" "$target/main.js" && rm -f "$target/main.js.bak"
+              fi
             fi
           }
 

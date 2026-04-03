@@ -21,7 +21,7 @@ async function loadLlmPrompt() {
     const stored = localStorage.getItem(LLM_GUIDE_CACHE_KEY);
     if (stored) return stored;
     try {
-        const res = await fetch('llm-prompt.md?v=20260403-1');
+        const res = await fetch('llm-prompt.md?v=__BUILD_HASH__');
         if (res.ok) return await res.text();
     } catch (e) {
         console.warn('Could not load llm-prompt.md:', e);

@@ -166,6 +166,17 @@ button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; 
     .add-stock-modal { border-radius: 16px 16px 0 0; width: 100%; max-width: 100%; transform: translateY(40px); }
 }
 
+/* General smartphone ergonomics */
+@media (max-width: 768px) {
+    body { padding: 0.25rem; }
+    .api-key-bar { top: 8px; right: 8px; }
+    .key-tile { min-width: 92px; padding: 8px 10px; }
+    .actions-section { gap: 8px; margin: 12px 0; }
+    .actions-section .btn-primary,
+    .actions-section .btn-secondary { width: 100%; justify-content: center; }
+    th, td { padding: 8px 8px; font-size: 0.9rem; }
+}
+
 /* GitHub */
 .github-connected { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724; }
 
