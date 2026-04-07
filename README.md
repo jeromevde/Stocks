@@ -24,3 +24,9 @@ open -n "/Applications/Microsoft Edge.app" --args --disable-web-security
 ## GitHub token
 
 Create token: https://github.com/settings/tokens
+
+## Portfolio storage
+
+- Canonical portfolio data is saved in `portfolio-data.json`.
+- Legacy `portfolio.html` is still readable for migration fallback.
+- After loading legacy data once, click Save to migrate it to JSON.

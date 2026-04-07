@@ -30,7 +30,8 @@ class GitHubClient {
         this.token = TokenStore.get('github_token');
         this.repoOwner = TokenStore.get('github_repo_owner') || localStorage.getItem('github_owner') || 'jeromevde';
         this.repoName = TokenStore.get('github_repo_name') || localStorage.getItem('github_repo') || 'Stocks';
-        this.filePath = 'portfolio.html';
+        this.filePath = 'portfolio-data.json';
+        this.legacyFilePath = 'portfolio.html';
         this.lastKnownSha = localStorage.getItem('portfolio_sha');
     }
 
@@ -89,6 +90,18 @@ class GitHubClient {
             throw new Error('No content available from GitHub API');
         }
         return { exists: true, content, sha: data.sha };
+    }
+
+    async loadPortfolioData() {
+        return this.loadFile(this.filePath);
+    }
+
+    async loadLegacyPortfolioHtml() {
+        return this.loadFile(this.legacyFilePath);
+    }
+
+    async savePortfolioData(content, message = 'Update portfolio data') {
+        return this.saveFile(content, message, this.filePath);
     }
 
     async saveFile(content, message = 'Update portfolio', path = this.filePath) {
