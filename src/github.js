@@ -38,14 +38,78 @@ class GitHubClient {
     isAuthenticated() { return !!this.token; }
 
     authenticate(token, owner, repo) {
-        this.token = token;
-        this.repoOwner = owner;
-        this.repoName = repo;
-        TokenStore.set('github_token', token);
-        TokenStore.set('github_repo_owner', owner);
-        TokenStore.set('github_repo_name', repo);
-        localStorage.setItem('github_owner', owner);
-        localStorage.setItem('github_repo', repo);
+        const cleanToken = String(token || '').trim();
+        const cleanOwner = String(owner || '').trim();
+        const cleanRepo = String(repo || '').trim();
+
+        this.token = cleanToken;
+        this.repoOwner = cleanOwner || this.repoOwner;
+        this.repoName = cleanRepo || this.repoName;
+
+        TokenStore.set('github_token', cleanToken);
+        TokenStore.set('github_repo_owner', this.repoOwner);
+        TokenStore.set('github_repo_name', this.repoName);
+        localStorage.setItem('github_owner', this.repoOwner);
+        localStorage.setItem('github_repo', this.repoName);
+    }
+
+    async verifyAuthentication() {
+        if (!this.token) return { ok: false, message: 'Missing GitHub token' };
+        const res = await this._fetch(`${this.API_URL}/user`);
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            return {
+                ok: false,
+                message: `Token rejected (${res.status}${err.message ? `: ${err.message}` : ''})`
+            };
+        }
+        const user = await res.json();
+        return { ok: true, user };
+    }
+
+    async verifyRepoAccess(owner = this.repoOwner, repo = this.repoName) {
+        const o = String(owner || '').trim();
+        const r = String(repo || '').trim();
+        if (!o || !r) return { ok: false, message: 'Missing repository owner/name' };
+
+        const res = await this._fetch(`${this.API_URL}/repos/${o}/${r}`);
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            return {
+                ok: false,
+                message: `Cannot access ${o}/${r} (${res.status}${err.message ? `: ${err.message}` : ''})`
+            };
+        }
+
+        const data = await res.json();
+        const canPush = data?.permissions?.push !== false;
+        return {
+            ok: true,
+            repo: data.full_name || `${o}/${r}`,
+            canPush
+        };
+    }
+
+    async authenticateAndVerify(token, owner, repo) {
+        this.authenticate(token, owner, repo);
+
+        const auth = await this.verifyAuthentication();
+        if (!auth.ok) {
+            this.logout();
+            throw new Error(auth.message);
+        }
+
+        const repoAccess = await this.verifyRepoAccess();
+        if (!repoAccess.ok) {
+            this.logout();
+            throw new Error(repoAccess.message);
+        }
+
+        return {
+            login: auth.user?.login || 'unknown',
+            repo: repoAccess.repo,
+            canPush: repoAccess.canPush
+        };
     }
 
     logout() {

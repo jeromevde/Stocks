@@ -826,7 +826,7 @@ window.updatePriceCells = updatePriceCells;
 
 function updateApiKeyTiles() {
     const ghTile = document.getElementById('github-key-tile');
-    const hasGitHub = !!(window.TokenStore?.get('github_token'));
+    const hasGitHub = !!(window.githubClient?.isAuthenticated?.() || window.TokenStore?.get('github_token'));
 
     if (ghTile) {
         ghTile.classList.toggle('inactive', !hasGitHub);

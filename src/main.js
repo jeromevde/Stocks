@@ -2,17 +2,22 @@
  * Main entry point - initializes app and event listeners
  */
 
-function tryAutoLogin() {
+async function tryAutoLogin() {
     try {
         const t = window.TokenStore?.get('github_token');
         const o = window.TokenStore?.get('github_repo_owner') || localStorage.getItem('github_owner');
         const r = window.TokenStore?.get('github_repo_name') || localStorage.getItem('github_repo');
         if (t && o && r && window.githubClient) {
-            window.githubClient.authenticate(t, o, r);
+            const auth = await window.githubClient.authenticateAndVerify(t, o, r);
             updateGitHubUI();
-            showStatus('Auto-logged in to GitHub', 'success');
+            showStatus(`Auto-logged in as ${auth.login}`, 'success');
         }
-    } catch (e) { console.warn('Auto-login failed:', e); }
+    } catch (e) {
+        console.warn('Auto-login failed:', e);
+        window.githubClient?.logout();
+        updateGitHubUI();
+        showStatus('GitHub auto-login failed. Please reconnect.', 'error');
+    }
 }
 
 const LLM_GUIDE_CACHE_KEY = 'llm_guide_markdown_v2';
@@ -57,19 +62,25 @@ document.addEventListener('DOMContentLoaded', () => {
     tryAutoLogin();
 
     // GitHub auth form
-    document.getElementById('github-auth-form')?.addEventListener('submit', e => {
+    document.getElementById('github-auth-form')?.addEventListener('submit', async e => {
         e.preventDefault();
-        const token = document.getElementById('github-token')?.value || '';
-        const owner = document.getElementById('repo-owner')?.value || '';
-        const repo = document.getElementById('repo-name')?.value || '';
+        const token = (document.getElementById('github-token')?.value || '').trim();
+        const owner = (document.getElementById('repo-owner')?.value || '').trim();
+        const repo = (document.getElementById('repo-name')?.value || '').trim();
         if (token && owner && repo) {
-            localStorage.setItem('github_token', token);
-            localStorage.setItem('github_owner', owner);
-            localStorage.setItem('github_repo', repo);
-            window.githubClient.authenticate(token, owner, repo);
-            updateGitHubUI();
-            showStatus('Authenticated with GitHub!', 'success');
-            document.getElementById('github-auth-modal').style.display = 'none';
+            try {
+                const auth = await window.githubClient.authenticateAndVerify(token, owner, repo);
+                updateGitHubUI();
+                showStatus(
+                    auth.canPush
+                        ? `Authenticated as ${auth.login}`
+                        : `Authenticated as ${auth.login} (read-only token)`,
+                    auth.canPush ? 'success' : 'info'
+                );
+                document.getElementById('github-auth-modal').style.display = 'none';
+            } catch (err) {
+                showStatus(`GitHub auth failed: ${err.message}`, 'error');
+            }
         } else {
             showStatus('Please enter all GitHub credentials.', 'error');
         }
