@@ -1,0 +1,756 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-07T19:38:06.706Z",
+  "labelOrder": [
+    "ai",
+    "robotics",
+    "energy",
+    "genetics",
+    "space",
+    "insurance",
+    "battery",
+    "mining",
+    "defense",
+    "photonics",
+    "value",
+    "biotech"
+  ],
+  "stocks": [
+    {
+      "ticker": "TSLA",
+      "name": "Tesla, Inc.",
+      "date": "2024-06-01",
+      "labels": [
+        "ai",
+        "robotics",
+        "energy"
+      ],
+      "notes": "FY25 income statement - 20% gross margin - 6% operating margin - 3% net margin profit\n= WEAK, though not weakest for industry\n\nPE ratio of 300\nhttps://pbs.twimg.com/media/G_x9ADBbUAMYgM8.jpg\n\n\n\n\n\ninsane valuation but\n- robotaxi could triple gross margins\n- this does not account for growing energy business and optimus\n\nThis is an abundance play. Dominating company in the post capitalistic era of autonomy and abundance\nShort term catalyst: robotaxi rollout very likely and agressive in 2026\n\nAccumulation phase",
+      "rating": 5
+    },
+    {
+      "ticker": "TWST",
+      "name": "",
+      "date": "2025-07-01",
+      "labels": [
+        "genetics"
+      ],
+      "notes": "very cool tech, users report some of the cheapest on the market for high quality\nBut business model viability is a question",
+      "rating": 3
+    },
+    {
+      "ticker": "XPEV",
+      "name": "XPeng Inc.",
+      "date": "2024-08-01",
+      "labels": [
+        "ai",
+        "robotics"
+      ],
+      "notes": "Biggest tesla contender\nvision based AI\nhumanoid development\nvertically integrated, working on their own chips.\n\nBasically the Tesla abundance thesis with diversification from the musk brand",
+      "rating": 5
+    },
+    {
+      "ticker": "SIDU",
+      "name": "Sidus Space, Inc.",
+      "date": "2025-07-29",
+      "labels": [
+        "space"
+      ],
+      "notes": "shitty ceo, just riding the space bull",
+      "rating": 0
+    },
+    {
+      "ticker": "NBIS",
+      "name": "Nebius Group N.V.",
+      "date": "2025-04-01",
+      "labels": [
+        "ai"
+      ],
+      "notes": "coolest ceo Arkady Volozh\n- main assets are engineers and datacenters\nhttps://www.youtube.com/watch?v=8qvAZutaDHs     \n\nGROWING\nhttps://static.seekingalpha.com/uploads/2025/6/28/54097509-17511278852583811_origin.png     \n\nMain risk: space based compute",
+      "rating": 3
+    },
+    {
+      "ticker": "GOOG",
+      "name": "Alphabet Inc.",
+      "date": "2025-01-01",
+      "labels": [
+        "ai"
+      ],
+      "notes": "https://substackcdn.com/image/fetch/$s_!Jivn!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F172af89a-7578-4882-83a8-962644d112e2_2745x1543.png       \n\nsearch dependent business model but\n- CRAZY net profit margin of 29%\n- TPU used for gemini3 sota\n- youtube data for real world models\n- full ecosystem for fast deployment of ai use cases to real world + extra data\n- best researchers in world\n- Demis Hassabis\n- Sergey Brin\n\n- waymo looks compromised, stalled progress\n\nBut a 15% stake in Antropic (claude opus !) and 7% stake in Spacex !!",
+      "rating": 3
+    },
+    {
+      "ticker": "AMZN",
+      "name": "Amazon.com, Inc.",
+      "date": "2025-01-01",
+      "labels": [
+        "ai",
+        "robotics"
+      ],
+      "notes": "https://pbs.twimg.com/media/GxNlyCWakAACkvg.jpg\n\n\n- quite diversified\n- 11% net profit margin\n- robotics leader (warehouse, zoox)\n- space (leo, blue origin synergy)\n- building trainium and inferentia for more vertical integration\n= very future proof company\nmarket doesn't like the capex",
+      "rating": 3
+    },
+    {
+      "ticker": "LMND",
+      "name": "Lemonade, Inc.",
+      "date": "2025-07-01",
+      "labels": [
+        "insurance"
+      ],
+      "notes": "Thesis: by cutting out agents and brick and mortar costs and using AI they will be able to deliver a necessary evil (insurance) at a lower cost at scale -> bring down those premiums, claims paid / premium earned = loss ratio is often around 50% nowadays !\n\nBottlenecks:\n- customer acquisition\n- ai reliability\n- scaling",
+      "rating": 3
+    },
+    {
+      "ticker": "AMD",
+      "name": "Advanced Micro Devices, Inc.",
+      "date": "2025-01-01",
+      "labels": [
+        "ai"
+      ],
+      "notes": "https://pbs.twimg.com/media/GqS0V66bAAMtNGL.jpg       The main problem for AMD is CUDA and legacy. People learned cuda and invested in huge datacenters with nvidia and don't want to switch.\nSo the thesis becomes, as AI starts writing more of the software (including cuda kernels) and new datacenters are being built everywhere, does this moat remain ? post Claude Opus ?\n\nGrowing revenue but stalling profit because trying to catch up with nvidia:\n\nhttps://substackcdn.com/image/fetch/$s_!BBXE!,w_1456,c_limit,f_webp,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fec213da7-d2dd-41a5-9aef-975ecbe10171_1000x800.heic\n\nRisk:\n- Fabless -> bad bad bad",
+      "rating": 3
+    },
+    {
+      "ticker": "INTC",
+      "name": "Intel Corporation",
+      "date": "2026-02-01",
+      "labels": [
+        "ai",
+        "value"
+      ],
+      "notes": "Cpu demand going up\nloosing technology, investment by us government and restructuring but for now no sign of revival",
+      "rating": 2
+    },
+    {
+      "ticker": "IREN",
+      "name": "IREN LIMITED",
+      "date": "2025-08-01",
+      "labels": [
+        "ai"
+      ],
+      "notes": "Super speculative AI infra player\nvs Nebius\nSpace based compute ?",
+      "rating": 3
+    },
+    {
+      "ticker": "MU",
+      "name": "Micron Technology, Inc.",
+      "date": "2025-08-01",
+      "labels": [
+        "ai"
+      ],
+      "notes": "Very nice margins\nDropped crucial brand to focus on b2b\n\nhttps://substackcdn.com/image/fetch/$s_!zn7a!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fca046a1f-5b73-49b8-a856-ca470266ba99_2740x1539.png          \n\nBenefiting recently from the demand driven increase in NAND and DRAM prices\nMicron produces both DRAM and NAND flash memory, with a product portfolio heavily weighted toward DRAM\n\nVery sensitive to\n- boom-and-bust cycles of the semiconductor memory industry.\n- Following the pandemic-era boom, consumer demand for personal computers (PCs) and smartphones dropped significantly in 2022.\n- Due to overestimating demand, chipmakers and their customers were left with massive stockpiles of NAND and DRAM chips. This oversupply led to a \"freefall\" in memory prices. After that they refused to increase capacity in production in the AI cycle fearing a second fall. When that never happened, underprovisioning demand and very long build time of factories is causing a demand driven push of prices. In summary, high inertia sector sensitive to demand swings.\n\nBut as AI is showing no sign of slowing down, will this continue ? and for how long ? it depends on the speed of building factories compared to the growing needs in memory of AI\nWill AI growth correlate to a growth in memory needs or will smart AI compression techniques mitigate this ?",
+      "rating": 3
+    },
+    {
+      "ticker": "AVGO",
+      "name": "Broadcom Inc.",
+      "date": "2025-06-01",
+      "labels": [
+        "ai"
+      ],
+      "notes": "The silent AI winner  - networking chips essential for AI datacenters\n- custom AI chips (TPU for Google, etc)\n- VMware acquisition = enterprise software cash cow\n- 50%+ gross margins, insane FCF generation\n\nHock Tan is a serial acquirer genius or a financial engineer depending who you ask.\nLess hype than Nvidia but very solid AI exposure. Dividend aristocrat mentality.\nhttps://pbs.twimg.com/media/G76w_xDboAAiMN5.jpg\n\nBut is fabless !!\nbut they do manufacture their own wifi chips, internet routers, ...",
+      "rating": 1
+    },
+    {
+      "ticker": "OKLO",
+      "name": "Oklo Inc.",
+      "date": "2026-02-01",
+      "labels": [
+        "energy"
+      ],
+      "notes": "Sam Altman's nuclear baby\n- small modular fission reactors\n- fuel recycling angle is interesting\n- zero revenue, all promises\n- NRC rejected first application lol\n\nPure speculation on nuclear renaissance for AI datacenters.\nCool tech but years away from any real business. Altman halo effect priced in.\nCompeting with SMR/NuScale who are further along but also struggling.",
+      "rating": 0
+    },
+    {
+      "ticker": "SMR",
+      "name": "NuScale Power Corporation",
+      "date": "2026-02-01",
+      "labels": [
+        "energy"
+      ],
+      "notes": "zero charism ceo",
+      "rating": 0
+    },
+    {
+      "ticker": "ASML",
+      "name": "ASML Holding N.V. - New York Re",
+      "date": "2026-02-01",
+      "labels": [
+        "ai"
+      ],
+      "notes": "Building the machines to build the machines that power AI. As long as companies are planning to increase CAPEX in AI this will boom\n\nRisks:\nCapex expenditure dependent like Nvidia. Deepseek moments, intelligence/compute is supposed to be still way to high by orders of magnitude and model architecture improvements could decrease this and lead to infra winter\n\nhttps://pbs.twimg.com/media/G_vFQqobAAAsOhH.jpg       \n\nA possible hedge play against Nvidia, as AMD and others catch up and eat away the profit margins, profit margins of the total supply chain might shift to ASML. As long as china does not catch up...",
+      "rating": 3
+    },
+    {
+      "ticker": "RKLB",
+      "name": "Rocket Lab Corporation",
+      "date": "2025-04-01",
+      "labels": [
+        "space"
+      ],
+      "notes": "Biggest Spacex competitor\nFilling the small rocket gap. Spacex focuses on heavy lift while RKLB on small-to-medium payload launches and end-to-end space systems, offering a more tailored, agile service for smaller, dedicated satellite deployments\n= The \"Bus vs. Uber\" Problem",
+      "rating": 3
+    },
+    {
+      "ticker": "HYMLF",
+      "name": "Hyundai Motor Company",
+      "date": "2026-02-01",
+      "labels": [
+        "robotics"
+      ],
+      "notes": "Korean auto giant going all-in on future\n- owns Boston Dynamics (robots!)\n- solid EV lineup with Ioniq\n- hydrogen fuel cell leader\n- cheap valuation vs western peers\n\nBoston Dynamics is cool but still burning money.\nEV competition from China is brutal.\nMight be a sleeper robotics play through BD ownership. OTK market doesn't price this in.",
+      "rating": 1
+    },
+    {
+      "ticker": "3750.HK",
+      "name": "CATL",
+      "date": "2025-11-01",
+      "labels": [
+        "battery"
+      ],
+      "notes": "World's biggest EV battery maker\n- 35%+ global market share\n- supplies Tesla, BMW, everyone basically\n- sodium-ion and solid state R&D\n- integrating into energy storage\n\nChinese company = geopolitical risk, potential US restrictions\nBUT undeniable tech and scale leadership. Margins getting squeezed by competition.\nIf you believe in EVs at scale, hard to avoid CATL.\n",
+      "rating": 1
+    },
+    {
+      "ticker": "SATL",
+      "name": "Satellogic Inc.",
+      "date": "2026-02-01",
+      "labels": [
+        "space"
+      ],
+      "notes": "Very cool ceo\nrecent ipo but company has been existing for a while",
+      "rating": 2
+    },
+    {
+      "ticker": "USAR",
+      "name": "USA Rare Earth, Inc.",
+      "date": "2026-02-01",
+      "labels": [
+        "mining"
+      ],
+      "notes": "US independence play on rare earth supply chain\nVery geopolitics dependent\nRecent boom due to decisions without much underlying tech or progress\nToo risky, but watch out",
+      "rating": 2
+    },
+    {
+      "ticker": "ENVX",
+      "name": "Enovix Corporation",
+      "date": "2026-02-02",
+      "labels": [
+        "battery"
+      ],
+      "notes": "Silicon anode battery tech\n- higher energy density than traditional lithium-ion\n- targeting consumer electronics first, then EVs\n- actually shipping product now (finally)\n- fab in Malaysia ramping\n\nLots of battery startups have died promising next-gen tech.\nThis one seems further along but still proving manufacturing at scale.\nHigh risk/reward. Could be QuantumScape 2.0 or actually work.",
+      "rating": 1
+    },
+    {
+      "ticker": "ETN",
+      "name": "Eaton Corporation, PLC",
+      "date": "2026-02-02",
+      "labels": [
+        "energy"
+      ],
+      "notes": "Electrical infrastructure boring money machine\n- power management, grid solutions\n- datacenter power = indirect AI play\n- 20%+ operating margins\n- reshoring and grid modernization tailwinds\n\nNot sexy but benefits from every megatrend: EVs, datacenters, renewables, grid upgrades.\nValuation has run up a lot on AI datacenter hype.\nQuality industrial compounder. Your dad's stock pick.\n\nBoring ceo",
+      "rating": 0
+    },
+    {
+      "ticker": "GEV",
+      "name": "GE Vernova Inc.",
+      "date": "2026-02-02",
+      "labels": [
+        "energy"
+      ],
+      "notes": "GE's energy spinoff\n- gas turbines, wind, grid solutions\n- huge installed base = service revenue\n- wind business has been problematic (offshore losses)\n- gas turbines printing money on AI datacenter demand\n\nGrid modernization play. Messy business mix.\nOnshore wind ok, offshore wind = money pit.\nBet on gas turbines for datacenter backup power. Ironic green energy company powered by gas.",
+      "rating": 0
+    },
+    {
+      "ticker": "NVT",
+      "name": "nVent Electric plc",
+      "date": "2026-02-02",
+      "labels": [
+        "energy"
+      ],
+      "notes": "Electrical enclosures and thermal management\n- cooling solutions for datacenters = AI angle\n- liquid cooling tech acquisition\n- boring industrial products, steady margins\n\nNobody knows this company exists which might be good.\nPicks and shovels play for datacenter buildout.\nSmaller than Vertiv, less coverage, potentially less priced in.\nNiche but could benefit from liquid cooling trend for AI chips.",
+      "rating": 0
+    },
+    {
+      "ticker": "VRT",
+      "name": "Vertiv Holdings, LLC",
+      "date": "2026-02-02",
+      "labels": [
+        "ai",
+        "energy"
+      ],
+      "notes": "Datacenter cooling and power infrastructure\n- liquid cooling for AI chips is their moment\n- backlog growing like crazy\n- margins expanding\n- Nvidia partnership for GB200 racks\n\nStock has gone parabolic on AI hype.\nLegit business but valuation assumes flawless execution.\nIf AI capex slows, this gets crushed.\nPure AI infrastructure pick without the semiconductor complexity.",
+      "rating": 2
+    },
+    {
+      "ticker": "ONDS",
+      "name": "Ondas Inc",
+      "date": "2026-02-03",
+      "labels": [
+        "defense"
+      ],
+      "notes": "Highly speculative quasi meme stock hyped on social media very aggressively diluting their shareholders\nBut with some interesting fundamentals, strong cash position\n\nhttps://static.seekingalpha.com/uploads/2025/11/5/59261277-17623500613317227.png  \nand on the drone dominance program...\n\nKeep an eye on it",
+      "rating": 3
+    },
+    {
+      "ticker": "NET",
+      "name": "Cloudflare, Inc.",
+      "date": "2026-02-04",
+      "labels": [],
+      "notes": "Thesis: Edge security + developer platform compounding with enterprise upsell.\nMarket pricing in: sustained high growth + operating leverage.\nCatalysts: AI traffic demand, SASE expansion, Workers adoption.\nMoat/Risks: global network moat; risk = hyperscaler competition + pricing pressure.\nFinancial quality: check gross margin trend, SBC %, FCF margin, net retention.\nValuation sanity: usually premium multiple; require durable >20% growth.\nRed flags: slowing large-customer adds, margin compression, rising churn.\nCheckpoints: (1) NRR trend, (2) operating margin expansion, (3) AI inference traffic monetization.\nVerdict: Watch / quality compounder if execution remains clean.\nWhat could break thesis: growth decelerates faster than margin expansion.",
+      "rating": 1
+    },
+    {
+      "ticker": "RDW",
+      "name": "Redwire Corp",
+      "date": "2026-02-04",
+      "labels": [],
+      "notes": "Thesis: Space infrastructure/defense exposure with optionality from in-space manufacturing.\nMarket pricing in: contract wins + scaling from niche supplier to strategic platform.\nCatalysts: U.S. defense/space budget flow, major program awards, production scale-up.\nMoat/Risks: mission expertise; risk = execution delays, customer concentration, funding cycles.\nFinancial quality: track backlog conversion, gross margin, cash burn, dilution risk.\nValuation sanity: narrative-heavy; require visible path to durable FCF.\nRed flags: persistent burn without margin improvement, delayed milestones.\nCheckpoints: (1) backlog growth quality, (2) margin trajectory, (3) dilution control.\nVerdict: Speculative Watch.\nWhat could break thesis: program slips + capital raises at weak terms.",
+      "rating": 0
+    },
+    {
+      "ticker": "ORR",
+      "name": "Militia Long/Short Equity ETF",
+      "date": "2026-02-05",
+      "labels": [],
+      "notes": "Thesis: Long/short equity ETF wrapper; outcome depends on manager process, not one business moat.\nMarket pricing in: manager alpha persistence + risk control.\nCatalysts: rolling alpha vs benchmark, drawdown profile, fee competitiveness.\nMoat/Risks: process/discipline; risk = style drift, crowding, fee drag.\nFinancial quality: evaluate expense ratio, turnover, tracking behavior.\nValuation sanity: compare net performance after fees/taxes.\nRed flags: sustained underperformance net of fees, unstable exposures.\nCheckpoints: (1) 1y/3y alpha, (2) max drawdown, (3) consistency of factor exposures.\nVerdict: Only hold if proven net alpha.\nWhat could break thesis: alpha disappears when regime changes.",
+      "rating": 3
+    },
+    {
+      "ticker": "UBTRF",
+      "name": "UBTECH ROBOTICS CORP LTD",
+      "date": "2025-04-01",
+      "labels": [
+        "ai"
+      ],
+      "notes": "Thesis: Humanoid/service robotics optionality leveraged to China automation trend.\nMarket pricing in: commercialization beyond demos into repeatable deployments.\nCatalysts: enterprise contracts, unit economics improvement, ecosystem partnerships.\nMoat/Risks: hardware+software integration; risk = intense competition + hardware margin pressure.\nFinancial quality: monitor revenue quality, gross margin, R&D intensity, cash runway.\nValuation sanity: pre-profit uncertainty high; focus on execution milestones.\nRed flags: promo-heavy narrative without shipment/usage proof.\nCheckpoints: (1) paid deployments, (2) gross margin trend, (3) recurring software/service revenue.\nVerdict: High-risk speculative.\nWhat could break thesis: demand remains pilot-only.",
+      "rating": 2
+    },
+    {
+      "ticker": "UBER",
+      "name": "Uber Technologies, Inc.",
+      "date": "2026-02-19",
+      "labels": [],
+      "notes": "short it",
+      "rating": 0
+    },
+    {
+      "ticker": "CVNA",
+      "name": "Carvana Co.",
+      "date": "2026-02-19",
+      "labels": [],
+      "notes": "short it",
+      "rating": 0
+    },
+    {
+      "ticker": "RPI.L",
+      "name": "RASPBERRY PI HOLDINGS PLC ORD 0",
+      "date": "2026-02-22",
+      "labels": [],
+      "notes": "Thesis: Low-cost compute ecosystem (education + embedded/industrial) with strong developer community.\nMarket pricing in: durable demand outside hobby cycles.\nCatalysts: industrial design wins, supply normalization, software ecosystem expansion.\nMoat/Risks: ecosystem + brand; risk = commoditized SBC hardware and cyclic inventory swings.\nFinancial quality: check gross margin stability, channel inventory, recurring software/services.\nValuation sanity: avoid paying software multiples for hardware-heavy earnings.\nRed flags: inventory build, weak industrial mix, ASP pressure.\nCheckpoints: (1) industrial share growth, (2) margin resilience, (3) ecosystem monetization.\nVerdict: Watch with quality bias.\nWhat could break thesis: ecosystem lock-in weaker than expected.",
+      "rating": 0
+    },
+    {
+      "ticker": "EWY",
+      "name": "iShares MSCI South Korea ETF",
+      "date": "2026-02-22",
+      "labels": [],
+      "notes": "Thesis: Korea equity beta (heavy semis/export cyclicals).\nMarket pricing in: memory cycle recovery + KRW/macroeconomic stability.\nCatalysts: DRAM/NAND upcycle, China demand, global electronics recovery.\nMoat/Risks: diversified country exposure; risk = geopolitical/regulatory shocks.\nFinancial quality: monitor top holdings earnings revisions and index concentration.\nValuation sanity: compare to MSCI EM discount/premium and cyclicality.\nRed flags: earnings downgrades in Samsung/SK hynix, FX stress.\nCheckpoints: (1) semiconductor cycle data, (2) export momentum, (3) policy/geopolitical risk.\nVerdict: Macro/cycle tool, not single-company thesis.\nWhat could break thesis: memory downturn returns quickly.",
+      "rating": 2
+    },
+    {
+      "ticker": "AXTI",
+      "name": "AXT Inc",
+      "date": "2026-02-22",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "AXTI is a compound-semiconductor substrate supplier (InP/GaAs/Ge) with earnings that are still very cycle-sensitive.\n\nWhat matters now (not generic framework talk):\n- Q4 2025 revenue was $23.0M and GAAP gross margin was 20.9% (non-GAAP 21.5%).\n- Cash was $120.3M, so near-term liquidity is not the immediate problem.\n- The real thesis risk is weak utilization: if fabs don't fill, margin recovery stalls.\n\nMy read:\n- This is not a moat-heavy compounder today; it's a cyclical recovery setup.\n- If utilization and bookings improve for 2-3 quarters, operating leverage can work.\n- If demand stays soft, valuation can stay cheap for a reason.\n\nPractical checkpoints:\n1) gross margin trend each quarter,\n2) inventory + working-capital discipline,\n3) evidence of recurring demand versus one-off rebounds.\n\nSTOCK ANALYSIS DASHBOARD – AXTI\n\n| Category | Key Metrics | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment |\n|---|---|---|---|---|---|\n| Profitability | Gross Margin | 20.9% (GAAP, Q4'25) | Volatile | Below quality photonics peers | Average/Weak |\n| Growth | Revenue | $23.0M (Q4'25) | Cyclical | Recovery not yet proven | Weak |\n| Financial Health | Cash | $120.3M | Mixed | Liquidity acceptable | Good/Average |\n| Overall Score | /10 | 6.0 | - | - | - |\n\nFinal Recommendation: HOLD / SPECULATIVE WATCH (only on recovery confirmation)\n\nSources: SEC filings: https://www.sec.gov/edgar/browse/?CIK=818949 | Earnings release: https://investors.axt.com/Investors/financials/quarterly-results/default.aspx",
+      "rating": 3
+    },
+    {
+      "ticker": "SMTOY",
+      "name": "Sumitomo Electric Industries Lt",
+      "date": "2026-02-22",
+      "labels": [],
+      "notes": "Thesis: Diversified industrial/electrical components with auto harness leadership.\nMarket pricing in: stable industrial demand + EV/content tailwinds.\nCatalysts: auto electrification mix, power cable/infrastructure demand.\nMoat/Risks: scale + customer relationships; risk = auto cycle, commodity inputs.\nFinancial quality: check ROIC, segment margin mix, working-cap discipline.\nValuation sanity: compare to global industrial peers on EV/EBIT and FCF yield.\nRed flags: auto weakness, margin squeeze from input costs.\nCheckpoints: (1) margin by segment, (2) auto order trends, (3) capex efficiency.\nVerdict: Quality cyclical, monitor cycle timing.\nWhat could break thesis: prolonged auto downturn.",
+      "rating": 0
+    },
+    {
+      "ticker": "XLU",
+      "name": "State Street Utilities Select S",
+      "date": "2026-02-22",
+      "labels": [],
+      "notes": "Thesis: U.S. utilities defensive yield exposure.\nMarket pricing in: rate path + regulated return outlook.\nCatalysts: rate cuts/declines in long yields, grid investment cycle.\nMoat/Risks: regulated cash flows; risk = higher-for-longer rates, regulatory lag.\nFinancial quality: monitor debt cost, allowed ROE outcomes, capex recovery mechanisms.\nValuation sanity: utilities are bond-proxy; compare yield spread vs Treasuries.\nRed flags: adverse regulatory rulings, weak balance sheets in top holdings.\nCheckpoints: (1) Treasury yield trend, (2) rate-case outcomes, (3) dividend coverage.\nVerdict: Defensive allocation tool.\nWhat could break thesis: real rates stay elevated.",
+      "rating": 2
+    },
+    {
+      "ticker": "AMPX",
+      "name": "Amprius Technologies, Inc.",
+      "date": "2026-02-23",
+      "labels": [],
+      "notes": "Thesis: High-energy-density battery tech optionality (aviation/defense).\nMarket pricing in: transition from pilot validation to scalable production.\nCatalysts: qualification milestones, commercial contracts, manufacturing scale proof.\nMoat/Risks: chemistry/performance edge; risk = scale-up and cash burn.\nFinancial quality: monitor cash runway, gross margin path, capex efficiency.\nValuation sanity: milestone-based; avoid assuming straight-line commercialization.\nRed flags: repeated production delays, rising dilution.\nCheckpoints: (1) customer qualification completions, (2) yield improvements, (3) funding adequacy.\nVerdict: Speculative.\nWhat could break thesis: scale economics never converge.",
+      "rating": 2
+    },
+    {
+      "ticker": "5210.T",
+      "name": "NIHON YAMAMURA GLASS CO",
+      "date": "2026-02-24",
+      "labels": [],
+      "notes": "Thesis: Niche glass/packaging/industrial exposure with cyclical demand sensitivity.\nMarket pricing in: domestic industrial recovery and stable input costs.\nCatalysts: utilization rebound, pricing pass-through, product mix improvement.\nMoat/Risks: manufacturing footprint; risk = energy/input volatility and demand softness.\nFinancial quality: track operating margin, debt, cash conversion.\nValuation sanity: favor when trading below normalized earnings power.\nRed flags: weak capacity utilization, margin erosion.\nCheckpoints: (1) price-cost spread, (2) utilization trend, (3) leverage.\nVerdict: Small-cap cyclical watch.\nWhat could break thesis: sustained weak end-demand.",
+      "rating": 0
+    },
+    {
+      "ticker": "IQE.L",
+      "name": "IQE PLC ORD 1P",
+      "date": "2026-02-25",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "1) Business & Moat Overview\n- One-sentence model: IQE PLC ORD 1P monetizes photonics/semiconductor value chains via specialized components/materials.\n- Moat rating: Narrow (qualification friction + customer relationships, but cyclical pricing pressure remains).\n\n2) Macro & Industry Context\n- Tailwinds: AI/network bandwidth growth, datacenter optical demand, selective industrial recovery.\n- Headwinds: semiconductor/photonics cyclicality, customer concentration, inventory digestion risk.\n\n3) Earnings Deep Dive (latest + trend)\n- Focus points to verify each quarter: revenue quality, gross margin trend, guidance credibility, and booking-to-bill health.\n\n4) Financial Statement / Quality\n- Track OCF vs NI, capex intensity, debt runway, and working-capital discipline.\n\n5) Ratio & Valuation Lens\n- Prioritize ROIC trend, FCF yield, leverage metrics, and peer-relative EV/EBITDA + P/FCF.\n- Avoid extrapolating peak-cycle margins into terminal assumptions.\n\n6) Risks / Catalysts / Scenarios\n- Risks: execution slippage, pricing pressure, cycle reversal, concentration.\n- Catalysts: durable margin inflection, cleaner backlog mix, sustained cash conversion.\n\n7) Investment Thesis & Recommendation\n- Recommendation: HOLD/WATCH\n- Conviction: Low\n- Target price / upside / margin of safety: N/A / N/A / N/A (requires fresh filing model refresh).\n\nSTOCK ANALYSIS DASHBOARD – IQE.L\n\n| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |\n|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|\n| Business & Moat      | Moat rating + description            | Narrow | Mixed      | Mixed              | Average |\n| Profitability        | ROIC / Net Margin / ROE              | See latest filings | Mixed | Mixed | Average |\n| Growth               | Revenue CAGR / FCF CAGR              | See latest filings | Mixed | Mixed | Average |\n| Financial Health     | Interest Coverage / Net Debt/EBITDA  | See latest filings | Mixed | Mixed | Average |\n| Valuation            | EV/EBITDA / FCF Yield / PEG          | See latest filings | Mixed | Mixed | Average |\n| Earnings Quality     | FCF vs NI gap + adjustments          | See latest filings | Mixed | Mixed | Average |\n| Overall Score        | (out of 10)                          | 4.8/10 | - | - | - |\n\nFinal Recommendation: HOLD/WATCH | Target Price: N/A (N/A upside) | Conviction: Low | Margin of Safety: N/A\n\nSources: Reports/RNS: https://www.iqep.com/investors/results-reports-presentations/ | https://www.iqep.com/investors/regulatory-news/",
+      "rating": 3
+    },
+    {
+      "ticker": "LITE",
+      "name": "Lumentum Holdings Inc.",
+      "date": "2026-02-25",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "1) Business & Moat Overview\n- Business model: Lumentum sells optical components/modules used in datacom and telecom networks.\n- Moat rating: Narrow-Moderate (engineering depth, qualification stickiness, scale in key optical categories).\n\n2) Macro & Industry Context\n- Tailwinds: AI datacenter optical interconnect buildout.\n- Headwinds: telecom cycle volatility and customer concentration risk.\n\n3) Earnings Deep Dive (latest)\n- Fiscal Q2 2026 (ended Dec 27, 2025): revenue $665.5M.\n- Gross margin: GAAP 36.1%, non-GAAP 42.5%.\n- Cash + equivalents + short-term investments: $1,155.3M.\n- Debt profile includes large convertible notes classified current; liquidity management is a key watch item.\n\n4) Financial Health / Quality\n- Positive scale and margin profile versus many photonics peers.\n- Must monitor cash conversion and convert-related balance-sheet pressure.\n\n5) Ratios / Valuation Lens\n- Track EV/EBITDA, P/FCF, FCF yield against 5Y range; avoid assuming uninterrupted AI optics upcycle.\n\n6) Risks, Catalysts, Scenarios\n- Risks: customer concentration, telecom weakness, conversion/liquidity events.\n- Catalysts: sustained datacenter optical demand, stable non-GAAP margin, inventory normalization.\n\n7) Investment Thesis & Recommendation\n- Recommendation: HOLD (Buy on weakness)\n- Conviction: Medium\n\nSTOCK ANALYSIS DASHBOARD – LITE\n\n| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |\n|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|\n| Business & Moat      | Moat rating + description            | Narrow-Moderate | Stable   | Better quality mix | Good |\n| Profitability        | Gross Margin / Net Margin / ROE      | GM 36.1% GAAP, 42.5% non-GAAP | Improving | Above many peers | Good |\n| Growth               | Revenue                               | $665.5M (FQ2'26) | Mixed   | Solid datacenter exposure | Good/Average |\n| Financial Health     | Cash / Debt                           | Cash+ST inv. $1.16B | Mixed | Convert overhang | Average |\n| Valuation            | EV/EBITDA / FCF lens                  | N/A          | N/A       | Quality premium    | Average/Good |\n| Earnings Quality     | OCF/FCF conversion                    | Watch item   | Mixed     | Better than turnarounds | Average/Good |\n| Overall Score        | (out of 10)                          | 6.9/10       | -         | -                  | - |\n\nFinal Recommendation: HOLD (Buy on weakness) | Target Price: N/A | Conviction: Medium | Margin of Safety: N/A\n\nSources: SEC filings: https://www.sec.gov/edgar/browse/?CIK=1633978 | Earnings release: https://investor.lumentum.com/news-events/press-releases",
+      "rating": 3
+    },
+    {
+      "ticker": "005930.KS",
+      "name": "SamsungElec",
+      "date": "2026-02-25",
+      "labels": [],
+      "notes": "Thesis: Scale leader across memory, foundry, mobile and consumer electronics.\nMarket pricing in: memory upcycle + AI-related demand support.\nCatalysts: DRAM/NAND pricing, HBM competitiveness, foundry execution.\nMoat/Risks: scale/capex/vertical integration; risk = memory volatility + foundry share pressure.\nFinancial quality: track FCF through cycle, net cash, capex discipline.\nValuation sanity: cyclical giant; value vs through-cycle earnings, not peak profits.\nRed flags: HBM execution gap, prolonged foundry underperformance.\nCheckpoints: (1) memory ASP trend, (2) HBM share progress, (3) margin recovery quality.\nVerdict: Core cyclical quality.\nWhat could break thesis: weaker-than-expected AI memory monetization.",
+      "rating": 0
+    },
+    {
+      "ticker": "000660.KS",
+      "name": "SK hynix",
+      "date": "2026-02-26",
+      "labels": [],
+      "notes": "Thesis: Memory pure-play with high AI leverage via HBM leadership.\nMarket pricing in: sustained HBM demand + favorable memory cycle.\nCatalysts: HBM capacity expansion, AI server demand, pricing discipline.\nMoat/Risks: execution in advanced memory; risk = capex overshoot + cycle reversal.\nFinancial quality: monitor margin expansion quality, FCF, debt trajectory.\nValuation sanity: avoid extrapolating peak cycle profits indefinitely.\nRed flags: inventory rebuild + ASP pressure, customer concentration risk.\nCheckpoints: (1) HBM shipment growth, (2) gross margin durability, (3) capex/FCF balance.\nVerdict: High-beta AI memory exposure.\nWhat could break thesis: sharp memory downcycle returns.",
+      "rating": 0
+    },
+    {
+      "ticker": "AEHR",
+      "name": "Aehr Test Systems",
+      "date": "2026-02-26",
+      "labels": [],
+      "notes": "Thesis: Test/burn-in equipment levered to SiC and power semiconductor adoption.\nMarket pricing in: strong multi-year SiC demand and customer capex continuity.\nCatalysts: EV power semiconductor volumes, new customer ramps.\nMoat/Risks: niche test positioning; risk = capex lumpiness + customer concentration.\nFinancial quality: watch order volatility, gross margin, backlog visibility.\nValuation sanity: lumpy revenue profile deserves cycle-aware multiples.\nRed flags: order push-outs, dependency on few end-customers.\nCheckpoints: (1) diversified customer base, (2) recurring service mix, (3) backlog conversion.\nVerdict: Attractive niche but cyclic/lumpy.\nWhat could break thesis: SiC capex pause.",
+      "rating": 0
+    },
+    {
+      "ticker": "6101.T",
+      "name": "TSUGAMI CORP",
+      "date": "2026-02-27",
+      "labels": [],
+      "notes": "Machines for robotic components",
+      "rating": 5
+    },
+    {
+      "ticker": "SIVE.ST",
+      "name": "Sivers Semiconductors AB",
+      "date": "2026-03-17",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "1) Business & Moat Overview\n- One-sentence model: Sivers Semiconductors AB monetizes photonics/semiconductor value chains via specialized components/materials.\n- Moat rating: Narrow (qualification friction + customer relationships, but cyclical pricing pressure remains).\n\n2) Macro & Industry Context\n- Tailwinds: AI/network bandwidth growth, datacenter optical demand, selective industrial recovery.\n- Headwinds: semiconductor/photonics cyclicality, customer concentration, inventory digestion risk.\n\n3) Earnings Deep Dive (latest + trend)\n- Focus points to verify each quarter: revenue quality, gross margin trend, guidance credibility, and booking-to-bill health.\n\n4) Financial Statement / Quality\n- Track OCF vs NI, capex intensity, debt runway, and working-capital discipline.\n\n5) Ratio & Valuation Lens\n- Prioritize ROIC trend, FCF yield, leverage metrics, and peer-relative EV/EBITDA + P/FCF.\n- Avoid extrapolating peak-cycle margins into terminal assumptions.\n\n6) Risks / Catalysts / Scenarios\n- Risks: execution slippage, pricing pressure, cycle reversal, concentration.\n- Catalysts: durable margin inflection, cleaner backlog mix, sustained cash conversion.\n\n7) Investment Thesis & Recommendation\n- Recommendation: WATCH\n- Conviction: Low\n- Target price / upside / margin of safety: N/A / N/A / N/A (requires fresh filing model refresh).\n\nSTOCK ANALYSIS DASHBOARD – SIVE.ST\n\n| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |\n|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|\n| Business & Moat      | Moat rating + description            | Narrow | Mixed      | Mixed              | Average |\n| Profitability        | ROIC / Net Margin / ROE              | See latest filings | Mixed | Mixed | Average |\n| Growth               | Revenue CAGR / FCF CAGR              | See latest filings | Mixed | Mixed | Average |\n| Financial Health     | Interest Coverage / Net Debt/EBITDA  | See latest filings | Mixed | Mixed | Average |\n| Valuation            | EV/EBITDA / FCF Yield / PEG          | See latest filings | Mixed | Mixed | Average |\n| Earnings Quality     | FCF vs NI gap + adjustments          | See latest filings | Mixed | Mixed | Average |\n| Overall Score        | (out of 10)                          | 4.2/10 | - | - | - |\n\nFinal Recommendation: WATCH | Target Price: N/A (N/A upside) | Conviction: Low | Margin of Safety: N/A\n\nSources: Reports/releases: https://investors.sivers-semiconductors.com/en/reports-presentations/ | https://investors.sivers-semiconductors.com/en/press-releases/",
+      "rating": 5
+    },
+    {
+      "ticker": "POET",
+      "name": "POET Technologies Inc.",
+      "date": "2026-03-17",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "1) Business & Moat Overview\n- One-sentence model: POET Technologies Inc. monetizes photonics/semiconductor value chains via specialized components/materials.\n- Moat rating: Unproven (qualification friction + customer relationships, but cyclical pricing pressure remains).\n\n2) Macro & Industry Context\n- Tailwinds: AI/network bandwidth growth, datacenter optical demand, selective industrial recovery.\n- Headwinds: semiconductor/photonics cyclicality, customer concentration, inventory digestion risk.\n\n3) Earnings Deep Dive (latest + trend)\n- Focus points to verify each quarter: revenue quality, gross margin trend, guidance credibility, and booking-to-bill health.\n\n4) Financial Statement / Quality\n- Track OCF vs NI, capex intensity, debt runway, and working-capital discipline.\n\n5) Ratio & Valuation Lens\n- Prioritize ROIC trend, FCF yield, leverage metrics, and peer-relative EV/EBITDA + P/FCF.\n- Avoid extrapolating peak-cycle margins into terminal assumptions.\n\n6) Risks / Catalysts / Scenarios\n- Risks: execution slippage, pricing pressure, cycle reversal, concentration.\n- Catalysts: durable margin inflection, cleaner backlog mix, sustained cash conversion.\n\n7) Investment Thesis & Recommendation\n- Recommendation: WATCH/AVOID\n- Conviction: Low\n- Target price / upside / margin of safety: N/A / N/A / N/A (requires fresh filing model refresh).\n\nSTOCK ANALYSIS DASHBOARD – POET\n\n| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |\n|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|\n| Business & Moat      | Moat rating + description            | Unproven | Mixed      | Mixed              | Average |\n| Profitability        | ROIC / Net Margin / ROE              | See latest filings | Mixed | Mixed | Average |\n| Growth               | Revenue CAGR / FCF CAGR              | See latest filings | Mixed | Mixed | Average |\n| Financial Health     | Interest Coverage / Net Debt/EBITDA  | See latest filings | Mixed | Mixed | Average |\n| Valuation            | EV/EBITDA / FCF Yield / PEG          | See latest filings | Mixed | Mixed | Average |\n| Earnings Quality     | FCF vs NI gap + adjustments          | See latest filings | Mixed | Mixed | Average |\n| Overall Score        | (out of 10)                          | 4.0/10 | - | - | - |\n\nFinal Recommendation: WATCH/AVOID | Target Price: N/A (N/A upside) | Conviction: Low | Margin of Safety: N/A\n\nSources: SEC filings: https://www.sec.gov/edgar/browse/?CIK=1437424 | News: https://poet-technologies.com/news/",
+      "rating": 1
+    },
+    {
+      "ticker": "MRVL",
+      "name": "Marvell Technology, Inc.",
+      "date": "2026-03-17",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "1) Business & Moat Overview\n- One-sentence model: Marvell Technology, Inc. monetizes photonics/semiconductor value chains via specialized components/materials.\n- Moat rating: Moderate (qualification friction + customer relationships, but cyclical pricing pressure remains).\n\n2) Macro & Industry Context\n- Tailwinds: AI/network bandwidth growth, datacenter optical demand, selective industrial recovery.\n- Headwinds: semiconductor/photonics cyclicality, customer concentration, inventory digestion risk.\n\n3) Earnings Deep Dive (latest + trend)\n- Focus points to verify each quarter: revenue quality, gross margin trend, guidance credibility, and booking-to-bill health.\n\n4) Financial Statement / Quality\n- Track OCF vs NI, capex intensity, debt runway, and working-capital discipline.\n\n5) Ratio & Valuation Lens\n- Prioritize ROIC trend, FCF yield, leverage metrics, and peer-relative EV/EBITDA + P/FCF.\n- Avoid extrapolating peak-cycle margins into terminal assumptions.\n\n6) Risks / Catalysts / Scenarios\n- Risks: execution slippage, pricing pressure, cycle reversal, concentration.\n- Catalysts: durable margin inflection, cleaner backlog mix, sustained cash conversion.\n\n7) Investment Thesis & Recommendation\n- Recommendation: BUY ON WEAKNESS\n- Conviction: Medium-High\n- Target price / upside / margin of safety: N/A / N/A / N/A (requires fresh filing model refresh).\n\nSTOCK ANALYSIS DASHBOARD – MRVL\n\n| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |\n|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|\n| Business & Moat      | Moat rating + description            | Moderate | Mixed      | Mixed              | Average |\n| Profitability        | ROIC / Net Margin / ROE              | See latest filings | Mixed | Mixed | Average |\n| Growth               | Revenue CAGR / FCF CAGR              | See latest filings | Mixed | Mixed | Average |\n| Financial Health     | Interest Coverage / Net Debt/EBITDA  | See latest filings | Mixed | Mixed | Average |\n| Valuation            | EV/EBITDA / FCF Yield / PEG          | See latest filings | Mixed | Mixed | Average |\n| Earnings Quality     | FCF vs NI gap + adjustments          | See latest filings | Mixed | Mixed | Average |\n| Overall Score        | (out of 10)                          | 7.2/10 | - | - | - |\n\nFinal Recommendation: BUY ON WEAKNESS | Target Price: N/A (N/A upside) | Conviction: Medium-High | Margin of Safety: N/A\n\nSources: SEC filings: https://www.sec.gov/edgar/browse/?CIK=1835632 | Earnings releases: https://investor.marvell.com/news-releases",
+      "rating": 1
+    },
+    {
+      "ticker": "SOI.PA",
+      "name": "SOITEC",
+      "date": "2026-03-01",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "1) Business & Moat Overview\n- One-sentence model: SOITEC monetizes photonics/semiconductor value chains via specialized components/materials.\n- Moat rating: Narrow-Moderate (qualification friction + customer relationships, but cyclical pricing pressure remains).\n\n2) Macro & Industry Context\n- Tailwinds: AI/network bandwidth growth, datacenter optical demand, selective industrial recovery.\n- Headwinds: semiconductor/photonics cyclicality, customer concentration, inventory digestion risk.\n\n3) Earnings Deep Dive (latest + trend)\n- Focus points to verify each quarter: revenue quality, gross margin trend, guidance credibility, and booking-to-bill health.\n\n4) Financial Statement / Quality\n- Track OCF vs NI, capex intensity, debt runway, and working-capital discipline.\n\n5) Ratio & Valuation Lens\n- Prioritize ROIC trend, FCF yield, leverage metrics, and peer-relative EV/EBITDA + P/FCF.\n- Avoid extrapolating peak-cycle margins into terminal assumptions.\n\n6) Risks / Catalysts / Scenarios\n- Risks: execution slippage, pricing pressure, cycle reversal, concentration.\n- Catalysts: durable margin inflection, cleaner backlog mix, sustained cash conversion.\n\n7) Investment Thesis & Recommendation\n- Recommendation: HOLD/ACCUMULATE\n- Conviction: Medium\n- Target price / upside / margin of safety: N/A / N/A / N/A (requires fresh filing model refresh).\n\nSTOCK ANALYSIS DASHBOARD – SOI.PA\n\n| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |\n|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|\n| Business & Moat      | Moat rating + description            | Narrow-Moderate | Mixed      | Mixed              | Average |\n| Profitability        | ROIC / Net Margin / ROE              | See latest filings | Mixed | Mixed | Average |\n| Growth               | Revenue CAGR / FCF CAGR              | See latest filings | Mixed | Mixed | Average |\n| Financial Health     | Interest Coverage / Net Debt/EBITDA  | See latest filings | Mixed | Mixed | Average |\n| Valuation            | EV/EBITDA / FCF Yield / PEG          | See latest filings | Mixed | Mixed | Average |\n| Earnings Quality     | FCF vs NI gap + adjustments          | See latest filings | Mixed | Mixed | Average |\n| Overall Score        | (out of 10)                          | 6.4/10 | - | - | - |\n\nFinal Recommendation: HOLD/ACCUMULATE | Target Price: N/A (N/A upside) | Conviction: Medium | Margin of Safety: N/A\n\nSources: Regulated info/results: https://www.soitec.com/en/investors/regulated-information | https://www.soitec.com/en/investors/financial-results",
+      "rating": 0
+    },
+    {
+      "ticker": "TSEM",
+      "name": "Tower Semiconductor Ltd.",
+      "date": "2026-03-17",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "1) Business & Moat Overview\n- One-sentence model: Tower Semiconductor Ltd. monetizes photonics/semiconductor value chains via specialized components/materials.\n- Moat rating: Narrow-Moderate (qualification friction + customer relationships, but cyclical pricing pressure remains).\n\n2) Macro & Industry Context\n- Tailwinds: AI/network bandwidth growth, datacenter optical demand, selective industrial recovery.\n- Headwinds: semiconductor/photonics cyclicality, customer concentration, inventory digestion risk.\n\n3) Earnings Deep Dive (latest + trend)\n- Focus points to verify each quarter: revenue quality, gross margin trend, guidance credibility, and booking-to-bill health.\n\n4) Financial Statement / Quality\n- Track OCF vs NI, capex intensity, debt runway, and working-capital discipline.\n\n5) Ratio & Valuation Lens\n- Prioritize ROIC trend, FCF yield, leverage metrics, and peer-relative EV/EBITDA + P/FCF.\n- Avoid extrapolating peak-cycle margins into terminal assumptions.\n\n6) Risks / Catalysts / Scenarios\n- Risks: execution slippage, pricing pressure, cycle reversal, concentration.\n- Catalysts: durable margin inflection, cleaner backlog mix, sustained cash conversion.\n\n7) Investment Thesis & Recommendation\n- Recommendation: HOLD\n- Conviction: Medium\n- Target price / upside / margin of safety: N/A / N/A / N/A (requires fresh filing model refresh).\n\nSTOCK ANALYSIS DASHBOARD – TSEM\n\n| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |\n|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|\n| Business & Moat      | Moat rating + description            | Narrow-Moderate | Mixed      | Mixed              | Average |\n| Profitability        | ROIC / Net Margin / ROE              | See latest filings | Mixed | Mixed | Average |\n| Growth               | Revenue CAGR / FCF CAGR              | See latest filings | Mixed | Mixed | Average |\n| Financial Health     | Interest Coverage / Net Debt/EBITDA  | See latest filings | Mixed | Mixed | Average |\n| Valuation            | EV/EBITDA / FCF Yield / PEG          | See latest filings | Mixed | Mixed | Average |\n| Earnings Quality     | FCF vs NI gap + adjustments          | See latest filings | Mixed | Mixed | Average |\n| Overall Score        | (out of 10)                          | 6.8/10 | - | - | - |\n\nFinal Recommendation: HOLD | Target Price: N/A (N/A upside) | Conviction: Medium | Margin of Safety: N/A\n\nSources: SEC filings: https://www.sec.gov/edgar/browse/?CIK=928423 | Releases: https://investors.towersemi.com/news-and-events/press-releases",
+      "rating": 0
+    },
+    {
+      "ticker": "COHR",
+      "name": "Coherent Corp.",
+      "date": "2026-03-17",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "1) Business & Moat Overview\n- One-sentence model: Coherent Corp. monetizes photonics/semiconductor value chains via specialized components/materials.\n- Moat rating: Moderate (qualification friction + customer relationships, but cyclical pricing pressure remains).\n\n2) Macro & Industry Context\n- Tailwinds: AI/network bandwidth growth, datacenter optical demand, selective industrial recovery.\n- Headwinds: semiconductor/photonics cyclicality, customer concentration, inventory digestion risk.\n\n3) Earnings Deep Dive (latest + trend)\n- Focus points to verify each quarter: revenue quality, gross margin trend, guidance credibility, and booking-to-bill health.\n\n4) Financial Statement / Quality\n- Track OCF vs NI, capex intensity, debt runway, and working-capital discipline.\n\n5) Ratio & Valuation Lens\n- Prioritize ROIC trend, FCF yield, leverage metrics, and peer-relative EV/EBITDA + P/FCF.\n- Avoid extrapolating peak-cycle margins into terminal assumptions.\n\n6) Risks / Catalysts / Scenarios\n- Risks: execution slippage, pricing pressure, cycle reversal, concentration.\n- Catalysts: durable margin inflection, cleaner backlog mix, sustained cash conversion.\n\n7) Investment Thesis & Recommendation\n- Recommendation: WATCH/HOLD\n- Conviction: Medium-Low\n- Target price / upside / margin of safety: N/A / N/A / N/A (requires fresh filing model refresh).\n\nSTOCK ANALYSIS DASHBOARD – COHR\n\n| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |\n|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|\n| Business & Moat      | Moat rating + description            | Moderate | Mixed      | Mixed              | Average |\n| Profitability        | ROIC / Net Margin / ROE              | See latest filings | Mixed | Mixed | Average |\n| Growth               | Revenue CAGR / FCF CAGR              | See latest filings | Mixed | Mixed | Average |\n| Financial Health     | Interest Coverage / Net Debt/EBITDA  | See latest filings | Mixed | Mixed | Average |\n| Valuation            | EV/EBITDA / FCF Yield / PEG          | See latest filings | Mixed | Mixed | Average |\n| Earnings Quality     | FCF vs NI gap + adjustments          | See latest filings | Mixed | Mixed | Average |\n| Overall Score        | (out of 10)                          | 6.1/10 | - | - | - |\n\nFinal Recommendation: WATCH/HOLD | Target Price: N/A (N/A upside) | Conviction: Medium-Low | Margin of Safety: N/A\n\nSources: SEC filings: https://www.sec.gov/edgar/browse/?CIK=21510 | Releases: https://investor.coherent.com/news-events/press-releases",
+      "rating": 0
+    },
+    {
+      "ticker": "AAOI",
+      "name": "Applied Optoelectronics, Inc.",
+      "date": "2026-03-01",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "Thesis (contrarian): Possibly a cyclical rebound vehicle masquerading as a secular winner.\nMarket pricing in: AI/networking demand wave lifting all optical boats.\nCatalysts (90d): shipment momentum, margin recovery, customer concentration updates.\nMoat + risks: vertical integration can help; risk is price pressure and lumpy demand from a handful of buyers.\nFinancial quality snapshot: historically volatile — treat cash and margins as the truth serum.\nValuation sanity: high beta, high narrative elasticity.\nRed flags: sequential volatility, thin visibility, sudden pricing resets.\nWhat must happen next: (1) sustain gross-margin expansion, (2) broaden customer base, (3) reduce quarter-to-quarter whiplash.\nVerdict: Watch (speculative). Confidence 55/100. Metaphor: rollercoaster with great views and no seatbelt.",
+      "rating": 0
+    },
+    {
+      "ticker": "DNA",
+      "name": "Ginkgo Bioworks Holdings, Inc.",
+      "date": "2026-03-17",
+      "labels": [
+        "genetics"
+      ],
+      "notes": "Thesis (contrarian): Visionary platform story, but market has become allergic to long-duration promises.\nMarket pricing in: eventual foundry/platform monetization with improving discipline.\nCatalysts (90d): partnership quality, program conversion to recurring revenue, burn-rate trajectory.\nMoat + risks: strong technical ambition; risk is commercialization drag and dilution gravity.\nFinancial quality snapshot: prioritize runway, unit economics, and operating discipline.\nValuation sanity: option-like; position size should reflect that reality.\nRed flags: growth without gross-profit quality, perpetual restructuring language.\nWhat must happen next: (1) prove repeatable high-quality revenue, (2) reduce cash burn materially, (3) show credible path to self-funding.\nVerdict: Avoid for now unless you like science fiction with financing risk. Confidence 63/100.",
+      "rating": 1
+    },
+    {
+      "ticker": "SMTC",
+      "name": "Semtech Corporation",
+      "date": "2026-03-17",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "Thesis (contrarian): Could be a quiet beneficiary if connectivity complexity rises, but debt and cycle scars matter.\nMarket pricing in: recovery and cleaner execution post-reset.\nCatalysts (90d): margin trajectory, demand stabilization, and debt-service comfort.\nMoat + risks: useful portfolio in messy real-world connectivity; risk is leverage + competitive pricing pressure.\nFinancial quality snapshot: balance-sheet strength is the main character, not the revenue headline.\nValuation sanity: can rerate fast if execution improves, rerate down faster if not.\nRed flags: weak free cash flow, soft guidance, customer destocking persistence.\nWhat must happen next: (1) consistent positive FCF, (2) deleveraging progress, (3) evidence of demand normalization.\nVerdict: Watch with a calculator, not with vibes. Confidence 62/100.",
+      "rating": 0
+    },
+    {
+      "ticker": "PL",
+      "name": "Planet Labs PBC",
+      "date": "2026-03-01",
+      "labels": [
+        "space"
+      ],
+      "notes": "Thesis (contrarian): Earth-observation sounds noble; the hard part is turning images into sticky software-like revenue.\nMarket pricing in: platform expansion and defense/commercial demand durability.\nCatalysts (90d): contract wins quality, subscription mix, and gross-margin direction.\nMoat + risks: data asset + constellation scale; risk is commoditization and contract lumpiness.\nFinancial quality snapshot: revenue growth alone is insufficient — look at cash burn and retention quality.\nValuation sanity: narrative premium exists, must be earned with execution.\nRed flags: one-off contract dependence, slow path to operating leverage.\nWhat must happen next: (1) improve recurring mix, (2) tighten burn, (3) demonstrate durable customer retention.\nVerdict: Watch (interesting, not proven). Confidence 58/100. Metaphor: amazing telescope, still building the business model tripod.",
+      "rating": 2
+    },
+    {
+      "ticker": "TPE.F",
+      "name": "PVA TePla AG                  I",
+      "date": "2026-03-20",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "Thesis (contrarian): Industrial metrology is where hype goes to get audited by reality.\nMarket pricing in: semiconductor capex recovery feeding equipment demand.\nCatalysts (90d): order intake trend, backlog quality, and margin resilience.\nMoat + risks: precision equipment know-how; risk is capex cycle air pockets and customer timing.\nFinancial quality snapshot: look for disciplined working capital and conversion from orders to cash.\nValuation sanity: cyclical name — buy gloom, trim sunshine.\nRed flags: order volatility, backlog cancellations, margin slippage.\nWhat must happen next: (1) order momentum confirmation, (2) margin stability, (3) clean cash conversion.\nVerdict: Buy/Watch tactical. Confidence 65/100.",
+      "rating": 0
+    },
+    {
+      "ticker": "BMBL",
+      "name": "Bumble Inc.",
+      "date": "2026-03-21",
+      "labels": [
+        "value"
+      ],
+      "notes": "Thesis (contrarian): Dating apps are like nightclubs: fun concept, brutal retention economics, constant reinvention tax.\nMarket pricing in: either secular decline fears or a turnaround nobody believes yet.\nCatalysts (90d): product engagement metrics, payer trends, and marketing efficiency.\nMoat + risks: brand recognition exists; moat is weaker than users think because switching cost is basically thumb movement.\nFinancial quality snapshot: watch user monetization quality vs customer-acquisition spend.\nValuation sanity: cheap can stay cheap if engagement decays.\nRed flags: falling payer growth, rising promo intensity, weak cohort retention.\nWhat must happen next: (1) stabilize engagement, (2) improve payer monetization without ad-spend bloat,   (3) show durable product differentiation.\nVerdict: Avoid until the turnaround has receipts. Confidence 70/100.",
+      "rating": 2
+    },
+    {
+      "ticker": "NOC",
+      "name": "Northrop Grumman Corporation",
+      "date": "2026-03-22",
+      "labels": [
+        "space"
+      ],
+      "notes": "Thesis (contrarian): Defense primes look boring until geopolitics sends everyone back to cash-flow reality.\nMarket pricing in: durable defense spend with execution stability.\nCatalysts (90d): contract awards, margin mix, and program execution milestones.\nMoat + risks: moat is scale + certifications; risk is cost overruns and political budget theatrics.\nFinancial quality snapshot: generally sturdy; still monitor working-capital swings on big programs.\nValuation sanity: quality premium often justified, but not at any price.\nRed flags: fixed-price contract pain, schedule slips, pension surprises.\nWhat must happen next: (1) clean execution on key programs, (2) margin resilience, (3) backlog conversion quality.\nVerdict: Buy on dips. Confidence 71/100.",
+      "rating": 0
+    },
+    {
+      "ticker": "LHX",
+      "name": "L3Harris Technologies, Inc.",
+      "date": "2026-03-22",
+      "labels": [
+        "space"
+      ],
+      "notes": "Thesis (contrarian): Mission-critical electronics is less memeable than AI chips, but often stickier.\nMarket pricing in: steady defense demand and integration execution.\nCatalysts (90d): order momentum, margin performance, and deleveraging cadence.\nMoat + risks: sticky systems integration; risk is procurement delays and integration complexity.\nFinancial quality snapshot: check conversion from adjusted earnings to cash.\nValuation sanity: fair if execution remains predictable.\nRed flags: guidance compression, backlog quality deterioration, cash conversion miss.\nWhat must happen next: (1) maintain margin discipline, (2) preserve cash generation, (3) secure high-value program wins.\nVerdict: Watch/Buy depending on entry. Confidence 67/100.",
+      "rating": 0
+    },
+    {
+      "ticker": "LASR",
+      "name": "nLIGHT, Inc.",
+      "date": "2026-03-22",
+      "labels": [
+        "space"
+      ],
+      "notes": "Thesis (contrarian): Lidar is where physics, pricing pressure, and investor patience fight in a small room.\nMarket pricing in: eventual autonomous/industrial adoption upside.\nCatalysts (90d): contract wins that actually ship, gross-margin trend, and burn-rate control.\nMoat + risks: tech differentiation potential; risk is commoditization before scale economics arrive.\nFinancial quality snapshot: runway is king.\nValuation sanity: binary-ish and narrative-heavy.\nRed flags: pilot purgatory, customer concentration, repeated timeline slips.\nWhat must happen next: (1) convert pilots to production, (2) improve unit economics, (3) reduce burn without stalling growth.\nVerdict: Watch (speculative). Confidence 54/100.",
+      "rating": 0
+    },
+    {
+      "ticker": "IPGP",
+      "name": "IPG Photonics Corporation",
+      "date": "2026-03-22",
+      "labels": [
+        "space"
+      ],
+      "notes": "Thesis (contrarian): Industrial laser incumbent with less hype, more installed-base reality.\nMarket pricing in: cyclical softness and gradual recovery.\nCatalysts (90d): order recovery signs, margin stabilization, and end-market demand breadth.\nMoat + risks: strong engineering + installed base; risk is cyclical demand and pricing competition.\nFinancial quality snapshot: usually solid balance-sheet profile matters in downturns.\nValuation sanity: potentially attractive when cycle pessimism is high.\nRed flags: prolonged end-market weakness, margin erosion, inventory issues.\nWhat must happen next: (1) order trend turn, (2) margin floor hold, (3) cash-flow consistency.\nVerdict: Contrarian Buy/Watch. Confidence 66/100.",
+      "rating": 0
+    },
+    {
+      "ticker": "ASTS",
+      "name": "AST SpaceMobile, Inc.",
+      "date": "2026-03-22",
+      "labels": [
+        "space"
+      ],
+      "notes": "Thesis (contrarian): The dream is gigantic; the execution path is a minefield of physics, capital, and regulation.\nMarket pricing in: successful direct-to-device scaling.\nCatalysts (90d): satellite deployment milestones, partner updates, and financing clarity.\nMoat + risks: if it works, moat could be huge; if delays stack, dilution risk gets loud.\nFinancial quality snapshot: pre-cashflow venture profile.\nValuation sanity: option-like with dramatic upside and equally dramatic fragility.\nRed flags: launch delays, funding gaps, technical underperformance.\nWhat must happen next: (1) hit deployment milestones, (2) secure non-dilutive capital where possible, (3) demonstrate service reliability.\nVerdict: Watch/speculative only. Confidence 56/100. Metaphor: beautiful cathedral blueprint, still pouring concrete.",
+      "rating": 0
+    },
+    {
+      "ticker": "LUNR",
+      "name": "Intuitive Machines, Inc.",
+      "date": "2026-03-22",
+      "labels": [
+        "space"
+      ],
+      "notes": "Thesis (contrarian): Space enthusiasm is easy; repeatable mission economics are hard.\nMarket pricing in: program wins and execution credibility in a crowded space narrative.\nCatalysts (90d): mission outcomes, contract pipeline quality, and cash runway updates.\nMoat + risks: differentiated mission profile possible; risk is one mission hiccup rewriting the entire story.\nFinancial quality snapshot: lumpy revenue profile; prioritize liquidity and contract quality.\nValuation sanity: volatility is a feature, not a bug.\nRed flags: milestone slips, concentration risk, financing dependence.\nWhat must happen next: (1) flawless mission execution, (2) backlog with real margin quality, (3) improved cash visibility.\nVerdict: Watch (high-risk, high-drama). Confidence 59/100.",
+      "rating": 0
+    },
+    {
+      "ticker": "JETS",
+      "name": "U.S. Global Jets ETF",
+      "date": "2026-03-22",
+      "labels": [
+        "value"
+      ],
+      "notes": "aviaton iran play",
+      "rating": 0
+    },
+    {
+      "ticker": "TGB",
+      "name": "Taseko Mines, Ltd.",
+      "date": "2026-03-22",
+      "labels": [
+        "value"
+      ],
+      "notes": "copper mine iran play",
+      "rating": 0
+    },
+    {
+      "ticker": "HBM",
+      "name": "Hudbay Minerals Inc.",
+      "date": "2026-03-22",
+      "labels": [
+        "value"
+      ],
+      "notes": "copper mine iran play",
+      "rating": 0
+    },
+    {
+      "ticker": "VEON",
+      "name": "VEON Ltd.",
+      "date": "2026-03-25",
+      "labels": [
+        "value"
+      ],
+      "notes": "bet on the end of the war in ukraine",
+      "rating": 0
+    },
+    {
+      "ticker": "KYIV",
+      "name": "Kyivstar Group Ltd.",
+      "date": "2026-03-25",
+      "labels": [
+        "value"
+      ],
+      "notes": "\nbet on the end of the war in ukraine",
+      "rating": 0
+    },
+    {
+      "ticker": "CEE",
+      "name": "The Central and Eastern Europe",
+      "date": "2026-03-25",
+      "labels": [
+        "value"
+      ],
+      "notes": "\nbet on end ukraine war ?",
+      "rating": 0
+    },
+    {
+      "ticker": "MTSI",
+      "name": "MACOM Technology Solutions Hold",
+      "date": "2026-03-25",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "",
+      "rating": 0
+    },
+    {
+      "ticker": "2408.TW",
+      "name": "NANYA TECHNOLOGY CORPORATION",
+      "date": "2026-03-25",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "",
+      "rating": 0
+    },
+    {
+      "ticker": "3105.TWO",
+      "name": "WIN SEMICONDUCTORS CORP",
+      "date": "2026-03-27",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "",
+      "rating": 0
+    },
+    {
+      "ticker": "3696.HK",
+      "name": "INSILICO",
+      "date": "2026-03-29",
+      "labels": [
+        "biotech"
+      ],
+      "notes": "",
+      "rating": 0
+    },
+    {
+      "ticker": "300757.SZ",
+      "name": "ROBOTECHNIK INTELL",
+      "date": "2026-04-03",
+      "labels": [
+        "photonics"
+      ],
+      "notes": "",
+      "rating": 0
+    },
+    {
+      "ticker": "WW",
+      "name": "WW International, Inc.",
+      "date": "2026-04-07",
+      "labels": [
+        "value"
+      ],
+      "notes": "t",
+      "rating": 0
+    }
+  ]
+}
