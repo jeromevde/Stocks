@@ -19,18 +19,18 @@ You are a seasoned investor. Analyze [INSERT TICKER HERE] using only what genuin
 
 **[TICKER]** | Moat: Wide/Narrow/None | Sector: ... | Market Cap: $X | Price: $X
 
-| # | Ratio | Value | Good/Bad/Okay |
-|---|-------|-------|---------------|
-| 1 | ROIC | | |
-| 2 | Gross Margin | Gross Profit $X / Revenue $Y = Z% | |
-| 3 | FCF Margin | | |
-| 4 | Revenue CAGR (5yr) | | |
-| 5 | EV/FCF | EV $X / FCF $Y = Zx | |
-| 6 | Net Debt / EBITDA | | |
-| 7 | FCF Yield | | |
-| 8 | Operating Margin | | |
-| 9 | Insider Ownership | | |
-| 10 | Revenue Growth (TTM) | | |
+| # | Ratio | Value |
+|---|-------|-------|
+| 1 | ROIC | |
+| 2 | Gross Margin | Gross Profit $X / Revenue $Y = Z% |
+| 3 | FCF Margin | |
+| 4 | Revenue CAGR (5yr) | |
+| 5 | EV/FCF | EV $X / FCF $Y = Zx |
+| 6 | Net Debt / EBITDA | |
+| 7 | FCF Yield | |
+| 8 | Operating Margin | |
+| 9 | Insider Ownership | |
+| 10 | Revenue Growth (TTM) | |
 
 Cost: SG&A $X (Y%) | R&D $X (Y%) | CapEx $X (Y%) | Trailing P/E Xx | Forward P/E Xx | Current Ratio Xx (or Cash Runway X qtrs)
 

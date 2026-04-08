@@ -325,9 +325,11 @@ def fetch_metrics(ticker):
     if total_debt is None:
         total_debt = latest(debt_series)
 
-    total_cash = to_float(info.get("totalCash"))
+    # Prefer balance sheet cash series over info.totalCash — the latter can include
+    # short-term investments and produce inflated EV figures for small companies.
+    total_cash = latest(cash_series)
     if total_cash is None:
-        total_cash = latest(cash_series)
+        total_cash = to_float(info.get("totalCash"))
 
     ebitda = to_float(info.get("ebitda"))
     if ebitda is None:
@@ -688,18 +690,18 @@ def build_note(m, peers, peer_medians):
 
 **{name} ({ticker})** | Moat: {moat} | Sector: {m["sector"]} | Market Cap: {fmt_money(m["market_cap"])} | Price: {fmt_money(m["price"])}
 
-| # | Ratio | Value | Good/Bad/Okay |
-|---|-------|-------|---------------|
-| 1 | {quality_label} | {quality_str} | {quality_peer} |
-| 2 | Gross Margin | {gross_margin_str} | {pc("gross_margin")} |
-| 3 | FCF Margin | {fmt_pct(fcf_margin)} | {pc("fcf_margin")} |
-| 4 | Revenue CAGR (5yr) | {fmt_pct(m["revenue_cagr"])} | {pc("revenue_cagr")} |
-| 5 | EV/FCF | {ev_fcf_str} | {ev_fcf_peer} |
-| 6 | Net Debt / EBITDA | {fmt_ratio(m["net_debt_to_ebitda"])} | {pc("net_debt_to_ebitda", hib=False)} |
-| 7 | FCF Yield | {fmt_pct(m["fcf_yield"])} | {pc("fcf_yield")} |
-| 8 | Operating Margin | {fmt_pct(m["operating_margin"])} | {pc("operating_margin")} |
-| 9 | Insider Ownership | {insider_str} | {"Good" if (to_float(m["insider_pct"]) or 0) > 0.20 else "Okay" if (to_float(m["insider_pct"]) or 0) >= 0.10 else "Bad"} |
-| 10 | Revenue Growth (TTM) | {fmt_pct(ttm_rev_growth)} | {pc("ttm_rev_growth")} |
+| # | Ratio | Value |
+|---|-------|-------|
+| 1 | {quality_label} | {quality_str} |
+| 2 | Gross Margin | {gross_margin_str} |
+| 3 | FCF Margin | {fmt_pct(fcf_margin)} |
+| 4 | Revenue CAGR (5yr) | {fmt_pct(m["revenue_cagr"])} |
+| 5 | EV/FCF | {ev_fcf_str} |
+| 6 | Net Debt / EBITDA | {fmt_ratio(m["net_debt_to_ebitda"])} |
+| 7 | FCF Yield | {fmt_pct(m["fcf_yield"])} |
+| 8 | Operating Margin | {fmt_pct(m["operating_margin"])} |
+| 9 | Insider Ownership | {insider_str} |
+| 10 | Revenue Growth (TTM) | {fmt_pct(ttm_rev_growth)} |
 
 Cost: {cost_str} | {pe_line} | {liquidity_label}: {liquidity_str}
 
