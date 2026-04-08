@@ -122,16 +122,16 @@ def compare_to_peer(value, peer_median, higher_is_better=True):
     v = to_float(value)
     p = to_float(peer_median)
     if v is None or p is None:
-        return "Peer comparison unavailable: insufficient data"
+        return "—"
 
     if not higher_is_better:
         v, p = -v, -p
 
     if v > p * 1.1:
-        return "Above peer median"
+        return "Good"
     if v < p * 0.9:
-        return "Below peer median"
-    return "Near peer median"
+        return "Bad"
+    return "Okay"
 
 
 def first_sentence(text):
