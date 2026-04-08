@@ -25,7 +25,7 @@ You are a seasoned investor. Analyze [INSERT TICKER HERE] using only what genuin
 | 2 | Gross Margin | | |
 | 3 | FCF Margin | | |
 | 4 | Revenue CAGR (5yr) | | |
-| 5 | EV/FCF | | |
+| 5 | EV/FCF | EV $X / FCF $Y = Zx | |
 | 6 | Net Debt / EBITDA | | |
 | 7 | FCF Yield | | |
 | 8 | Operating Margin | | |

@@ -421,10 +421,10 @@ def fetch_metrics(ticker):
     # derived metrics for 10-ratio framework
     ev_val = None
     ev_fcf_val = None
-    if market_cap is not None and free_cash_flow not in (None, 0) and (free_cash_flow or 0) > 0:
+    if market_cap is not None:
         ev_val = market_cap + (to_float(total_debt) or 0) - (to_float(total_cash) or 0)
-        if ev_val is not None and ev_val > 0:
-            ev_fcf_val = ev_val / free_cash_flow
+    if ev_val is not None and ev_val > 0 and free_cash_flow not in (None, 0) and (free_cash_flow or 0) > 0:
+        ev_fcf_val = ev_val / free_cash_flow
 
     fcf_margin_val = safe_div(free_cash_flow, latest_rev)
 
@@ -444,6 +444,7 @@ def fetch_metrics(ticker):
         "website": website,
         "market_cap": market_cap,
         "price": price_now,
+        "ev_val": ev_val,
         "ev_fcf": ev_fcf_val,
         "fcf_margin": fcf_margin_val,
         "ttm_rev_growth": ttm_rev_growth_val,
@@ -520,11 +521,15 @@ def build_note(m, peers, peer_medians):
     def pc(key, hib=True):
         return compare_to_peer(m.get(key), peer_medians.get(key), higher_is_better=hib)
 
-    ev_fcf_str = (
+    ev_val = m.get("ev_val")
+    ev_str = fmt_money(ev_val) if to_float(ev_val) is not None else "Unavailable: market cap missing"
+    fcf_str = fmt_money(m.get("free_cash_flow")) if to_float(m.get("free_cash_flow")) is not None else "Unavailable: not in source feed"
+    ev_fcf_ratio_str = (
         f"{to_float(ev_fcf):.1f}x"
         if to_float(ev_fcf) is not None and to_float(ev_fcf) > 0
-        else "Unavailable: non-positive FCF"
+        else "n/a"
     )
+    ev_fcf_str = f"EV {ev_str} / FCF {fcf_str} = {ev_fcf_ratio_str}"
     ev_fcf_peer = compare_to_peer(ev_fcf, peer_medians.get("ev_fcf"), higher_is_better=False)
     insider_str = fmt_pct(m["insider_pct"]) if to_float(m["insider_pct"]) is not None else "Unavailable: not in source feed"
 
@@ -796,6 +801,7 @@ def main():
                 "transcript_link": None,
                 "transcript_reason": "Fetch failed",
                 "dcf": {"valid": False, "reason": "Unavailable: fetch failed"},
+                "ev_val": None,
                 "ev_fcf": None,
                 "fcf_margin": None,
                 "ttm_rev_growth": None,
