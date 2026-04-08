@@ -699,7 +699,7 @@ Moat: {moat} | Sector: {m["sector"]}
 | 6 | Net Debt / EBITDA | {fmt_ratio(m["net_debt_to_ebitda"])} | {pc("net_debt_to_ebitda", hib=False)} |
 | 7 | FCF Yield | {fmt_pct(m["fcf_yield"])} | {pc("fcf_yield")} |
 | 8 | Operating Margin | {fmt_pct(m["operating_margin"])} | {pc("operating_margin")} |
-| 9 | Insider Ownership | {insider_str} | Alignment indicator |
+| 9 | Insider Ownership | {insider_str} | {"Good" if (to_float(m["insider_pct"]) or 0) > 0.20 else "Okay" if (to_float(m["insider_pct"]) or 0) >= 0.10 else "Bad"} |
 | 10 | Revenue Growth (TTM) | {fmt_pct(ttm_rev_growth)} | {pc("ttm_rev_growth")} |
 
 **Cost Structure**: {cost_str}
