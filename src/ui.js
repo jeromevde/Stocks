@@ -638,9 +638,7 @@ function openNotesPopup(idx) {
             handleSwipeEnd(e.changedTouches[0].clientX);
         };
 
-        // pointer fallback (also testable in desktop automation)
-        panel.onpointerdown = (e) => { notesTouchStartX = e.clientX; };
-        panel.onpointerup = (e) => { handleSwipeEnd(e.clientX); };
+        // pointer fallback removed — caused accidental navigation on click/text-select
     }
 
     overlay.style.display = 'flex';
