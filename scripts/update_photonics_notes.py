@@ -1,3 +1,9 @@
+
+"""
+Just an UTIL script the agent can use to compute al the ratios and build the note for a given stock ticker.
+This is not meant to be run by hand, but can be invoked by the agent as needed.
+"""
+
 import datetime as dt
 import json
 import math
@@ -129,13 +135,19 @@ def compare_to_peer(value, peer_median, higher_is_better=True):
 
 
 def first_sentence(text):
+    """Return first meaningful sentence (>= 30 chars), skipping short company-name fragments."""
     if not text:
         return "Business description unavailable from source feed."
     text = " ".join(str(text).split())
+    parts = []
     for sep in [". ", "! ", "? "]:
-        if sep in text:
-            return text.split(sep)[0].strip() + "."
-    return text[:180] + ("..." if len(text) > 180 else "")
+        text = text.replace(sep, "\x00")
+    parts = [p.strip() for p in text.split("\x00") if p.strip()]
+    for part in parts:
+        if len(part) >= 30:
+            return part.rstrip(".") + "."
+    # fallback: return up to first 200 chars
+    return (parts[0] if parts else text[:200]) + ("..." if len(text) > 200 else "")
 
 
 def get_filings_map(sec_filings):
@@ -359,6 +371,25 @@ def fetch_metrics(ticker):
     if ebit_latest is not None and interest_latest not in (None, 0):
         interest_coverage = ebit_latest / abs(interest_latest)
 
+    # ROIC: compute manually when returnOnCapital is missing
+    roic_info = to_float(info.get("returnOnCapital"))
+    if roic_info is None:
+        # NOPAT = EBIT * (1 - effective_tax_rate)
+        tax_series = pick_series(fin, ["Tax Provision", "Income Tax Expense"])
+        pretax_series = pick_series(fin, ["Pretax Income", "Income Before Tax"])
+        ebit_for_roic = latest(ebit_series)
+        tax_val = latest(tax_series)
+        pretax_val = latest(pretax_series)
+        if (pretax_val or 0) > 0 and (tax_val or 0) >= 0:
+            tax_rate = min(tax_val / pretax_val, 0.40)
+        else:
+            tax_rate = 0.21  # US statutory fallback
+        if ebit_for_roic is not None and latest_equity is not None:
+            nopat = ebit_for_roic * (1 - tax_rate)
+            invested_capital = latest_equity + (total_debt or 0) - (total_cash or 0)
+            if invested_capital and invested_capital > 0:
+                roic_info = nopat / invested_capital
+
     debt_to_ebitda = safe_div(total_debt, ebitda)
     net_debt_to_ebitda = safe_div((total_debt or 0) - (total_cash or 0), ebitda)
 
@@ -426,7 +457,10 @@ def fetch_metrics(ticker):
     if ev_val is not None and ev_val > 0 and free_cash_flow not in (None, 0) and (free_cash_flow or 0) > 0:
         ev_fcf_val = ev_val / free_cash_flow
 
-    fcf_margin_val = safe_div(free_cash_flow, latest_rev)
+    # FCF margin — suppress when revenue is too small to be meaningful (< $5M)
+    fcf_margin_val = None
+    if latest_rev is not None and latest_rev >= 5_000_000:
+        fcf_margin_val = safe_div(free_cash_flow, latest_rev)
 
     ttm_rev_growth_val = None
     if len(rev_series) >= 2:
@@ -451,12 +485,15 @@ def fetch_metrics(ticker):
         "ret_3m": ret_3m,
         "ret_5y": price_ret_5y,
         "gross_margin": to_float(info.get("grossMargins")),
+        "gross_profit": (to_float(info.get("grossMargins")) * latest_rev)
+            if (to_float(info.get("grossMargins")) is not None and latest_rev is not None)
+            else None,
         "operating_margin": to_float(info.get("operatingMargins")),
         "ebitda_margin": to_float(info.get("ebitdaMargins")),
         "net_margin": to_float(info.get("profitMargins")),
         "roe": to_float(info.get("returnOnEquity")),
         "roa": to_float(info.get("returnOnAssets")),
-        "roic": to_float(info.get("returnOnCapital")),
+        "roic": roic_info,
         "current_ratio": to_float(info.get("currentRatio")),
         "quick_ratio": to_float(info.get("quickRatio")),
         "asset_turnover": asset_turnover,
@@ -533,6 +570,13 @@ def build_note(m, peers, peer_medians):
     ev_fcf_peer = compare_to_peer(ev_fcf, peer_medians.get("ev_fcf"), higher_is_better=False)
     insider_str = fmt_pct(m["insider_pct"]) if to_float(m["insider_pct"]) is not None else "Unavailable: not in source feed"
 
+    gp = to_float(m.get("gross_profit"))
+    rev = to_float(m.get("revenue_latest"))
+    if gp is not None and rev is not None:
+        gross_margin_str = f"Gross Profit {fmt_money(gp)} / Revenue {fmt_money(rev)} = {fmt_pct(m['gross_margin'])}"
+    else:
+        gross_margin_str = fmt_pct(m["gross_margin"])
+
     dcf = m["dcf"]
     if dcf.get("valid"):
         valuation_line = (
@@ -560,7 +604,7 @@ Moat: {moat} | Sector: {m["sector"]}
 | # | Ratio | Value | vs. Peers |
 |---|-------|-------|-----------|
 | 1 | ROIC | {fmt_pct(m["roic"])} | {pc("roic")} |
-| 2 | Gross Margin | {fmt_pct(m["gross_margin"])} | {pc("gross_margin")} |
+| 2 | Gross Margin | {gross_margin_str} | {pc("gross_margin")} |
 | 3 | FCF Margin | {fmt_pct(fcf_margin)} | {pc("fcf_margin")} |
 | 4 | Revenue CAGR (5yr) | {fmt_pct(m["revenue_cagr"])} | {pc("revenue_cagr")} |
 | 5 | EV/FCF | {ev_fcf_str} | {ev_fcf_peer} |
@@ -754,6 +798,7 @@ def main():
                 "ret_3m": None,
                 "ret_5y": None,
                 "gross_margin": None,
+                "gross_profit": None,
                 "operating_margin": None,
                 "ebitda_margin": None,
                 "net_margin": None,

@@ -22,7 +22,7 @@ You are a seasoned investor. Analyze [INSERT TICKER HERE] using only what genuin
 | # | Ratio | Value | vs. Peers |
 |---|-------|-------|-----------|
 | 1 | ROIC | | |
-| 2 | Gross Margin | | |
+| 2 | Gross Margin | Gross Profit $X / Revenue $Y = Z% | |
 | 3 | FCF Margin | | |
 | 4 | Revenue CAGR (5yr) | | |
 | 5 | EV/FCF | EV $X / FCF $Y = Zx | |
