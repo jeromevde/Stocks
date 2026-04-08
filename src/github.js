@@ -31,7 +31,6 @@ class GitHubClient {
         this.repoOwner = TokenStore.get('github_repo_owner') || localStorage.getItem('github_owner') || 'jeromevde';
         this.repoName = TokenStore.get('github_repo_name') || localStorage.getItem('github_repo') || 'Stocks';
         this.filePath = 'portfolio-data.json';
-        this.legacyFilePath = 'portfolio.html';
         this.lastKnownSha = localStorage.getItem('portfolio_sha');
     }
 
@@ -158,10 +157,6 @@ class GitHubClient {
 
     async loadPortfolioData() {
         return this.loadFile(this.filePath);
-    }
-
-    async loadLegacyPortfolioHtml() {
-        return this.loadFile(this.legacyFilePath);
     }
 
     async savePortfolioData(content, message = 'Update portfolio data') {

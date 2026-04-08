@@ -120,36 +120,6 @@ function parsePortfolioDataJson(content) {
     return rawStocks.map(toRuntimeStock).filter(Boolean);
 }
 
-/** Parse portfolio HTML from GitHub */
-function parseHtml(content) {
-    const doc = new DOMParser().parseFromString(content, 'text/html');
-    const table = doc.querySelector('table');
-
-    let parsedOrder = [];
-    try {
-        const raw = table?.getAttribute('data-label-order') || '[]';
-        const candidate = JSON.parse(raw);
-        if (Array.isArray(candidate)) parsedOrder = candidate.map(v => String(v)).filter(Boolean);
-    } catch {}
-
-    const parsedStocks = [...doc.querySelectorAll('table tbody tr')].map(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length !== 6) return null;
-        const ratingMatch = cells[5].textContent.match(/\((\d)\)/);
-        return toRuntimeStock({
-            ticker: cells[0].textContent,
-            name: cells[1].textContent,
-            date: cells[2].textContent,
-            labels: cells[3].textContent.split(',').map(l => l.trim()).filter(Boolean),
-            notes: cells[4].textContent,
-            rating: ratingMatch ? parseInt(ratingMatch[1], 10) : 0
-        });
-    }).filter(Boolean);
-
-    labelOrder = parsedOrder;
-    return parsedStocks;
-}
-
 /** Save portfolio to GitHub */
 async function save() {
     if (!window.githubClient?.isAuthenticated()) {
@@ -175,24 +145,15 @@ async function load() {
     try {
         showStatus('Loading from GitHub...', 'info');
         const result = await window.githubClient.loadPortfolioData();
-        let loadedFromLegacyHtml = false;
-        let loadedStocks = [];
-
         if (!result.exists) {
-            const legacy = await window.githubClient.loadLegacyPortfolioHtml();
-            if (!legacy.exists) {
-                labelOrder = [];
-                showStatus('No portfolio found. Add some stocks!', 'info');
-                markSaved();
-                return;
-            }
-            loadedFromLegacyHtml = true;
-            loadedStocks = parseHtml(legacy.content);
-        } else {
-            loadedStocks = parsePortfolioDataJson(result.content);
+            labelOrder = [];
+            showStatus('No portfolio found. Add some stocks!', 'info');
+            markSaved();
+            return;
         }
 
-        if (!loadedFromLegacyHtml && !loadedStocks.length) {
+        const loadedStocks = parsePortfolioDataJson(result.content);
+        if (!loadedStocks.length) {
             labelOrder = [];
             showStatus('No portfolio found. Add some stocks!', 'info');
             markSaved();
@@ -206,14 +167,7 @@ async function load() {
         ratingDirection = -1;
         markSaved();
         updatePortfolioTable();
-        if (loadedFromLegacyHtml) {
-            showStatus(
-                `Loaded ${portfolio.length} stocks from legacy HTML. Save once to migrate to portfolio-data.json.`,
-                'info'
-            );
-        } else {
-            showStatus(`Loaded ${portfolio.length} stocks.`, 'success');
-        }
+        showStatus(`Loaded ${portfolio.length} stocks.`, 'success');
         // Prices load lazily via Intersection Observer
     } catch (e) {
         showStatus(`Load failed: ${e.message}`, 'error');

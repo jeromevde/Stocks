@@ -28,5 +28,4 @@ Create token: https://github.com/settings/tokens
 ## Portfolio storage
 
 - Canonical portfolio data is saved in `portfolio-data.json`.
-- Legacy `portfolio.html` is still readable for migration fallback.
-- After loading legacy data once, click Save to migrate it to JSON.
+- `portfolio.html` is no longer used for persistence.
