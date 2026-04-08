@@ -307,6 +307,9 @@ def fetch_metrics(ticker):
     payables_series = pick_series(bs, ["Accounts Payable", "Payables And Accrued Expenses"])
     cor_series = pick_series(fin, ["Cost Of Revenue", "Cost Of Goods And Services Sold"])
     net_income_series = pick_series(fin, ["Net Income", "Net Income Common Stockholders"])
+    sga_series = pick_series(fin, ["Selling General And Administrative", "Selling General Administrative"])
+    rd_series = pick_series(fin, ["Research And Development"])
+    capex_series_raw = pick_series(cf, ["Capital Expenditure"])
 
     qrev = pick_series(qfin, ["Total Revenue", "Operating Revenue"])
     qeps = pick_series(qfin, ["Basic EPS", "Diluted EPS"])
@@ -334,6 +337,23 @@ def fetch_metrics(ticker):
     latest_assets = latest(assets_series)
     latest_equity = latest(equity_series)
     latest_cor = latest(cor_series)
+
+    latest_sga = latest(sga_series)
+    latest_rd = latest(rd_series)
+    latest_capex_abs_raw = latest(capex_series_raw)  # typically negative in Yahoo feed
+
+    def _pct_of_rev(val):
+        v = to_float(val)
+        if v is None or not latest_rev:
+            return None
+        return abs(v) / latest_rev
+
+    sga_pct = _pct_of_rev(latest_sga)
+    sga_abs = abs(to_float(latest_sga)) if to_float(latest_sga) is not None else None
+    rd_pct = _pct_of_rev(latest_rd)
+    rd_abs = abs(to_float(latest_rd)) if to_float(latest_rd) is not None else None
+    capex_pct = _pct_of_rev(latest_capex_abs_raw)
+    capex_abs = abs(to_float(latest_capex_abs_raw)) if to_float(latest_capex_abs_raw) is not None else None
 
     avg_inventory = None
     if len(inventory_series) >= 2:
@@ -449,6 +469,12 @@ def fetch_metrics(ticker):
         revenue_cagr=revenue_cagr,
     )
 
+    # cash runway (quarters) — only meaningful when burning cash
+    cash_runway_qtrs = None
+    if free_cash_flow is not None and free_cash_flow < 0 and total_cash is not None and total_cash > 0:
+        quarterly_burn = abs(free_cash_flow) / 4.0
+        cash_runway_qtrs = total_cash / quarterly_burn
+
     # derived metrics for 10-ratio framework
     ev_val = None
     ev_fcf_val = None
@@ -482,6 +508,13 @@ def fetch_metrics(ticker):
         "ev_fcf": ev_fcf_val,
         "fcf_margin": fcf_margin_val,
         "ttm_rev_growth": ttm_rev_growth_val,
+        "sga_pct": sga_pct,
+        "sga_abs": sga_abs,
+        "rd_pct": rd_pct,
+        "rd_abs": rd_abs,
+        "capex_pct": capex_pct,
+        "capex_abs": capex_abs,
+        "cash_runway_qtrs": cash_runway_qtrs,
         "ret_3m": ret_3m,
         "ret_5y": price_ret_5y,
         "gross_margin": to_float(info.get("grossMargins")),
@@ -577,6 +610,61 @@ def build_note(m, peers, peer_medians):
     else:
         gross_margin_str = fmt_pct(m["gross_margin"])
 
+    # ROIC → ROA → ROE fallback
+    roic_v = to_float(m.get("roic"))
+    roa_v = to_float(m.get("roa"))
+    roe_v = to_float(m.get("roe"))
+    if roic_v is not None:
+        quality_label = "ROIC"
+        quality_str = fmt_pct(roic_v)
+        quality_peer = pc("roic")
+    elif roa_v is not None:
+        quality_label = "ROA (ROIC unavail.)"
+        quality_str = fmt_pct(roa_v)
+        quality_peer = pc("roa")
+    elif roe_v is not None:
+        quality_label = "ROE (ROIC/ROA unavail.)"
+        quality_str = fmt_pct(roe_v)
+        quality_peer = pc("roe")
+    else:
+        quality_label = "ROIC"
+        quality_str = "Unavailable: no return metric in source feed"
+        quality_peer = "—"
+
+    # Cost structure
+    def _cost_item(label, abs_val, pct_val):
+        if abs_val is not None and pct_val is not None:
+            return f"{label} {fmt_money(abs_val)} ({fmt_pct(pct_val)} of rev)"
+        return f"{label} Unavailable"
+
+    cost_str = " | ".join([
+        _cost_item("SG&A", m.get("sga_abs"), m.get("sga_pct")),
+        _cost_item("R&D", m.get("rd_abs"), m.get("rd_pct")),
+        _cost_item("CapEx", m.get("capex_abs"), m.get("capex_pct")),
+    ])
+
+    # P/E
+    pe_v = to_float(m.get("trailing_pe"))
+    fpe_v = to_float(m.get("forward_pe"))
+    pe_str = f"{pe_v:.1f}x" if pe_v is not None and pe_v > 0 else "n/a"
+    fpe_str = f"{fpe_v:.1f}x" if fpe_v is not None and fpe_v > 0 else "n/a"
+    pe_line = f"Trailing P/E {pe_str} | Forward P/E {fpe_str}"
+
+    # Current ratio (profitable) or cash runway (burning cash)
+    is_profitable = (to_float(m.get("net_income")) or 0) > 0 or (to_float(m.get("free_cash_flow")) or 0) > 0
+    if is_profitable:
+        cr_v = to_float(m.get("current_ratio"))
+        liquidity_label = "Current Ratio"
+        liquidity_str = fmt_ratio(cr_v) if cr_v is not None else "Unavailable: not in source feed"
+    else:
+        runway = to_float(m.get("cash_runway_qtrs"))
+        liquidity_label = "Cash Runway"
+        if runway is not None:
+            qburn = abs(to_float(m.get("free_cash_flow")) or 0) / 4
+            liquidity_str = f"{runway:.1f} qtrs ({fmt_money(m.get('total_cash'))} cash, ~{fmt_money(qburn)}/qtr burn)"
+        else:
+            liquidity_str = f"Unavailable | Cash on hand: {fmt_money(m.get('total_cash'))}"
+
     dcf = m["dcf"]
     if dcf.get("valid"):
         valuation_line = (
@@ -603,7 +691,7 @@ Moat: {moat} | Sector: {m["sector"]}
 
 | # | Ratio | Value | vs. Peers |
 |---|-------|-------|-----------|
-| 1 | ROIC | {fmt_pct(m["roic"])} | {pc("roic")} |
+| 1 | {quality_label} | {quality_str} | {quality_peer} |
 | 2 | Gross Margin | {gross_margin_str} | {pc("gross_margin")} |
 | 3 | FCF Margin | {fmt_pct(fcf_margin)} | {pc("fcf_margin")} |
 | 4 | Revenue CAGR (5yr) | {fmt_pct(m["revenue_cagr"])} | {pc("revenue_cagr")} |
@@ -613,6 +701,12 @@ Moat: {moat} | Sector: {m["sector"]}
 | 8 | Operating Margin | {fmt_pct(m["operating_margin"])} | {pc("operating_margin")} |
 | 9 | Insider Ownership | {insider_str} | Alignment indicator |
 | 10 | Revenue Growth (TTM) | {fmt_pct(ttm_rev_growth)} | {pc("ttm_rev_growth")} |
+
+**Cost Structure**: {cost_str}
+
+**Multiples**: {pe_line}
+
+**{liquidity_label}**: {liquidity_str}
 
 **Valuation**
 {valuation_line}
@@ -850,6 +944,13 @@ def main():
                 "ev_fcf": None,
                 "fcf_margin": None,
                 "ttm_rev_growth": None,
+                "sga_pct": None,
+                "sga_abs": None,
+                "rd_pct": None,
+                "rd_abs": None,
+                "capex_pct": None,
+                "capex_abs": None,
+                "cash_runway_qtrs": None,
             }
 
     metric_names = [

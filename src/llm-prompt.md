@@ -32,6 +32,13 @@ You are a seasoned investor. Analyze [INSERT TICKER HERE] using only what genuin
 | 9 | Insider Ownership | | |
 | 10 | Revenue Growth (TTM) | | |
 
+**Cost Structure** (% of revenue)
+SG&A $X (Y% of rev) | R&D $X (Y% of rev) | CapEx $X (Y% of rev)
+
+**Multiples**: Trailing P/E Xx | Forward P/E Xx
+
+**Current Ratio** (if profitable) or **Cash Runway** in quarters (if burning cash)
+
 **Valuation**
 DCF or EV/FCF peer-relative fair value. Show: current price, fair value estimate, upside/downside %.
 Assumptions: FCF growth rate, WACC, terminal growth rate.
