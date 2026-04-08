@@ -686,11 +686,10 @@ def build_note(m, peers, peer_medians):
 
     note = f"""Analysis date: {TODAY}
 
-**{name} ({ticker})** — {first_sentence(m["business_summary"])}
-Moat: {moat} | Sector: {m["sector"]}
+**{name} ({ticker})** | Moat: {moat} | Sector: {m["sector"]} | Market Cap: {fmt_money(m["market_cap"])} | Price: {fmt_money(m["price"])}
 
-| # | Ratio | Value | vs. Peers |
-|---|-------|-------|-----------|
+| # | Ratio | Value | Good/Bad/Okay |
+|---|-------|-------|---------------|
 | 1 | {quality_label} | {quality_str} | {quality_peer} |
 | 2 | Gross Margin | {gross_margin_str} | {pc("gross_margin")} |
 | 3 | FCF Margin | {fmt_pct(fcf_margin)} | {pc("fcf_margin")} |
@@ -702,25 +701,17 @@ Moat: {moat} | Sector: {m["sector"]}
 | 9 | Insider Ownership | {insider_str} | {"Good" if (to_float(m["insider_pct"]) or 0) > 0.20 else "Okay" if (to_float(m["insider_pct"]) or 0) >= 0.10 else "Bad"} |
 | 10 | Revenue Growth (TTM) | {fmt_pct(ttm_rev_growth)} | {pc("ttm_rev_growth")} |
 
-**Cost Structure**: {cost_str}
+Cost: {cost_str} | {pe_line} | {liquidity_label}: {liquidity_str}
 
-**Multiples**: {pe_line}
+Peers: {peers_text}
 
-**{liquidity_label}**: {liquidity_str}
-
-**Valuation**
-{valuation_line}
-Current price: {fmt_money(m["price"])} | Fair value: {target_price} | Upside: {upside_text}
+**Company**
+{m["business_summary"][:600].strip()}
 
 **Top 3 Risks**
 - AI optics demand cycle pause and telecom capex slowdown.
 - Pricing erosion from competing vendors in commoditized segments.
 - Customer concentration and inventory digestion headwinds.
-
-**Recommendation**
-{rec} | Target: {target_price} | Conviction: {conviction} | Margin of safety: {margin_of_safety}
-
-Peers: {peers_text}
 """
     return note
 

@@ -10,17 +10,17 @@ You are a seasoned investor. Analyze [INSERT TICKER HERE] using only what genuin
 6. **Net Debt / EBITDA** — Leverage and survivability. Above 4x is a red flag.
 7. **FCF Yield** (FCF / Market Cap) — The owner's return today, before growth.
 8. **Operating Margin** — Scalability. Does more revenue drop to the bottom line?
-9. **Insider Ownership %** — Skin in the game. Above 5% meaningful, above 20% strong alignment.
+9. **Insider Ownership %** — Skin in the game. <10% Bad, 10–20% Okay, >20% Good.
 10. **Revenue Growth (TTM)** — Is momentum accelerating or decelerating?
 
 ---
 
-**Output format (keep total under 500 words):**
+**Output format:**
 
-**[TICKER] — One-line business description. Moat: Wide / Narrow / None.**
+**[TICKER]** | Moat: Wide/Narrow/None | Sector: ... | Market Cap: $X | Price: $X
 
-| # | Ratio | Value | vs. Peers |
-|---|-------|-------|-----------|
+| # | Ratio | Value | Good/Bad/Okay |
+|---|-------|-------|---------------|
 | 1 | ROIC | | |
 | 2 | Gross Margin | Gross Profit $X / Revenue $Y = Z% | |
 | 3 | FCF Margin | | |
@@ -32,29 +32,21 @@ You are a seasoned investor. Analyze [INSERT TICKER HERE] using only what genuin
 | 9 | Insider Ownership | | |
 | 10 | Revenue Growth (TTM) | | |
 
-**Cost Structure** (% of revenue)
-SG&A $X (Y% of rev) | R&D $X (Y% of rev) | CapEx $X (Y% of rev)
+Cost: SG&A $X (Y%) | R&D $X (Y%) | CapEx $X (Y%) | Trailing P/E Xx | Forward P/E Xx | Current Ratio Xx (or Cash Runway X qtrs)
 
-**Multiples**: Trailing P/E Xx | Forward P/E Xx
+Peers: [3–5 closest peers, named]
 
-**Current Ratio** (if profitable) or **Cash Runway** in quarters (if burning cash)
-
-**Valuation**
-DCF or EV/FCF peer-relative fair value. Show: current price, fair value estimate, upside/downside %.
-Assumptions: FCF growth rate, WACC, terminal growth rate.
+**Company**
+2–3 sentence dense summary: founding year, key products/technology, what the company is known for, what customers/analysts say about it, its signature differentiator.
 
 **Top 3 Risks**
 - ...
 - ...
 - ...
 
-**Recommendation**
-Buy / Hold / Sell | Target price | Conviction: High / Medium / Low | Margin of safety: X%
-
 ---
 
 Rules:
 - Every ratio must have a real number or "Unavailable: [specific reason]".
-- No generic filler. If you can't find the data, explain why.
-- Peer comparison = vs. 3–5 closest sector peers (name them).
-- Every ratio should include a one-line interpretation, not just a number.
+- No generic filler. No DCF. No recommendation section.
+- Good/Bad/Okay is vs. sector peers (name them in the Peers line).
