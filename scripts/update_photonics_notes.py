@@ -418,6 +418,23 @@ def fetch_metrics(ticker):
         revenue_cagr=revenue_cagr,
     )
 
+    # derived metrics for 10-ratio framework
+    ev_val = None
+    ev_fcf_val = None
+    if market_cap is not None and free_cash_flow not in (None, 0) and (free_cash_flow or 0) > 0:
+        ev_val = market_cap + (to_float(total_debt) or 0) - (to_float(total_cash) or 0)
+        if ev_val is not None and ev_val > 0:
+            ev_fcf_val = ev_val / free_cash_flow
+
+    fcf_margin_val = safe_div(free_cash_flow, latest_rev)
+
+    ttm_rev_growth_val = None
+    if len(rev_series) >= 2:
+        r_now = to_float(rev_series.iloc[-1])
+        r_prev = to_float(rev_series.iloc[-2])
+        if r_now is not None and r_prev not in (None, 0) and r_prev > 0:
+            ttm_rev_growth_val = (r_now - r_prev) / r_prev
+
     return {
         "ticker": ticker,
         "name": info.get("shortName") or info.get("longName") or ticker,
@@ -427,6 +444,9 @@ def fetch_metrics(ticker):
         "website": website,
         "market_cap": market_cap,
         "price": price_now,
+        "ev_fcf": ev_fcf_val,
+        "fcf_margin": fcf_margin_val,
+        "ttm_rev_growth": ttm_rev_growth_val,
         "ret_3m": ret_3m,
         "ret_5y": price_ret_5y,
         "gross_margin": to_float(info.get("grossMargins")),
@@ -481,6 +501,88 @@ def fetch_metrics(ticker):
 
 
 def build_note(m, peers, peer_medians):
+    ticker = m["ticker"]
+    name = m["name"]
+
+    ev_fcf = m.get("ev_fcf")
+    fcf_margin = m.get("fcf_margin")
+    ttm_rev_growth = m.get("ttm_rev_growth")
+
+    gm = to_float(m["gross_margin"]) or 0
+    roic_v = to_float(m["roic"]) or 0
+    roe_v = to_float(m["roe"]) or 0
+    moat = (
+        "Wide" if gm > 0.50 and (roic_v > 0.15 or roe_v > 0.20)
+        else "Narrow" if gm > 0.25 and (roic_v > 0.08 or roe_v > 0.10)
+        else "None"
+    )
+
+    def pc(key, hib=True):
+        return compare_to_peer(m.get(key), peer_medians.get(key), higher_is_better=hib)
+
+    ev_fcf_str = (
+        f"{to_float(ev_fcf):.1f}x"
+        if to_float(ev_fcf) is not None and to_float(ev_fcf) > 0
+        else "Unavailable: non-positive FCF"
+    )
+    ev_fcf_peer = compare_to_peer(ev_fcf, peer_medians.get("ev_fcf"), higher_is_better=False)
+    insider_str = fmt_pct(m["insider_pct"]) if to_float(m["insider_pct"]) is not None else "Unavailable: not in source feed"
+
+    dcf = m["dcf"]
+    if dcf.get("valid"):
+        valuation_line = (
+            f"DCF fair value ${dcf['base']:.2f} (upside {fmt_pct(dcf['upside'])}); "
+            f"bull ${dcf['bull']:.2f} / bear ${dcf['bear']:.2f}. "
+            f"Assumptions: FCF growth {fmt_pct(dcf['growth'])}, WACC {fmt_pct(dcf['wacc'])}, terminal growth {fmt_pct(dcf['terminal_growth'])}."
+        )
+        target_price = f"${dcf['base']:.2f}"
+        upside_text = fmt_pct(dcf.get("upside"))
+        margin_of_safety = fmt_pct(dcf.get("margin_of_safety"))
+    else:
+        valuation_line = dcf.get("reason") or "Unavailable"
+        target_price = "Unavailable"
+        upside_text = "Unavailable"
+        margin_of_safety = "Unavailable"
+
+    rec, conviction = make_recommendation(dcf, m["roe"], m["net_margin"], m["debt_to_ebitda"])
+    peers_text = ", ".join(peers)
+
+    note = f"""Analysis date: {TODAY}
+
+**{name} ({ticker})** — {first_sentence(m["business_summary"])}
+Moat: {moat} | Sector: {m["sector"]}
+
+| # | Ratio | Value | vs. Peers |
+|---|-------|-------|-----------|
+| 1 | ROIC | {fmt_pct(m["roic"])} | {pc("roic")} |
+| 2 | Gross Margin | {fmt_pct(m["gross_margin"])} | {pc("gross_margin")} |
+| 3 | FCF Margin | {fmt_pct(fcf_margin)} | {pc("fcf_margin")} |
+| 4 | Revenue CAGR (5yr) | {fmt_pct(m["revenue_cagr"])} | {pc("revenue_cagr")} |
+| 5 | EV/FCF | {ev_fcf_str} | {ev_fcf_peer} |
+| 6 | Net Debt / EBITDA | {fmt_ratio(m["net_debt_to_ebitda"])} | {pc("net_debt_to_ebitda", hib=False)} |
+| 7 | FCF Yield | {fmt_pct(m["fcf_yield"])} | {pc("fcf_yield")} |
+| 8 | Operating Margin | {fmt_pct(m["operating_margin"])} | {pc("operating_margin")} |
+| 9 | Insider Ownership | {insider_str} | Alignment indicator |
+| 10 | Revenue Growth (TTM) | {fmt_pct(ttm_rev_growth)} | {pc("ttm_rev_growth")} |
+
+**Valuation**
+{valuation_line}
+Current price: {fmt_money(m["price"])} | Fair value: {target_price} | Upside: {upside_text}
+
+**Top 3 Risks**
+- AI optics demand cycle pause and telecom capex slowdown.
+- Pricing erosion from competing vendors in commoditized segments.
+- Customer concentration and inventory digestion headwinds.
+
+**Recommendation**
+{rec} | Target: {target_price} | Conviction: {conviction} | Margin of safety: {margin_of_safety}
+
+Peers: {peers_text}
+"""
+    return note
+
+
+def _old_build_note(m, peers, peer_medians):
     ticker = m["ticker"]
     name = m["name"]
 
@@ -694,16 +796,22 @@ def main():
                 "transcript_link": None,
                 "transcript_reason": "Fetch failed",
                 "dcf": {"valid": False, "reason": "Unavailable: fetch failed"},
+                "ev_fcf": None,
+                "fcf_margin": None,
+                "ttm_rev_growth": None,
             }
 
     metric_names = [
+        "roic",
         "gross_margin",
-        "net_margin",
-        "roe",
-        "debt_to_ebitda",
-        "ev_ebitda",
-        "fcf_yield",
+        "fcf_margin",
         "revenue_cagr",
+        "ev_fcf",
+        "net_debt_to_ebitda",
+        "fcf_yield",
+        "operating_margin",
+        "insider_pct",
+        "ttm_rev_growth",
     ]
 
     peer_medians = {}

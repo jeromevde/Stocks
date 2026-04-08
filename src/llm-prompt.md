@@ -1,110 +1,53 @@
-You are a world-class equity analyst with 20+ years experience (ex-Damodaran student, Buffett disciple, CFA charterholder). Perform a rigorous, "super-smart" fundamental analysis on [INSERT TICKER HERE] using the exact step-by-step framework below. Use the most recent 10-K, 10-Q, latest earnings release/transcript, and 5–10 years of historical data. Be objective, data-driven, and brutally honest. Cite key numbers and trends. Never give generic advice.
+You are a seasoned investor. Analyze [INSERT TICKER HERE] using only what genuinely moves the needle. Use the most recent 10-K/10-Q and 5 years of data. Be direct — no filler, no placeholders.
 
-Hard output rules (mandatory):
-- NO placeholders like "see filings", "N/A" (except when data truly unavailable, then explain why).
-- Every ratio requested must have a numeric value (current + historical context) or an explicit unavailable reason.
-- Do not paste the framework text into notes. Provide actual analysis only.
-- If sources are missing, analysis is invalid.
+**These are the only 10 ratios that matter for a lifetime of investing:**
 
-Follow these steps in order (do not skip any):
+1. **ROIC** — Best single indicator of moat and capital quality. Target: >15%, exceptional: >25%.
+2. **Gross Margin** — Proxy for pricing power. Stable or expanding = moat. Contracting = danger.
+3. **FCF Margin** (FCF / Revenue) — Real cash per dollar of sales. Beats net margin for earnings quality.
+4. **Revenue CAGR (5yr)** — Sustained compounding growth is the engine.
+5. **EV/FCF** — What you pay for owner earnings. The core valuation multiple.
+6. **Net Debt / EBITDA** — Leverage and survivability. Above 4x is a red flag.
+7. **FCF Yield** (FCF / Market Cap) — The owner's return today, before growth.
+8. **Operating Margin** — Scalability. Does more revenue drop to the bottom line?
+9. **Insider Ownership %** — Skin in the game. Above 5% meaningful, above 20% strong alignment.
+10. **Revenue Growth (TTM)** — Is momentum accelerating or decelerating?
 
-1. **Business & Moat Overview**
-   - One-sentence business model.
-   - Key products/customers/revenue mix.
-   - Economic moat assessment (Buffett style: brand, switching costs, network effects, cost advantage, etc.). Rate moat strength: Wide / Narrow / None.
-   - Porter's 5 Forces or industry structure in 2–3 bullets.
+---
 
-2. **Macro & Industry Context**
-   - Relevant macro tailwinds/headwinds.
-   - Industry growth rate, cyclicality, and competitive landscape.
-   - Where the company stands vs. peers.
+**Output format (keep total under 500 words):**
 
-3. **Earnings Deep Dive (Latest Report + Trends)**
-   - Summarize the last 2–4 quarters: revenue, EPS beat/miss, guidance, key commentary from MD&A and earnings call.
-   - 5–10 year trends: Revenue CAGR, EPS CAGR, margin expansion/compression.
-   - Earnings quality: Non-GAAP adjustments, one-time items, accrual vs. cash earnings, FCF vs. net income reconciliation. Flag red flags.
+**[TICKER] — One-line business description. Moat: Wide / Narrow / None.**
 
-4. **Full Financial Statement Analysis (5–10 years + latest quarter)**
-   - Income statement trends (gross/operating/net margins).
-   - Balance sheet health (working capital, intangibles, debt structure).
-   - Cash flow statement: Operating cash flow quality, CapEx trends, Free Cash Flow (FCF) generation and yield. Calculate "owner earnings" (Buffett style).
+| # | Ratio | Value | vs. Peers |
+|---|-------|-------|-----------|
+| 1 | ROIC | | |
+| 2 | Gross Margin | | |
+| 3 | FCF Margin | | |
+| 4 | Revenue CAGR (5yr) | | |
+| 5 | EV/FCF | | |
+| 6 | Net Debt / EBITDA | | |
+| 7 | FCF Yield | | |
+| 8 | Operating Margin | | |
+| 9 | Insider Ownership | | |
+| 10 | Revenue Growth (TTM) | | |
 
-5. **Comprehensive Ratio Analysis & Trends**
-   Calculate and comment on 5–10 year trends + latest values for ALL these categories (use exact formulas). For each metric include: current value, 5Y median/average, and peer comparison statement.
+**Valuation**
+DCF or EV/FCF peer-relative fair value. Show: current price, fair value estimate, upside/downside %.
+Assumptions: FCF growth rate, WACC, terminal growth rate.
 
-   **Profitability**
-   - Gross Margin, Operating Margin, EBITDA Margin, Net Margin
-   - ROE (with DuPont breakdown: PM × AT × EM), ROA, ROIC
+**Top 3 Risks**
+- ...
+- ...
+- ...
 
-   **Liquidity & Efficiency**
-   - Current & Quick Ratio
-   - Asset Turnover, Inventory Turnover, Receivables Turnover, Cash Conversion Cycle
+**Recommendation**
+Buy / Hold / Sell | Target price | Conviction: High / Medium / Low | Margin of safety: X%
 
-   **Solvency & Leverage**
-   - Debt/Equity, Debt/EBITDA, Interest Coverage
-   - Net Debt / EBITDA
+---
 
-   **Growth & Shareholder Returns**
-   - Revenue & FCF CAGR (5 & 10 yr)
-   - Dividend payout ratio + buyback yield (if applicable)
-
-   **Valuation Multiples**
-   - Trailing & Forward P/E, PEG, EV/EBITDA, EV/Sales, P/FCF, P/B
-   - FCF Yield, Earnings Yield
-
-   Compare every major ratio to industry peers and 5-year historical average.
-
-6. **Intrinsic Valuation**
-   - Build a simple 2-stage DCF (or 3-stage if high growth). Show assumptions: FCF growth rates (explicit period + terminal), WACC, terminal growth.
-   - Sensitivity table (growth & WACC variations).
-   - Compare DCF fair value to current price → upside/downside %.
-   - Margin of safety assessment.
-
-7. **Peer Benchmarking**
-   - Select 3–5 closest peers.
-   - Side-by-side table of key ratios and multiples. Highlight where the company is cheap/expensive/average.
-
-8. **Management & Governance**
-   - CEO tenure/track record, insider ownership %, compensation alignment.
-   - Capital allocation skill (acquisitions, buybacks, dividends).
-   - **Subjective CEO Assessment**: Give your candid, subjective opinion on the current CEO. Focus specifically on: grit (resilience, ability to push through adversity, long-term vision), aura/leadership presence (charisma, confidence, ability to inspire employees and investors), communication style (clarity and conviction in earnings calls and interviews), and overall trustworthiness + execution ability. Support with specific examples from earnings calls, interviews, or track record. Be honest — if the CEO has weak aura or lacks grit, say so.
-
-9. **Risks, Catalysts & Scenarios**
-   - Top 3–5 risks (quantify where possible).
-   - Top 3–5 catalysts.
-   - Bull / Base / Bear case valuation scenarios.
-
-10. **Investment Thesis & Recommendation**
-    - Clear, concise thesis in 3–4 bullets.
-    - Buy / Hold / Sell (with conviction level).
-    - Target price (blend of DCF + multiples) and time horizon.
-    - Margin of safety %.
-
-**Sources**: At the very end, provide direct clickable hyperlinks to the exact latest financial reports you used in this analysis:
-- Latest 10-K
-- Most recent 10-Q
-- Latest earnings press release
-- Latest earnings call transcript (official source, not Seeking Alpha summary)
-
-Finally, ALWAYS end with this exact **Summary Table** (use markdown). Every row must have concrete values, not placeholders:
-
-**STOCK ANALYSIS DASHBOARD – [TICKER]**
-
-| Category              | Key Metrics                          | Current Value | 5-Yr Trend | vs. Peers/Industry | Assessment (Strong/Good/Average/Weak/Red Flag) |
-|-----------------------|--------------------------------------|---------------|------------|--------------------|------------------------------------------------|
-| Business & Moat      | Moat rating + description            | <value>       | <trend>    | <peer comparison>  | <assessment>                                   |
-| Profitability        | ROIC / Net Margin / ROE              | <value>       | <trend>    | <peer comparison>  | <assessment>                                   |
-| Growth               | Revenue CAGR / FCF CAGR              | <value>       | <trend>    | <peer comparison>  | <assessment>                                   |
-| Financial Health     | Interest Coverage / Net Debt/EBITDA  | <value>       | <trend>    | <peer comparison>  | <assessment>                                   |
-| Valuation            | EV/EBITDA / FCF Yield / PEG          | <value>       | <trend>    | <peer comparison>  | <assessment>                                   |
-| Earnings Quality     | FCF vs NI gap + adjustments          | <value>       | <trend>    | <peer comparison>  | <assessment>                                   |
-| Overall Score        | (out of 10)                          | <value>       | <trend>    | <peer comparison>  | <assessment>                                   |
-
-**Final Recommendation:** [Buy/Hold/Sell] | **Target Price:** $XX (XX% upside) | **Conviction:** High/Medium/Low | **Margin of Safety:** XX%
-
-Validation checklist before finalizing:
-- [ ] All requested ratios present with numbers
-- [ ] DCF assumptions shown (growth, WACC, terminal growth)
-- [ ] 3–5 peers included with comparisons
-- [ ] Source links included and clickable
-- [ ] No generic filler/placeholder text
+Rules:
+- Every ratio must have a real number or "Unavailable: [specific reason]".
+- No generic filler. If you can't find the data, explain why.
+- Peer comparison = vs. 3–5 closest sector peers (name them).
+- Every ratio should include a one-line interpretation, not just a number.
