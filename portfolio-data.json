@@ -13,7 +13,8 @@
     "defense",
     "photonics",
     "value",
-    "biotech"
+    "biotech",
+    "humanoids"
   ],
   "stocks": [
     {
@@ -751,6 +752,106 @@
       ],
       "notes": "t",
       "rating": 0
+    },
+    {
+      "ticker": "601689.SS",
+      "name": "Ningbo Tuopu Group Co.,Ltd.",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "robotics"
+      ],
+      "rating": 3,
+      "notes": "LLM prompt quick pass\nBusiness: Auto/robotics components (chassis + actuator modules).\nTesla supplier check: CONFIRMED for Tesla vehicle components; widely reported as Optimus-chain candidate.\nMoat: Scale manufacturing + integration depth with Chinese EV supply chain.\nTop growth drivers: Optimus ramp optionality, EV content per vehicle, overseas capacity.\nTop risks: Concentration risk (Tesla demand), cyclical auto volumes, execution on robotics margins.\nVerify next: segment gross margin trend, customer concentration disclosures, capex efficiency."
+    },
+    {
+      "ticker": "603305.SS",
+      "name": "Ningbo Xusheng Group Co., Ltd.",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "robotics"
+      ],
+      "rating": 3,
+      "notes": "LLM prompt quick pass\nBusiness: Precision aluminum structural components.\nTesla supplier check: CONFIRMED in public reporting for Tesla automotive supply chain.\nMoat: Process know-how in lightweight cast/extruded structural parts.\nTop growth drivers: EV lightweighting, potential humanoid frame demand, Mexico expansion.\nTop risks: Commodity/input volatility, customer concentration, margin pressure.\nVerify next: Tesla revenue share, order backlog quality, Mexico plant utilization."
+    },
+    {
+      "ticker": "002050.SZ",
+      "name": "Zhejiang Sanhua Intelligent Controls",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "robotics",
+        "energy"
+      ],
+      "rating": 3,
+      "notes": "LLM prompt quick pass\nBusiness: Thermal management + control components.\nTesla supplier check: CONFIRMED for Tesla EV thermal systems; humanoid actuator claims are mixed/rumor-prone.\nMoat: Dominant component position (automotive thermal controls) + manufacturing scale.\nTop growth drivers: Heat pump penetration, EV thermal complexity, robotics actuator expansion.\nTop risks: Rumor-driven valuation spikes, pricing pressure, geopolitical export sensitivity.\nVerify next: official customer disclosures, robotics revenue contribution, margin by segment."
+    },
+    {
+      "ticker": "DD",
+      "name": "DuPont de Nemours, Inc.",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "materials"
+      ],
+      "rating": 2,
+      "notes": "LLM prompt quick pass\nBusiness: Specialty materials and industrial solutions.\nTesla supplier check: UNVERIFIED for Optimus-specific supply from public evidence; broad automotive/robotics material relevance is clear.\nMoat: IP-rich material portfolio + deep industrial customer embed.\nTop growth drivers: EV materials content, advanced films/polymers, specialty industrial demand.\nTop risks: No direct Optimus linkage proven, portfolio complexity, cycle exposure.\nVerify next: Tesla-specific references in filings/calls, robotics end-market revenue breakout."
+    },
+    {
+      "ticker": "LINK",
+      "name": "Interlink Electronics, Inc.",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "sensors"
+      ],
+      "rating": 1,
+      "notes": "LLM prompt quick pass\nBusiness: Force-sensing and HMI sensor solutions.\nTesla supplier check: UNVERIFIED from public sources for Tesla/Optimus.\nMoat: Niche sensing IP + customization capability.\nTop growth drivers: Robotics touch/force sensing adoption, industrial automation, wearable/medical niches.\nTop risks: Small-cap liquidity + customer concentration + unproven Tesla linkage.\nVerify next: customer concentration disclosures, design-win announcements, margin durability."
+    },
+    {
+      "ticker": "RRX",
+      "name": "Regal Rexnord Corporation",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "robotics"
+      ],
+      "rating": 2,
+      "notes": "LLM prompt quick pass\nBusiness: Industrial motion control; Kollmorgen is a key servo/motion brand.\nTesla supplier check: UNVERIFIED direct Tesla linkage; component-level relevance is plausible.\nMoat: Installed base + engineering depth in motion systems.\nTop growth drivers: Factory automation, robotics motion demand, aftermarket/service.\nTop risks: Industrial cycle, integration complexity, no confirmed Optimus contract.\nVerify next: explicit Tesla exposure, robotics segment growth cadence, order-to-sales conversion."
+    },
+    {
+      "ticker": "6471.T",
+      "name": "NSK Ltd.",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "robotics"
+      ],
+      "rating": 2,
+      "notes": "LLM prompt quick pass\nBusiness: Bearings and precision motion components.\nTesla supplier check: UNVERIFIED for Optimus direct supply in current evidence.\nMoat: Precision manufacturing + broad industrial customer network.\nTop growth drivers: Robot joint/bearing demand, precision motion upgrades, EV drivetrain needs.\nTop risks: Commodity/industrial cyclicality, FX exposure, unclear Tesla-specific catalyst.\nVerify next: robotics revenue split, high-precision product mix, large-customer disclosures."
+    },
+    {
+      "ticker": "6324.T",
+      "name": "Harmonic Drive Systems Inc.",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "robotics"
+      ],
+      "rating": 3,
+      "notes": "LLM prompt quick pass\nBusiness: Precision harmonic reducers for robotics.\nTesla supplier check: COMPONENT CATEGORY is highly relevant; direct Optimus supplier status remains UNVERIFIED publicly.\nMoat: High-precision reducer know-how + strong robotics positioning.\nTop growth drivers: Humanoid robot demand, industrial robotics capex, premium motion control needs.\nTop risks: Valuation sensitivity to hype, customer capex cycles, supplier substitution risk.\nVerify next: order momentum from humanoid programs, backlog quality, gross margin trend."
+    },
+    {
+      "ticker": "SHA.DE",
+      "name": "Schaeffler AG",
+      "date": "2026-04-15",
+      "labels": [
+        "humanoids",
+        "robotics"
+      ],
+      "rating": 2,
+      "notes": "LLM prompt quick pass\nBusiness: Bearings and motion technology.\nTesla supplier check: UNVERIFIED direct Tesla/Optimus supply from current public evidence.\nMoat: Scale + engineering breadth in bearings/motion systems.\nTop growth drivers: EV + industrial automation + precision motion demand.\nTop risks: Industrial cyclicality, margin pressure, unclear direct Optimus exposure.\nVerify next: direct customer references, robotics pipeline disclosures, integration/capex discipline."
     }
   ]
 }
