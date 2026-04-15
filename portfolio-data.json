@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-15T16:32:28.566Z",
+  "updatedAt": "2026-04-15T16:33:09.492Z",
   "labelOrder": [
     "ai",
     "robotics",
@@ -36,7 +36,7 @@
       "name": "",
       "date": "2025-07-01",
       "labels": [
-        "genetics"
+        "biotech"
       ],
       "notes": "very cool tech, users report some of the cheapest on the market for high quality\nBut business model viability is a question",
       "rating": 3
@@ -500,7 +500,7 @@
       "name": "Ginkgo Bioworks Holdings, Inc.",
       "date": "2026-03-17",
       "labels": [
-        "genetics"
+        "biotech"
       ],
       "notes": "Thesis (contrarian): Visionary platform story, but market has become allergic to long-duration promises.\nMarket pricing in: eventual foundry/platform monetization with improving discipline.\nCatalysts (90d): partnership quality, program conversion to recurring revenue, burn-rate trajectory.\nMoat + risks: strong technical ambition; risk is commercialization drag and dilution gravity.\nFinancial quality snapshot: prioritize runway, unit economics, and operating discipline.\nValuation sanity: option-like; position size should reflect that reality.\nRed flags: growth without gross-profit quality, perpetual restructuring language.\nWhat must happen next: (1) prove repeatable high-quality revenue, (2) reduce cash burn materially, (3) show credible path to self-funding.\nVerdict: Avoid for now unless you like science fiction with financing risk. Confidence 63/100.",
       "rating": 1
