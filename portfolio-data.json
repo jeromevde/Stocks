@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-15T16:31:25.459Z",
+  "updatedAt": "2026-04-15T16:32:28.566Z",
   "labelOrder": [
     "ai",
     "robotics",
@@ -730,7 +730,6 @@
       "name": "Ningbo Tuopu Group Co.,Ltd.",
       "date": "2026-04-15",
       "labels": [
-        "humanoids",
         "robotics"
       ],
       "notes": "Methodology pass (repo framework) — Tuopu Group (601689.SS)\n\n1) Business & Moat\n- Business model: supplies auto chassis/NVH/interior + robotics actuator modules.\n- Revenue mix: detailed segment % unavailable in this run (reason: no verified latest annual segment table fetched yet).\n- Moat: Narrow (scale manufacturing + program integration with major OEMs).\n\n2) Macro & Industry\n- Tailwind: EV localization + potential humanoid component demand.\n- Headwind: auto cycle and OEM pricing pressure.\n\n3) Earnings Deep Dive\n- Latest quarter revenue growth: Unavailable (reason: latest filing not parsed in this pass).\n- Latest net margin: Unavailable (reason: same).\n- Quality check: pending filing extraction.\n\n4) Financial Statements\n- FCF latest: Unavailable (reason: cash-flow statement not parsed in this pass).\n- Net debt/EBITDA: Unavailable (reason: debt + EBITDA series not parsed).\n\n5) Ratio block\n- Profitability ratios (GM/OM/NM/ROIC): Unavailable with filing dependency.\n- Liquidity ratios (current/quick): Unavailable with filing dependency.\n- Leverage ratios: Unavailable with filing dependency.\n- Valuation multiples: Unavailable in this pass (CN market data normalization pending).\n\n6) Intrinsic valuation (DCF)\n- Invalid in this pass (reason: positive normalized FCF series not loaded).\n\n7) Peer benchmarking\n- Suggested peers: Xusheng (603305.SS), Sanhua (002050.SZ), Minth (0425.HK).\n- Quant table unavailable in this pass (missing normalized peer dataset).\n\n8) Management & governance\n- CEO quality: Unavailable in this pass (need transcript/management disclosures).\n\n9) Risks & catalysts\n- Risks: Tesla concentration, robotics ramp delay, margin compression.\n- Catalysts: new actuator contracts, overseas plant utilization, EV volume growth.\n\n10) Recommendation snapshot\n- Status: Watchlist candidate (not investment call).\n- Supplier verification: CONFIRMED Tesla auto supplier; Optimus linkage reported but still partly indirect.\n- Next verification required: latest annual report segment margins + customer concentration %.\n",
@@ -741,7 +740,6 @@
       "name": "Ningbo Xusheng Group Co., Ltd.",
       "date": "2026-04-15",
       "labels": [
-        "humanoids",
         "robotics"
       ],
       "notes": "Methodology pass (repo framework) — Xusheng Group (603305.SS)\n\n1) Business & Moat\n- Business model: precision aluminum structural/casting components for EV platforms.\n- Revenue split by segment/geography: Unavailable (reason: filing table not parsed in this run).\n- Moat: Narrow (process know-how + qualified supplier status).\n\n2) Macro & Industry\n- Tailwind: EV lightweighting and platform redesign cycles.\n- Headwind: aluminum/input cost volatility and OEM bargaining power.\n\n3) Earnings Deep Dive\n- Last 2–4 quarter growth: Unavailable (reason: no refreshed quarterly extraction in this pass).\n- EPS trend: Unavailable (same reason).\n\n4) Financial Statements\n- Gross/operating/net margin trend: Unavailable (filing parse pending).\n- Cash-flow quality: Unavailable.\n\n5) Ratio block\n- Profitability, liquidity, leverage, valuation: Unavailable with explicit dependency on latest annual + interim filings.\n\n6) Intrinsic valuation (DCF)\n- Not computed (reason: normalized FCF history unavailable in this pass).\n\n7) Peer benchmarking\n- Suggested peers: Tuopu (601689.SS), Minth (0425.HK), Ningbo Huaxiang (002048.SZ).\n- Numeric peer compare unavailable in this pass.\n\n8) Management & governance\n- Insider ownership/comp alignment: Unavailable (need governance disclosure extraction).\n\n9) Risks & catalysts\n- Risks: customer concentration, cyclical demand, expansion execution risk.\n- Catalysts: Mexico capacity ramp, higher-value structural content per vehicle.\n\n10) Recommendation snapshot\n- Status: Watchlist candidate (not investment call).\n- Supplier verification: CONFIRMED in public reporting as Tesla automotive supplier.\n- Next verification required: customer concentration and margin trend from latest filings.\n",
@@ -752,7 +750,6 @@
       "name": "Zhejiang Sanhua Intelligent Controls",
       "date": "2026-04-15",
       "labels": [
-        "humanoids",
         "robotics",
         "energy"
       ],
@@ -763,10 +760,7 @@
       "ticker": "DD",
       "name": "DuPont de Nemours, Inc.",
       "date": "2026-04-15",
-      "labels": [
-        "humanoids",
-        "materials"
-      ],
+      "labels": [],
       "notes": "LLM prompt quick pass\nBusiness: Specialty materials and industrial solutions.\nTesla supplier check: UNVERIFIED for Optimus-specific supply from public evidence; broad automotive/robotics material relevance is clear.\nMoat: IP-rich material portfolio + deep industrial customer embed.\nTop growth drivers: EV materials content, advanced films/polymers, specialty industrial demand.\nTop risks: No direct Optimus linkage proven, portfolio complexity, cycle exposure.\nVerify next: Tesla-specific references in filings/calls, robotics end-market revenue breakout.",
       "rating": 2
     },
@@ -774,10 +768,7 @@
       "ticker": "LINK",
       "name": "Interlink Electronics, Inc.",
       "date": "2026-04-15",
-      "labels": [
-        "humanoids",
-        "sensors"
-      ],
+      "labels": [],
       "notes": "LLM prompt quick pass\nBusiness: Force-sensing and HMI sensor solutions.\nTesla supplier check: UNVERIFIED from public sources for Tesla/Optimus.\nMoat: Niche sensing IP + customization capability.\nTop growth drivers: Robotics touch/force sensing adoption, industrial automation, wearable/medical niches.\nTop risks: Small-cap liquidity + customer concentration + unproven Tesla linkage.\nVerify next: customer concentration disclosures, design-win announcements, margin durability.",
       "rating": 1
     },
@@ -786,7 +777,6 @@
       "name": "Regal Rexnord Corporation",
       "date": "2026-04-15",
       "labels": [
-        "humanoids",
         "robotics"
       ],
       "notes": "LLM prompt quick pass\nBusiness: Industrial motion control; Kollmorgen is a key servo/motion brand.\nTesla supplier check: UNVERIFIED direct Tesla linkage; component-level relevance is plausible.\nMoat: Installed base + engineering depth in motion systems.\nTop growth drivers: Factory automation, robotics motion demand, aftermarket/service.\nTop risks: Industrial cycle, integration complexity, no confirmed Optimus contract.\nVerify next: explicit Tesla exposure, robotics segment growth cadence, order-to-sales conversion.",
@@ -797,7 +787,6 @@
       "name": "NSK Ltd.",
       "date": "2026-04-15",
       "labels": [
-        "humanoids",
         "robotics"
       ],
       "notes": "LLM prompt quick pass\nBusiness: Bearings and precision motion components.\nTesla supplier check: UNVERIFIED for Optimus direct supply in current evidence.\nMoat: Precision manufacturing + broad industrial customer network.\nTop growth drivers: Robot joint/bearing demand, precision motion upgrades, EV drivetrain needs.\nTop risks: Commodity/industrial cyclicality, FX exposure, unclear Tesla-specific catalyst.\nVerify next: robotics revenue split, high-precision product mix, large-customer disclosures.",
@@ -808,7 +797,6 @@
       "name": "Harmonic Drive Systems Inc.",
       "date": "2026-04-15",
       "labels": [
-        "humanoids",
         "robotics"
       ],
       "notes": "LLM prompt quick pass\nBusiness: Precision harmonic reducers for robotics.\nTesla supplier check: COMPONENT CATEGORY is highly relevant; direct Optimus supplier status remains UNVERIFIED publicly.\nMoat: High-precision reducer know-how + strong robotics positioning.\nTop growth drivers: Humanoid robot demand, industrial robotics capex, premium motion control needs.\nTop risks: Valuation sensitivity to hype, customer capex cycles, supplier substitution risk.\nVerify next: order momentum from humanoid programs, backlog quality, gross margin trend.",
@@ -819,7 +807,6 @@
       "name": "Schaeffler AG",
       "date": "2026-04-15",
       "labels": [
-        "humanoids",
         "robotics"
       ],
       "notes": "LLM prompt quick pass\nBusiness: Bearings and motion technology.\nTesla supplier check: UNVERIFIED direct Tesla/Optimus supply from current public evidence.\nMoat: Scale + engineering breadth in bearings/motion systems.\nTop growth drivers: EV + industrial automation + precision motion demand.\nTop risks: Industrial cyclicality, margin pressure, unclear direct Optimus exposure.\nVerify next: direct customer references, robotics pipeline disclosures, integration/capex discipline.",
