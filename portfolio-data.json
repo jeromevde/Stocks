@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-27T08:58:24.369Z",
+  "updatedAt": "2026-05-02T20:29:46.307Z",
   "labelOrder": [
     "ai",
     "robotics",
@@ -828,6 +828,16 @@
       "date": "2026-04-27",
       "labels": [
         "photonics"
+      ],
+      "notes": "",
+      "rating": 0
+    },
+    {
+      "ticker": "INFQ",
+      "name": "Infleqtion, Inc.",
+      "date": "2026-05-02",
+      "labels": [
+        "ai"
       ],
       "notes": "",
       "rating": 0
