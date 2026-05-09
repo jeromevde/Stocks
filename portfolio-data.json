@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-02T20:29:46.307Z",
+  "updatedAt": "2026-05-09T14:22:48.050Z",
   "labelOrder": [
     "ai",
     "robotics",
@@ -838,6 +838,16 @@
       "date": "2026-05-02",
       "labels": [
         "ai"
+      ],
+      "notes": "",
+      "rating": 0
+    },
+    {
+      "ticker": "RXRX",
+      "name": "Recursion Pharmaceuticals, Inc.",
+      "date": "2026-05-09",
+      "labels": [
+        "biotech"
       ],
       "notes": "",
       "rating": 0
